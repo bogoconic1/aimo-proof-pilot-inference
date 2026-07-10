@@ -63,7 +63,6 @@ class EngineLike(Protocol):
         stream: bool = False,
     ) -> dict[str, Any] | Iterator[dict[str, Any]]: ...
 
-    def flush_cache(self) -> Any: ...
 
 
 @dataclasses.dataclass
@@ -85,7 +84,9 @@ class GenerationRun:
         return len(self.output_ids)
 
     @property
-    def decode_seconds(self) -> float:
+    def decode_seconds(self) -> float | None:
+        if self.mode != "with_kv_reuse":
+            return None
         return max(0.0, self.elapsed_seconds - self.ttft_seconds)
 
     @property
@@ -98,10 +99,11 @@ class GenerationRun:
 
     @property
     def decode_tokens_per_second(self) -> float | None:
+        decode_seconds = self.decode_seconds
         decode_tokens = self.completion_tokens - 1
-        if decode_tokens <= 0 or self.decode_seconds <= 0:
+        if decode_seconds is None or decode_tokens <= 0 or decode_seconds <= 0:
             return None
-        return decode_tokens / self.decode_seconds
+        return decode_tokens / decode_seconds
 
     def to_dict(self) -> dict[str, Any]:
         result = dataclasses.asdict(self)
@@ -181,7 +183,7 @@ def build_engine_kwargs(args: argparse.Namespace) -> dict[str, Any]:
         "cuda_graph_backend_prefill": "tc_piecewise",
         "cuda_graph_bs_prefill": [256, 1_024, 2_048],
         "triton_attention_num_kv_splits": 32,
-        "log_level": "info",
+        "log_level": "warning",
     }
 
 
@@ -227,8 +229,10 @@ def _meta_info(response: Mapping[str, Any]) -> Mapping[str, Any]:
 
 
 def _cached_tokens(response: Mapping[str, Any]) -> int:
-    value = _meta_info(response).get("cached_tokens", 0)
-    return int(value or 0)
+    meta = _meta_info(response)
+    if "cached_tokens" not in meta:
+        raise RuntimeError("SGLang response omitted cached_tokens telemetry")
+    return int(meta["cached_tokens"] or 0)
 
 
 def _output_ids(response: Mapping[str, Any]) -> list[int]:
@@ -246,13 +250,13 @@ def warm_up(engine: EngineLike, prompt_ids: list[int]) -> None:
         sampling_params=greedy_sampling_params(4),
         stream=False,
     )
-    engine.flush_cache()
 
 
 def run_with_kv_reuse(
     engine: EngineLike,
     prompt_ids: list[int],
     max_new_tokens: int,
+    eos_token_ids: set[int] | None = None,
     *,
     clock: Callable[[], float] = time.perf_counter,
 ) -> GenerationRun:
@@ -296,6 +300,9 @@ def run_with_kv_reuse(
 
     ttft = token_latencies[0] if token_latencies else end - start
     meta = _meta_info(last_response)
+    stopped_on_eos = bool(
+        output_ids and eos_token_ids and output_ids[-1] in eos_token_ids
+    )
     return GenerationRun(
         mode="with_kv_reuse",
         prompt_tokens=len(prompt_ids),
@@ -307,7 +314,7 @@ def run_with_kv_reuse(
         cached_tokens_per_request=[_cached_tokens(last_response)],
         request_count=1,
         finish_reason=meta.get("finish_reason"),
-        stopped_on_eos=False,
+        stopped_on_eos=stopped_on_eos,
     )
 
 
@@ -324,17 +331,21 @@ def run_without_kv_reuse(
     generated: list[int] = []
     step_times: list[float] = []
     cached_tokens: list[int] = []
-    last_response: Mapping[str, Any] | None = None
+    overall_start: float | None = None
+    overall_end: float | None = None
     stopped_on_eos = False
 
     for _ in range(max_new_tokens):
         start = clock()
+        if overall_start is None:
+            overall_start = start
         response = engine.generate(
             input_ids=prompt_ids + generated,
             sampling_params=greedy_sampling_params(1),
             stream=False,
         )
         end = clock()
+        overall_end = end
         if not isinstance(response, Mapping):
             raise TypeError("Non-streaming SGLang generation did not return a mapping")
 
@@ -348,13 +359,15 @@ def run_without_kv_reuse(
         generated.append(new_ids[0])
         step_times.append(end - start)
         cached_tokens.append(_cached_tokens(response))
-        last_response = response
         if new_ids[0] in eos_token_ids:
             stopped_on_eos = True
             break
 
-    elapsed = sum(step_times)
-    meta = _meta_info(last_response or {})
+    elapsed = (
+        overall_end - overall_start
+        if overall_start is not None and overall_end is not None
+        else 0.0
+    )
     return GenerationRun(
         mode="without_kv_reuse_full_reprefill",
         prompt_tokens=len(prompt_ids),
@@ -365,7 +378,11 @@ def run_without_kv_reuse(
         token_latencies_seconds=step_times,
         cached_tokens_per_request=cached_tokens,
         request_count=len(step_times),
-        finish_reason=("eos_token" if stopped_on_eos else meta.get("finish_reason")),
+        finish_reason=(
+            "eos_token"
+            if stopped_on_eos
+            else {"type": "length", "length": max_new_tokens}
+        ),
         stopped_on_eos=stopped_on_eos,
     )
 
@@ -396,10 +413,12 @@ def first_output_mismatch(
 
 def contains_expected_solution(text: str) -> bool:
     compact = re.sub(r"[\s\\{}$]", "", text.lower())
-    named = re.search(r"x=2(?:\.0)?(?:\D|$)", compact) and re.search(
-        r"y=1(?:\.0)?(?:\D|$)", compact
+    named = re.search(r"(?<![\d.])x=2(?:\.0+)?(?![\d.])", compact) and re.search(
+        r"(?<![\d.])y=1(?:\.0+)?(?![\d.])", compact
     )
-    ordered_pair = "(x,y)=(2,1)" in compact or "(2,1)" in compact
+    ordered_pair = re.search(
+        r"(?<![\d.])\(2(?:\.0+)?,1(?:\.0+)?\)(?!\d)", compact
+    )
     return bool(named or ordered_pair)
 
 
@@ -459,7 +478,10 @@ def print_run(run: GenerationRun) -> None:
             f"last={summary['last_seconds'] * 1000:.0f}ms"
         )
     print(f"finish reason       : {run.finish_reason}")
-    print(f"prefix cached tokens: {run.cached_tokens_per_request}")
+    print(
+        "prefix cached tokens: "
+        f"total={sum(run.cached_tokens_per_request)} across {run.request_count} request(s)"
+    )
     print(f"output              : {run.output_text!r}")
 
 
@@ -496,7 +518,9 @@ def run_experiment(args: argparse.Namespace) -> dict[str, Any]:
         print("warming prefill and decode kernels ...", flush=True)
         warm_up(engine, prompt_ids)
 
-        cached = run_with_kv_reuse(engine, prompt_ids, args.max_new_tokens)
+        cached = run_with_kv_reuse(
+            engine, prompt_ids, args.max_new_tokens, eos_token_ids
+        )
         reprefill = run_without_kv_reuse(
             engine, prompt_ids, args.max_new_tokens, eos_token_ids
         )

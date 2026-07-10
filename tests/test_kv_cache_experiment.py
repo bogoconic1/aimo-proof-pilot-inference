@@ -91,7 +91,7 @@ def response(
     *,
     text: str = "",
     cached_tokens: int = 0,
-    finish_reason: str | None = None,
+    finish_reason: Any = None,
 ) -> dict[str, Any]:
     return {
         "output_ids": output_ids,
@@ -147,7 +147,11 @@ class GenerationTests(unittest.TestCase):
         clock = FakeClock(10.0, 10.1, 10.4, 10.9, 11.0)
 
         run = experiment.run_with_kv_reuse(
-            engine, [1, 2, 3], 3, clock=clock
+            engine,
+            [1, 2, 3],
+            3,
+            eos_token_ids={13},
+            clock=clock,
         )
 
         self.assertEqual(len(engine.calls), 1)
@@ -162,12 +166,32 @@ class GenerationTests(unittest.TestCase):
         self.assertEqual(run.request_count, 1)
         self.assertEqual(run.cached_tokens_per_request, [0])
         self.assertEqual(run.finish_reason, "stop")
+        self.assertTrue(run.stopped_on_eos)
         self.assertAlmostEqual(run.elapsed_seconds, 1.0)
         self.assertAlmostEqual(run.ttft_seconds, 0.1)
         for actual, expected in zip(
             run.token_latencies_seconds, [0.1, 0.3, 0.5], strict=True
         ):
             self.assertAlmostEqual(actual, expected)
+
+    def test_missing_cached_token_metadata_is_an_error(self) -> None:
+        engine = FakeEngine(
+            [
+                iter(
+                    [
+                        {
+                            "output_ids": [11],
+                            "text": "x=2, y=1",
+                            "meta_info": {"finish_reason": "stop"},
+                        }
+                    ]
+                )
+            ]
+        )
+        clock = FakeClock(0.0, 0.1, 0.2)
+
+        with self.assertRaisesRegex(RuntimeError, "cached_tokens"):
+            experiment.run_with_kv_reuse(engine, [1, 2], 1, clock=clock)
 
     def test_full_reprefill_grows_input_and_stops_on_eos(self) -> None:
         engine = FakeEngine(
@@ -203,7 +227,10 @@ class GenerationTests(unittest.TestCase):
 
     def test_full_reprefill_stops_at_max_tokens_without_eos(self) -> None:
         engine = FakeEngine(
-            [response([7]), response([8], finish_reason="length")]
+            [
+                response([7], finish_reason={"type": "length", "length": 1}),
+                response([8], finish_reason={"type": "length", "length": 1}),
+            ]
         )
         clock = FakeClock(4.0, 4.2, 4.2, 4.5)
 
@@ -214,10 +241,12 @@ class GenerationTests(unittest.TestCase):
         self.assertEqual(run.output_ids, [7, 8])
         self.assertEqual(run.request_count, 2)
         self.assertFalse(run.stopped_on_eos)
-        self.assertEqual(run.finish_reason, "length")
+        self.assertEqual(run.finish_reason, {"type": "length", "length": 2})
         self.assertEqual(
             [call["input_ids"] for call in engine.calls], [[1], [1, 7]]
         )
+        self.assertIsNone(run.decode_seconds)
+        self.assertIsNone(run.decode_tokens_per_second)
 
 
 class ComparisonTests(unittest.TestCase):
@@ -246,6 +275,7 @@ class ComparisonTests(unittest.TestCase):
             "x = 1 and y = 2",
             "The equations contain 2x and y.",
             "x = 20, y = 10",
+            "x = 2.5, y = 1.5",
         )
 
         for text in positives:
