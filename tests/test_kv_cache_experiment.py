@@ -95,6 +95,7 @@ def response(
     text: str = "",
     cached_tokens: int = 0,
     finish_reason: Any = None,
+    **meta: Any,
 ) -> dict[str, Any]:
     return {
         "output_ids": output_ids,
@@ -102,6 +103,7 @@ def response(
         "meta_info": {
             "cached_tokens": cached_tokens,
             "finish_reason": finish_reason,
+            **meta,
         },
     }
 
@@ -142,6 +144,7 @@ class GenerationTests(unittest.TestCase):
                             [11, 12, 13],
                             text="x=2, y=1",
                             finish_reason="stop",
+                            spec_verify_ct=2,
                         ),
                     ]
                 )
@@ -170,6 +173,11 @@ class GenerationTests(unittest.TestCase):
         self.assertEqual(run.cached_tokens_per_request, [0])
         self.assertEqual(run.finish_reason, "stop")
         self.assertTrue(run.stopped_on_eos)
+        self.assertEqual(run.new_tokens_per_stream_chunk, [1, 1, 1])
+        self.assertEqual(
+            run.speculative_metrics_per_request,
+            [{"spec_verify_ct": 2}],
+        )
         self.assertAlmostEqual(run.elapsed_seconds, 1.0)
         self.assertAlmostEqual(run.ttft_seconds, 0.1)
         for actual, expected in zip(
@@ -226,6 +234,7 @@ class GenerationTests(unittest.TestCase):
         self.assertTrue(run.stopped_on_eos)
         self.assertEqual(run.finish_reason, "eos_token")
         self.assertEqual(run.cached_tokens_per_request, [0, 0, 0])
+        self.assertEqual(run.speculative_metrics_per_request, [{}, {}, {}])
         self.assertAlmostEqual(run.elapsed_seconds, 0.6)
 
     def test_full_reprefill_stops_at_max_tokens_without_eos(self) -> None:

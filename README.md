@@ -78,6 +78,9 @@ attention-kernel benchmark. Because each no-reuse request ends on its one target
 prefill token, that arm does not execute a DFlash draft/verify step; the result
 measures KV-reuse cost in a DFlash-enabled runtime, not symmetric speculative
 throughput.
+The JSON also preserves DFlash acceptance metadata, the effective block-size
+override versus the draft's declared value, warmup data, and streaming chunk
+sizes so the speculative behavior is auditable.
 
 ## Measured throughput (2× H200, 512-token generations)
 

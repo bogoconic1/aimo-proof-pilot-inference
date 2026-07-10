@@ -88,6 +88,8 @@ class GenerationRun:
     request_count: int
     finish_reason: Any
     stopped_on_eos: bool
+    speculative_metrics_per_request: list[dict[str, Any]]
+    new_tokens_per_stream_chunk: list[int]
 
     @property
     def completion_tokens(self) -> int:
@@ -197,6 +199,26 @@ def load_dflash_draft_window(draft_model: str | Path) -> int:
         )
     return window
 
+def load_dflash_draft_metadata(draft_model: str | Path) -> dict[str, Any]:
+    """Record declared draft settings separately from effective overrides."""
+
+    config_path = Path(draft_model) / "config.json"
+    config = json.loads(config_path.read_text())
+    dflash_config = config.get("dflash_config")
+    if not isinstance(dflash_config, Mapping):
+        dflash_config = {}
+    return {
+        "config_path": str(config_path),
+        "architectures": config.get("architectures"),
+        "torch_dtype": config.get("torch_dtype"),
+        "declared_block_size": dflash_config.get("block_size"),
+        "declared_sliding_window": (
+            config.get("sliding_window") or dflash_config.get("sliding_window")
+        ),
+        "effective_block_size_override": DFLASH_BLOCK_SIZE,
+        "draft_model_quantization": None,
+    }
+
 
 def build_engine_kwargs(args: argparse.Namespace) -> dict[str, Any]:
     """Return the mandatory-DFlash configuration shared by both paths."""
@@ -288,14 +310,34 @@ def _output_ids(response: Mapping[str, Any]) -> list[int]:
     return [int(token_id) for token_id in value]
 
 
-def warm_up(engine: EngineLike, prompt_ids: list[int]) -> None:
+def _speculative_metrics(response: Mapping[str, Any]) -> dict[str, Any]:
+    """Keep every response metric published under SGLang's spec_* namespace."""
+
+    return {
+        str(key): value
+        for key, value in _meta_info(response).items()
+        if str(key).startswith(("spec_", "avg_spec_"))
+    }
+
+
+def warm_up(engine: EngineLike, prompt_ids: list[int]) -> dict[str, Any]:
     """Exercise both prefill and decode kernels without creating a prefix hit."""
 
-    engine.generate(
+    start = time.perf_counter()
+    response = engine.generate(
         input_ids=prompt_ids,
         sampling_params=greedy_sampling_params(4),
         stream=False,
     )
+    elapsed = time.perf_counter() - start
+    if not isinstance(response, Mapping):
+        raise TypeError("Non-streaming SGLang warmup did not return a mapping")
+    return {
+        "elapsed_seconds": elapsed,
+        "output_token_count": len(_output_ids(response)),
+        "cached_tokens": _cached_tokens(response),
+        "speculative_metrics": _speculative_metrics(response),
+    }
 
 
 def run_with_kv_reuse(
@@ -321,9 +363,13 @@ def run_with_kv_reuse(
 
     last_response: Mapping[str, Any] | None = None
     token_timestamps: list[float] = []
+    new_tokens_per_chunk: list[int] = []
+    previous_output_count = 0
     for response in chunks:
         now = clock()
         ids = _output_ids(response)
+        new_tokens_per_chunk.append(max(0, len(ids) - previous_output_count))
+        previous_output_count = max(previous_output_count, len(ids))
         while len(token_timestamps) < len(ids):
             token_timestamps.append(now)
         last_response = response
@@ -361,6 +407,8 @@ def run_with_kv_reuse(
         request_count=1,
         finish_reason=meta.get("finish_reason"),
         stopped_on_eos=stopped_on_eos,
+        speculative_metrics_per_request=[_speculative_metrics(last_response)],
+        new_tokens_per_stream_chunk=new_tokens_per_chunk,
     )
 
 
@@ -377,6 +425,7 @@ def run_without_kv_reuse(
     generated: list[int] = []
     step_times: list[float] = []
     cached_tokens: list[int] = []
+    speculative_metrics: list[dict[str, Any]] = []
     overall_start: float | None = None
     overall_end: float | None = None
     stopped_on_eos = False
@@ -405,6 +454,7 @@ def run_without_kv_reuse(
         generated.append(new_ids[0])
         step_times.append(end - start)
         cached_tokens.append(_cached_tokens(response))
+        speculative_metrics.append(_speculative_metrics(response))
         if new_ids[0] in eos_token_ids:
             stopped_on_eos = True
             break
@@ -430,6 +480,8 @@ def run_without_kv_reuse(
             else {"type": "length", "length": max_new_tokens}
         ),
         stopped_on_eos=stopped_on_eos,
+        speculative_metrics_per_request=speculative_metrics,
+        new_tokens_per_stream_chunk=[],
     )
 
 
@@ -568,7 +620,7 @@ def run_experiment(args: argparse.Namespace) -> dict[str, Any]:
         print(f"DFlash draft  : {args.draft_model}")
         print("DFlash        : mandatory (block=8, draft window from config)")
         print("warming prefill and decode kernels ...", flush=True)
-        warm_up(engine, prompt_ids)
+        warmup = warm_up(engine, prompt_ids)
 
         cached = run_with_kv_reuse(
             engine, prompt_ids, args.max_new_tokens, eos_token_ids
@@ -615,6 +667,7 @@ def run_experiment(args: argparse.Namespace) -> dict[str, Any]:
                 "kv_cache_dtype": args.kv_cache_dtype,
                 "prompt_token_ids": prompt_ids,
                 "draft_model": args.draft_model,
+                "dflash_draft_metadata": load_dflash_draft_metadata(args.draft_model),
                 "eos_token_ids": sorted(eos_token_ids),
                 "engine_kwargs": build_engine_kwargs(args),
             },
@@ -626,6 +679,7 @@ def run_experiment(args: argparse.Namespace) -> dict[str, Any]:
                     name: os.environ[name] for name in DFLASH_ENVIRONMENT
                 },
             },
+            "warmup": warmup,
             "with_kv_reuse": cached.to_dict(),
             "without_kv_reuse": reprefill.to_dict(),
             "comparison": comparison,
