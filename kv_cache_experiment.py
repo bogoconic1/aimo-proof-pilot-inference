@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Compare SGLang decoding with KV reuse against full re-prefill decoding.
+"""Compare mandatory-DFlash SGLang decoding with KV reuse vs full re-prefill.
 
 SGLang does not expose a 'use_cache=False' mode for causal generation. Its
 'disable_radix_cache' option disables cross-request prefix caching, but an
@@ -17,7 +17,7 @@ timing includes scheduler/IPC/request overhead and is not a pure kernel A/B.
 Run with the patched proof-pilot environment, for example:
 
     /workspace/pp/venv/bin/python kv_cache_experiment.py \
-        --gpu 1 --json-out eval/results/kv_cache_reuse_h200.json
+        --gpu 1 --json-out eval/results/kv_cache_reuse_h200_dflash.json
 """
 
 from __future__ import annotations
@@ -34,8 +34,18 @@ from typing import Any, Protocol
 
 
 DEFAULT_MODEL = "/workspace/models/opd-32b-deploy"
+DEFAULT_DRAFT_MODEL = "/workspace/models/dflash-32b-draft-v2test-phaseL"
 DEFAULT_QUESTION = "solve the equations 2x+2y=6 and 3x-y=5 for x and y"
 DEFAULT_MAX_NEW_TOKENS = 256
+DFLASH_BLOCK_SIZE = 8
+DFLASH_ENVIRONMENT = {
+    "SGLANG_ALLOW_OVERWRITE_LONGER_CONTEXT_LEN": "1",
+    "SGLANG_ENABLE_OVERLAP_PLAN_STREAM": "1",
+    "SGLANG_DFLASH_DRAFT_RING": "1",
+    "SGLANG_DFLASH_DRAFT_RING_QUOTA": "4",
+    "SGLANG_SWA_EVICTION_INTERVAL_MULTIPLIER": "0.125",
+    "SGLANG_OPT_SWA_RELEASE_LEAF_LOCK_AFTER_WINDOW": "1",
+}
 
 
 class TokenizerLike(Protocol):
@@ -125,6 +135,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--question", default=DEFAULT_QUESTION)
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument(
+        "--draft-model",
+        default=DEFAULT_DRAFT_MODEL,
+        help="Mandatory local BF16 DFlash draft model (there is no non-DFlash mode).",
+    )
+    parser.add_argument(
         "--gpu",
         default="1",
         help="Physical GPU selection written to CUDA_VISIBLE_DEVICES before importing SGLang.",
@@ -134,9 +149,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--kv-cache-dtype",
-        default="auto",
+        default="fp8_e4m3",
         choices=("auto", "bf16", "fp8_e4m3"),
-        help="Use auto/BF16 for correctness; fp8_e4m3 matches production serving.",
+        help="Defaults to production's fp8_e4m3 target KV cache.",
     )
     parser.add_argument(
         "--json-out",
@@ -158,13 +173,44 @@ def configure_environment(gpu: str) -> None:
     os.environ.setdefault("SGLANG_DECODE_BLOCK_N", "32")
     os.environ.setdefault("SGLANG_GQA_PACKED_EXTEND", "1")
     os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
+    for name, value in DFLASH_ENVIRONMENT.items():
+        os.environ[name] = value
+
+
+def load_dflash_draft_window(draft_model: str | Path) -> int:
+    """Read the mandatory DFlash ring window from the local draft config."""
+
+    config_path = Path(draft_model) / "config.json"
+    config = json.loads(config_path.read_text())
+    value = config.get("sliding_window")
+    if value is None:
+        dflash_config = config.get("dflash_config")
+        if isinstance(dflash_config, Mapping):
+            value = dflash_config.get("sliding_window")
+    if value is None:
+        raise ValueError(f"DFlash draft config has no sliding_window: {config_path}")
+    window = int(value)
+    if window < DFLASH_BLOCK_SIZE:
+        raise ValueError(
+            "DFlash draft sliding_window must be at least the configured block "
+            f"size ({DFLASH_BLOCK_SIZE}), got {window}"
+        )
+    return window
 
 
 def build_engine_kwargs(args: argparse.Namespace) -> dict[str, Any]:
-    """Return the single-GPU configuration shared by both experiment paths."""
+    """Return the mandatory-DFlash configuration shared by both paths."""
 
     return {
         "model_path": args.model,
+        "speculative_algorithm": "DFLASH",
+        "speculative_draft_model_path": args.draft_model,
+        "speculative_dflash_block_size": DFLASH_BLOCK_SIZE,
+        "speculative_num_draft_tokens": DFLASH_BLOCK_SIZE,
+        "speculative_draft_window_size": load_dflash_draft_window(
+            args.draft_model
+        ),
+        "speculative_draft_attention_backend": "triton",
         "attention_backend": "triton",
         "tp_size": 1,
         "context_length": 200_000,
@@ -504,6 +550,10 @@ def run_experiment(args: argparse.Namespace) -> dict[str, Any]:
         server_args = getattr(engine, "server_args", None)
         if not getattr(server_args, "disable_radix_cache", False):
             raise RuntimeError("The experiment requires disable_radix_cache=True")
+        if getattr(server_args, "speculative_algorithm", None) != "DFLASH":
+            raise RuntimeError(
+                "The experiment requires speculative_algorithm=DFLASH"
+            )
 
         tokenizer = engine.tokenizer_manager.tokenizer
         if tokenizer is None:
@@ -515,6 +565,8 @@ def run_experiment(args: argparse.Namespace) -> dict[str, Any]:
         print(f"prompt tokens : {len(prompt_ids)}")
         print(f"model         : {args.model}")
         print(f"GPU           : {torch.cuda.get_device_name(0)}")
+        print(f"DFlash draft  : {args.draft_model}")
+        print("DFlash        : mandatory (block=8, draft window from config)")
         print("warming prefill and decode kernels ...", flush=True)
         warm_up(engine, prompt_ids)
 
@@ -540,10 +592,18 @@ def run_experiment(args: argparse.Namespace) -> dict[str, Any]:
                     "fresh one-token SGLang requests over the entire growing sequence"
                 ),
                 "radix_prefix_cache": "disabled for both paths",
+                "speculative_decoding": (
+                    "DFLASH is mandatory; block size 8 with a 512-token local "
+                    "BF16 draft KV ring"
+                ),
                 "caveat": (
                     "The full-reprefill timing includes scheduler, IPC, and per-request "
                     "allocation overhead; SGLang still allocates/writes its paged KV pool "
-                    "inside each prefill request."
+                    "inside each prefill request. Each one-token no-reuse request finishes "
+                    "on the target prefill token before a DFlash draft/verify step, so this "
+                    "measures KV-reuse cost under a DFlash-enabled runtime rather than a "
+                    "symmetric DFlash throughput comparison. Accepted DFlash tokens can "
+                    "arrive in one streaming chunk, making per-token latencies approximate."
                 ),
             },
             "configuration": {
@@ -554,6 +614,7 @@ def run_experiment(args: argparse.Namespace) -> dict[str, Any]:
                 "max_new_tokens": args.max_new_tokens,
                 "kv_cache_dtype": args.kv_cache_dtype,
                 "prompt_token_ids": prompt_ids,
+                "draft_model": args.draft_model,
                 "eos_token_ids": sorted(eos_token_ids),
                 "engine_kwargs": build_engine_kwargs(args),
             },
@@ -561,6 +622,9 @@ def run_experiment(args: argparse.Namespace) -> dict[str, Any]:
                 "sglang": sglang.__version__,
                 "torch": torch.__version__,
                 "torch_cuda": torch.version.cuda,
+                "dflash_environment": {
+                    name: os.environ[name] for name in DFLASH_ENVIRONMENT
+                },
             },
             "with_kv_reuse": cached.to_dict(),
             "without_kv_reuse": reprefill.to_dict(),

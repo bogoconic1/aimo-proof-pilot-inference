@@ -5,7 +5,10 @@ from __future__ import annotations
 import argparse
 import builtins
 import importlib.util
+import json
+import os
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from typing import Any
@@ -287,14 +290,53 @@ class ComparisonTests(unittest.TestCase):
 
 
 class ConfigurationTests(unittest.TestCase):
-    def test_engine_kwargs_disable_radix_cache(self) -> None:
-        args = argparse.Namespace(model="fake-model", kv_cache_dtype="auto")
+    def test_engine_kwargs_make_dflash_mandatory_and_disable_radix(self) -> None:
+        args = argparse.Namespace(
+            model="fake-model",
+            draft_model="fake-draft",
+            kv_cache_dtype="fp8_e4m3",
+        )
 
-        kwargs = experiment.build_engine_kwargs(args)
+        with mock.patch.object(
+            experiment, "load_dflash_draft_window", return_value=512
+        ):
+            kwargs = experiment.build_engine_kwargs(args)
 
         self.assertIs(kwargs["disable_radix_cache"], True)
         self.assertIs(kwargs["enable_cache_report"], True)
         self.assertEqual(kwargs["max_running_requests"], 1)
+        self.assertEqual(kwargs["speculative_algorithm"], "DFLASH")
+        self.assertEqual(kwargs["speculative_draft_model_path"], "fake-draft")
+        self.assertEqual(kwargs["speculative_dflash_block_size"], 8)
+        self.assertEqual(kwargs["speculative_num_draft_tokens"], 8)
+        self.assertEqual(kwargs["speculative_draft_window_size"], 512)
+        self.assertEqual(kwargs["speculative_draft_attention_backend"], "triton")
+
+    def test_dflash_window_is_required_from_draft_config(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            config_path = Path(directory) / "config.json"
+            config_path.write_text(json.dumps({"sliding_window": 512}))
+            self.assertEqual(experiment.load_dflash_draft_window(directory), 512)
+
+            config_path.write_text(json.dumps({"dflash_config": {}}))
+            with self.assertRaisesRegex(ValueError, "no sliding_window"):
+                experiment.load_dflash_draft_window(directory)
+
+    def test_environment_forces_dflash_settings(self) -> None:
+        stale = {name: "0" for name in experiment.DFLASH_ENVIRONMENT}
+        with mock.patch.dict(os.environ, stale, clear=False):
+            experiment.configure_environment("7")
+            self.assertEqual(os.environ["CUDA_VISIBLE_DEVICES"], "7")
+            for name, value in experiment.DFLASH_ENVIRONMENT.items():
+                self.assertEqual(os.environ[name], value)
+
+    def test_parser_has_no_dflash_opt_in_and_defaults_to_fp8(self) -> None:
+        parser = experiment.build_parser()
+        args = parser.parse_args([])
+
+        self.assertEqual(args.draft_model, experiment.DEFAULT_DRAFT_MODEL)
+        self.assertEqual(args.kv_cache_dtype, "fp8_e4m3")
+        self.assertNotIn("dflash", {action.dest for action in parser._actions})
 
     def test_module_import_does_not_import_sglang(self) -> None:
         source_path = Path(experiment.__file__).resolve()

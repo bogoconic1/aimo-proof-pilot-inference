@@ -56,6 +56,10 @@ the cache.
 request's KV state while decoding, with an emulated no-reuse path that submits
 one-token requests over the entire growing sequence. Radix prefix caching is
 disabled for both paths, so every one-token request performs a full prefill.
+DFlash is mandatory in this experiment: there is no opt-in switch and no
+non-DFlash fallback. It always loads the local BF16 draft, uses block size 8,
+an auto-read 512-token draft ring, Triton draft attention, and the launcher
+environment settings.
 
 Run the default equation-solving experiment on GPU 1 with the patched
 environment:
@@ -64,14 +68,16 @@ environment:
 cd /workspace
 /workspace/pp/venv/bin/python kv_cache_experiment.py \
   --gpu 1 \
-  --json-out eval/results/kv_cache_reuse_h200.json
+  --json-out eval/results/kv_cache_reuse_h200_dflash.json
 ```
 
-The default `--kv-cache-dtype auto` uses BF16 KV for the correctness comparison.
-Pass `--kv-cache-dtype fp8_e4m3` to match production serving. The full-reprefill
+The default target KV dtype is production's `fp8_e4m3`. The full-reprefill
 timing includes one SGLang scheduler/IPC round trip and per-request allocation
 overhead per output token, so it is an end-to-end comparison rather than a pure
-attention-kernel benchmark.
+attention-kernel benchmark. Because each no-reuse request ends on its one target
+prefill token, that arm does not execute a DFlash draft/verify step; the result
+measures KV-reuse cost in a DFlash-enabled runtime, not symmetric speculative
+throughput.
 
 ## Measured throughput (2× H200, 512-token generations)
 
