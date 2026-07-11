@@ -21,8 +21,8 @@
 #       transforms and keep sampling uniforms off zero-probability boundaries
 #   patch_deterministic_chunk_alignment.py (script) reject deterministic
 #       alignment/chunk combinations that would spin the prefill scheduler
-#   patch_w4a8_mode_guard.py (script) keep the optional Humming import behind
-#       SGLANG_USE_HUMMING_W4A8=1 and log every successfully constructed layer
+#   patch_w4a8_runtime_marker.py (script) log every successfully constructed
+#       Humming W4A8 layer for strict runtime validation
 #
 # Usage: bash apply_patches.sh <venv_path>
 set -euo pipefail
@@ -55,5 +55,5 @@ find "$SROOT/models" "$SROOT/speculative" -name '*.pyc' -delete 2>/dev/null || t
 "$VENV/bin/python" "$SRC/patch_decode_tune.py" "$VENV"
 "$VENV/bin/python" "$SRC/patch_gqa_packed_extend.py" "$VENV"
 "$VENV/bin/python" "$SRC/patch_deterministic_chunk_alignment.py" "$VENV"
-"$VENV/bin/python" "$SRC/patch_w4a8_mode_guard.py" "$VENV"
+"$VENV/bin/python" "$SRC/patch_w4a8_runtime_marker.py" "$VENV"
 echo "[patch] done"

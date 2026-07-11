@@ -235,26 +235,16 @@ def _effective_common_arguments(
 def _effective_dflash_arguments(
     profile: dict[str, Any], pair: dict[str, Any]
 ) -> dict[str, Any]:
-    """Merge profile overrides and require both DFlash block flags to agree."""
+    """Return the single supported DFlash block configuration."""
 
     base = pair.get("dflash_arguments")
-    overrides = profile.get("dflash_argument_overrides", {})
     if not isinstance(base, dict):
         raise RunnerError("server_pair.dflash_arguments must be an object")
-    if not isinstance(overrides, dict):
-        raise RunnerError("profile dflash_argument_overrides must be an object")
     block_keys = (
         "speculative_dflash_block_size",
         "speculative_num_draft_tokens",
     )
-    overridden = [key for key in block_keys if key in overrides]
-    if overridden and len(overridden) != len(block_keys):
-        raise RunnerError(
-            "profile block-size overrides must set both "
-            "speculative_dflash_block_size and speculative_num_draft_tokens"
-        )
     arguments = dict(base)
-    arguments.update(overrides)
     _positive_int(
         profile.get("expected_checkpoint_block_size"),
         "profile expected_checkpoint_block_size",

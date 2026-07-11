@@ -23,8 +23,8 @@ write test artifacts into production/evaluation result directories.
 Run the production-equivalent quick matrix with:
 
 ```bash
-/workspace/original/runtime/venv/bin/python tests/run_dflash_correctness.py \
-  --profile fix4_w4a16_int4 \
+/workspace/pp/venv/bin/python tests/run_dflash_correctness.py \
+  --profile humming_w4a8 \
   --phase production \
   --tier quick \
   --results-dir tests/results/<run-name>
@@ -127,9 +127,7 @@ semantic difference is that one server has DFlash enabled.
 The primary profile intentionally keeps the notebook's runtime block size 8
 even though the draft checkpoint declares its native training block size 11.
 The runner validates that override explicitly in the command, effective server
-state, and startup warning. Separate block-1 and native block-11 profiles are
-diagnostics for verifier shape sensitivity; they never replace the block-8
-production-equivalence profile.
+state, and startup warning. No alternate block-size profile is supported.
 
 ## Coverage matrix
 

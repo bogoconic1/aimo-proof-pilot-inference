@@ -26,7 +26,7 @@ from typing import Any
 REPO = Path(__file__).resolve().parents[2]
 EVALUATION = REPO / "evaluation"
 RUNS = EVALUATION / "runs"
-DEFAULT_CONFIG = EVALUATION / "configs" / "opd32b_dflash_quantized.json"
+DEFAULT_CONFIG = EVALUATION / "configs" / "opd32b_dflash_humming_w4a8.json"
 DATA = EVALUATION / "data" / "proofbench_v2.csv"
 GRADER_PROMPT = EVALUATION / "prompts" / "grader.md"
 HARNESS = EVALUATION / "harness"

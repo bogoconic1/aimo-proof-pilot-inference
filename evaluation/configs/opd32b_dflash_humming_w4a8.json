@@ -1,7 +1,7 @@
 {
   "schema_version": 3,
   "model": {
-    "mode": "quantized",
+    "mode": "humming_w4a8",
     "served_model": "/workspace/original/models/opd-32b-v33-s200-gptq-w4a16",
     "target": "/workspace/original/models/opd-32b-v33-s200-gptq-w4a16",
     "draft": "/workspace/original/models/dflash-32b-draft-v2test-phaseL-int4mlp",

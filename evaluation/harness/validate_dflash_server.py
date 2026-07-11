@@ -34,7 +34,7 @@ def main() -> None:
 
     assert target_config["torch_dtype"] == "bfloat16"
     assert draft_config["torch_dtype"] == "bfloat16"
-    if model["mode"] == "quantized":
+    if model["mode"] == "humming_w4a8":
         assert target_config["quantization_config"]["quant_method"] == "compressed-tensors"
         assert draft_config["quantization_config"]["quant_method"] == "compressed-tensors"
         assert server["kv_cache_dtype"] == "fp8_e4m3"

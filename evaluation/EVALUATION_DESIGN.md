@@ -1,13 +1,13 @@
 # IMO ProofBench DFlash Evaluation Design
 
-Status: **quantized model run approved on 2026-07-11**
+Status: **Humming W4A8 model run approved on 2026-07-11**
 
 The active run uses the notebook proof-loop and serving settings with the
-H200-compatible quantized model path: GPTQ-W4A16/Marlin target, int4-MLP
+H200 Humming W4A8 model path: GPTQ INT4 target, int4-MLP
 phase-L draft, unit-scale FP8 E4M3 KV, and BF16 LM head. The server ceiling is
 48, client concurrency is 12, and prove/refine concurrency is 6. A server
 startup or runtime failure is terminal; settings are not reduced automatically.
-The H200 quantized memory fraction is 0.85, matching ycchen's safe launcher
+The Humming W4A8 memory fraction is 0.85, matching ycchen's safe launcher
 default; 0.88 was measured to starve the mandatory DFlash draft CUDA graph.
 
 ## 1. Objective
@@ -16,7 +16,7 @@ Evaluate the local OPD-32B target on all 60 ProofBench v2 problems using:
 
 - SGLang inference only;
 - mandatory DFlash speculative decoding;
-- a GPTQ-W4A16 target and int4-MLP DFlash draft;
+- a GPTQ INT4 target executed through Humming W4A8 and an int4-MLP DFlash draft;
 - FP8 E4M3 KV at unit scale and a BF16 language-model head;
 - 30 Basic and 30 Advanced problems;
 - the exact hash-pinned `submission-32b-fix4.ipynb` v2 streaming prompts and
@@ -93,7 +93,7 @@ The stopped BF16 attempt used a different GPU memory envelope. It reported:
 
 That BF16 attempt passed startup but failed at runtime in DFlash hidden-state
 projection. Its evidence is preserved under the corresponding run directory.
-The approved quantized run keeps the notebook's `max_running_requests=48`
+The approved Humming W4A8 run keeps the notebook's `max_running_requests=48`
 ceiling and effective client ceiling of 12.
 
 ## 5. Evaluation architecture
@@ -132,6 +132,8 @@ The preflight must assert all of the following and stop on the first mismatch:
 - draft model path equals
   `/workspace/original/models/dflash-32b-draft-v2test-phaseL-int4mlp`;
 - target and draft configurations declare compressed-tensors quantization;
+- Humming preflight selects `Sm90Heuristics` on H200;
+- at least one target layer emits `HUMMING_W4A8_LAYER_READY`;
 - the FP32 LM-head override is disabled;
 - KV cache resolves to `fp8_e4m3` with checkpoint scales disabled;
 - speculative algorithm is exactly `DFLASH`;
@@ -170,7 +172,7 @@ the performance record internally inconsistent.
 
 ### 9.1 Fixed inference parameters
 
-- target: GPTQ-W4A16 OPD-32B through Marlin;
+- target: GPTQ INT4 OPD-32B through Humming W4A8 with SM90 heuristics;
 - draft: int4-MLP W4A16 DFlash draft;
 - BF16 LM head;
 - unit-scale FP8 E4M3 KV cache;
@@ -337,7 +339,7 @@ that later result-only commits changed the running code.
 
 ## 14. Execution authorization
 
-The user authorized switching from the stopped BF16 run to the quantized model
+The user authorized switching from the stopped BF16 run to the Humming W4A8 model
 pair and starting a fresh evaluation. This authorization covers the
-source/configuration changes, two quantized DFlash servers, 60-problem generation,
+source/configuration changes, two Humming W4A8 DFlash servers, 60-problem generation,
 the previously specified two-pass DeepSeek grading, audits, commits, and pushes.

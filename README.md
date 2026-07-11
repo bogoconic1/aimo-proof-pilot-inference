@@ -3,7 +3,7 @@
 Inference for the **OPD-32B** model family (`Olmo3SinkForCausalLM` — Olmo3 32B
 plus a trained per-head attention-sink logit in every layer, gpt-oss style,
 with hybrid sliding-window attention and YaRN rope). The production launcher
-supports the BF16 model pair and the notebook's quantized model pair. It is
+supports exactly two model pairs: Humming W4A8 and BF16. It is
 verified on 2× H200 with one replica per GPU.
 
 Stock sglang/vLLM don't know the `Olmo3Sink` architecture, so this runs a
@@ -44,18 +44,16 @@ hf download ycchen/proof-pilot-deploy-bundle \
 ## Serve + solve
 
 ```bash
-MODEL_MODE=quantized bash serve_opd32b.sh &
-MODEL_MODE=quantized PORT=30001 CUDA_VISIBLE_DEVICES=1 bash serve_opd32b.sh &
+MODEL_MODE=humming_w4a8 bash serve_opd32b.sh &
+MODEL_MODE=humming_w4a8 PORT=30001 CUDA_VISIBLE_DEVICES=1 bash serve_opd32b.sh &
 python solve_problems.py                                  # fans out across both
 ```
 
-`MODEL_MODE=quantized` uses the GPTQ-W4A16 target through Marlin, the int4-MLP
-phase-L DFlash draft, and unit-scale FP8 E4M3 KV. Humming W4A8 is intentionally
-not enabled because that notebook optimization targets Blackwell/SM120; Marlin
-is ycchen's robust baseline on this H200/SM90 host. `MODEL_MODE=bf16` selects
-the unquantized target, draft, and KV cache. Both modes use mandatory DFlash,
-200k context, Triton attention with in-kernel sinks, and CUDA graphs through
-batch 48.
+`MODEL_MODE=humming_w4a8` uses the GPTQ INT4 checkpoint with mandatory Humming
+W4A8 SM90 execution, the int4-MLP phase-L DFlash draft, and FP8 E4M3 KV.
+`MODEL_MODE=bf16` selects the BF16 target, draft, KV cache, and LM head. No
+other weight or activation mode is supported. Both modes use mandatory DFlash,
+200k context, and Triton attention with in-kernel sinks.
 
 ## KV-cache reuse experiment
 

@@ -9,12 +9,12 @@ intentionally not carried here.
 ## Invariants
 
 - DFlash is mandatory.
-- `MODEL_MODE=quantized` is the active mode: GPTQ-W4A16 target, int4-MLP
+- `MODEL_MODE=humming_w4a8` is the active mode: GPTQ INT4 target, int4-MLP
   phase-L draft, unit-scale FP8 E4M3 KV, and BF16 LM head. Eligible target MLP
   projections execute through mandatory Humming W4A8 with SM90 heuristics.
 - `MODEL_MODE=bf16` selects BF16 target, draft, KV cache, and LM head for
   controlled numerical comparisons.
-- Humming W4A8 is mandatory in quantized mode. H200 is SM90; upstream Humming
+- Humming W4A8 is mandatory in `humming_w4a8` mode. H200 is SM90; upstream Humming
   supports FP8 E4M3 activations on SM89 and newer and selects
   `Sm90Heuristics`. Startup aborts unless the package, ycchen integration
   helper, NVRTC library, SM90 preflight, and constructed-layer runtime marker
@@ -29,7 +29,7 @@ intentionally not carried here.
 
 | Path | Purpose |
 |---|---|
-| `configs/opd32b_dflash_quantized.json` | active quantized serving and agentic parameters |
+| `configs/opd32b_dflash_humming_w4a8.json` | active Humming W4A8 serving and agentic parameters |
 | `configs/opd32b_dflash_bf16.json` | BF16 comparison serving and agentic parameters |
 | `data/proofbench_v2.csv` | 60-problem ProofBench v2 benchmark |
 | `harness/validate_dflash_server.py` | checks the live SGLang server against the selected config |
@@ -44,11 +44,11 @@ intentionally not carried here.
 
 ## Full execution
 
-Start two mandatory quantized DFlash replicas, one per H200:
+Start two mandatory Humming W4A8 DFlash replicas, one per H200:
 
 ```bash
-MODEL_MODE=quantized CUDA_VISIBLE_DEVICES=0 PORT=30000 bash serve_opd32b.sh
-MODEL_MODE=quantized CUDA_VISIBLE_DEVICES=1 PORT=30001 bash serve_opd32b.sh
+MODEL_MODE=humming_w4a8 CUDA_VISIBLE_DEVICES=0 PORT=30000 bash serve_opd32b.sh
+MODEL_MODE=humming_w4a8 CUDA_VISIBLE_DEVICES=1 PORT=30001 bash serve_opd32b.sh
 ```
 
 Load the DeepSeek credential and run the complete pipeline:
@@ -58,13 +58,13 @@ set -a
 source /workspace/.env
 set +a
 /workspace/pp/venv/bin/python evaluation/harness/run_full_evaluation.py \
-  --config evaluation/configs/opd32b_dflash_quantized.json \
-  --run-id opd32b-dflash-quantized-full-20260711
+  --config evaluation/configs/opd32b_dflash_humming_w4a8.json \
+  --run-id opd32b-dflash-humming-w4a8-full-20260711
 ```
 
 The servers use the notebook ceiling of 48 running requests while each streaming
 client admits 12 total calls, caps prove/refine at 6, and prioritizes verifiers.
-The orchestrator validates both live servers against the immutable quantized
+The orchestrator validates both live servers against the immutable Humming W4A8
 config, confirms that the authenticated
 DeepSeek model list contains `deepseek-v4-flash`, creates twelve deterministic
 five-problem shards, runs Basic and Advanced concurrently, requires exactly 60
