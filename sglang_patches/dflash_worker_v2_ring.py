@@ -48,6 +48,7 @@ from sglang.srt.utils import (
     is_hip,
     is_npu,
 )
+from sglang.srt.utils.async_probe import sanitize_nan_logits
 
 _is_npu = is_npu()
 
@@ -1287,16 +1288,22 @@ class DFlashWorkerV2(BaseSpecWorker):
         if sampling_info is None or sampling_info.is_all_greedy:
             return
 
-        if (
-            not is_dflash_sampling_verify_available()
-            and not self._warned_sampling_fallback
-            and self.tp_rank == 0
-        ):
-            logger.warning(
-                "DFLASH non-greedy verification is unavailable on this build/device; "
-                "falling back to greedy argmax verification."
+        server_args = get_global_server_args()
+        threshold_single = float(
+            server_args.speculative_accept_threshold_single
+        )
+        threshold_acc = float(server_args.speculative_accept_threshold_acc)
+        if threshold_single != 1.0 or threshold_acc != 1.0:
+            raise ValueError(
+                "DFLASH distribution-preserving sampling requires speculative "
+                "acceptance thresholds single=1.0 and acc=1.0; "
+                f"got single={threshold_single} and acc={threshold_acc}."
             )
-            self._warned_sampling_fallback = True
+        if not is_dflash_sampling_verify_available():
+            raise RuntimeError(
+                "DFLASH non-greedy verification is unavailable on this "
+                "build/device; refusing to change the request to greedy decoding."
+            )
 
     def _make_next_draft_input_prefill(
         self,
@@ -1735,6 +1742,11 @@ class DFlashWorkerV2(BaseSpecWorker):
         )
         logits_output = target_out.logits_output
         can_run_cuda_graph = target_out.can_run_cuda_graph
+
+        sanitize_nan_logits(
+            logits_output.next_token_logits,
+            "DFLASH verify: target model logits",
+        )
 
         if sampling_info is not None:
             apply_dflash_verify_logits_adjustments(

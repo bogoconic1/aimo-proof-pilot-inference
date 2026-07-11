@@ -14,6 +14,12 @@
 #       (SGLANG_DECODE_NUM_STAGES / SGLANG_DECODE_BLOCK_N)
 #   patch_gqa_packed_extend.py  (script) env-gated GQA-packed extend kernel
 #       (SGLANG_GQA_PACKED_EXTEND)
+#   patch_speculative_finish.py (script) earliest-stop handling and committed
+#       KV-tail trimming for multi-token DFlash verify results
+#   patch_dflash_sampling.py    (script) reject unsupported probability
+#       transforms and keep sampling uniforms off zero-probability boundaries
+#   patch_deterministic_chunk_alignment.py (script) reject deterministic
+#       alignment/chunk combinations that would spin the prefill scheduler
 #
 # Usage: bash apply_patches.sh <venv_path>
 set -euo pipefail
@@ -40,6 +46,9 @@ for p in "${PATCHES[@]}"; do
 done
 find "$SROOT/models" "$SROOT/speculative" -name '*.pyc' -delete 2>/dev/null || true
 
+"$VENV/bin/python" "$SRC/patch_dflash_sampling.py" "$VENV"
+"$VENV/bin/python" "$SRC/patch_speculative_finish.py" "$VENV"
 "$VENV/bin/python" "$SRC/patch_decode_tune.py" "$VENV"
 "$VENV/bin/python" "$SRC/patch_gqa_packed_extend.py" "$VENV"
+"$VENV/bin/python" "$SRC/patch_deterministic_chunk_alignment.py" "$VENV"
 echo "[patch] done"
