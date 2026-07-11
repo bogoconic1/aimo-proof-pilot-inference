@@ -32,6 +32,8 @@ class RunnerConfigurationTests(unittest.TestCase):
         self.assertIn("--speculative-algorithm", dflash)
         self.assertIn("DFLASH", dflash)
         self.assertIn("--speculative-draft-model-path", dflash)
+        mem_index = dflash.index("--mem-fraction-static")
+        self.assertEqual(dflash[mem_index + 1], "0.85")
 
     def test_test_environment_requires_dflash_ring_only_for_sut(self) -> None:
         phase = self.config["phases"]["production"]

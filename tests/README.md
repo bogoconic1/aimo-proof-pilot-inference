@@ -56,6 +56,7 @@ The primary GPU run mirrors `submission-32b-fix4.ipynb` on this H200 host:
 | Target attention | hybrid: 48 SWA-4096 layers and 16 full-attention layers |
 | Draft attention | 8 SWA-512 layers with the compact KV ring enabled |
 | Speculative block | 8 positions: current anchor plus up to 7 proposals |
+| Static GPU fraction | 0.85; the notebook marks this as H200-safe and it leaves room for deterministic target and draft CUDA graphs |
 | Radix cache | enabled in the production phase; explicitly exercised by repeats |
 | Scheduler | overlap/spec-v2, continuous batching, CUDA graphs |
 

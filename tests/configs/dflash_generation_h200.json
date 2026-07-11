@@ -49,7 +49,7 @@
       "attention_backend": "triton",
       "tp": 1,
       "context_length": 200000,
-      "mem_fraction_static": 0.88,
+      "mem_fraction_static": 0.85,
       "chunked_prefill_size": 2048,
       "kv_cache_dtype": "fp8_e4m3",
       "stream_interval": 16,
