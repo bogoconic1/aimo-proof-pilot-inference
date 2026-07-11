@@ -50,7 +50,7 @@ python solve_problems.py                                  # fans out across both
 ```
 
 `MODEL_MODE=humming_w4a8` uses the GPTQ INT4 checkpoint with mandatory Humming
-W4A8 SM90 execution, the int4-MLP phase-L DFlash draft, and FP8 E4M3 KV.
+W4A8 SM90 execution, the int4-MLP phase-L DFlash draft, and BF16 KV.
 `MODEL_MODE=bf16` selects the BF16 target, draft, KV cache, and LM head. No
 other weight or activation mode is supported. Both modes use mandatory DFlash,
 200k context, and Triton attention with in-kernel sinks.
@@ -83,7 +83,7 @@ cd /workspace
   --json-out tests/results/<run-name>/kv_cache_reuse_h200_dflash.json
 ```
 
-The default target KV dtype is production's `fp8_e4m3`. The full-reprefill
+The default target KV dtype is production's BF16 `auto`. The full-reprefill
 timing includes one SGLang scheduler/IPC round trip and per-request allocation
 overhead per output token, so it is an end-to-end comparison rather than a pure
 attention-kernel benchmark. Because each no-reuse request ends on its one target

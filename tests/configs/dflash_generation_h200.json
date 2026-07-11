@@ -4,7 +4,7 @@
   "default_profile": "humming_w4a8",
   "profiles": {
     "humming_w4a8": {
-      "description": "GPTQ INT4 target with mandatory Humming W4A8 SM90 execution, compressed-tensors int4-MLP DFlash draft, and FP8 E4M3 KV.",
+      "description": "GPTQ INT4 target with mandatory Humming W4A8 SM90 execution, compressed-tensors int4-MLP DFlash draft, and BF16 KV.",
       "python": "/workspace/pp/venv/bin/python",
       "target_model": "/workspace/original/models/opd-32b-v33-s200-gptq-w4a16",
       "tokenizer": "/workspace/original/models/opd-32b-v33-s200-gptq-w4a16",
@@ -73,7 +73,7 @@
       "context_length": 200000,
       "mem_fraction_static": 0.85,
       "chunked_prefill_size": 2048,
-      "kv_cache_dtype": "fp8_e4m3",
+      "kv_cache_dtype": "auto",
       "stream_interval": 16,
       "swa_full_tokens_ratio": 0.2,
       "max_running_requests": 48,

@@ -39,7 +39,7 @@ def main() -> None:
     if model["mode"] == "humming_w4a8":
         assert target_config["quantization_config"]["quant_method"] == "compressed-tensors"
         assert draft_config["quantization_config"]["quant_method"] == "compressed-tensors"
-        assert server["kv_cache_dtype"] == "fp8_e4m3"
+        assert server["kv_cache_dtype"] == "auto"
         assert server["speculative_draft_model_quantization"] == "compressed-tensors"
         assert "HUMMING_W4A8_PREFLIGHT " in server_log
         assert humming_layer_count == 128, humming_layer_count

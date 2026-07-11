@@ -4,7 +4,7 @@ Status: **Humming W4A8 model run approved on 2026-07-11**
 
 The active run uses the notebook proof-loop and serving settings with the
 H200 Humming W4A8 model path: GPTQ INT4 target, int4-MLP
-phase-L draft, unit-scale FP8 E4M3 KV, and BF16 LM head. The server ceiling is
+phase-L draft, BF16 KV, and BF16 LM head. The server ceiling is
 48, client concurrency is 12, and prove/refine concurrency is 6. A server
 startup or runtime failure is terminal; settings are not reduced automatically.
 The Humming W4A8 memory fraction is 0.85, matching ycchen's safe launcher
@@ -17,7 +17,7 @@ Evaluate the local OPD-32B target on all 60 ProofBench v2 problems using:
 - SGLang inference only;
 - mandatory DFlash speculative decoding;
 - a GPTQ INT4 target executed through Humming W4A8 and an int4-MLP DFlash draft;
-- FP8 E4M3 KV at unit scale and a BF16 language-model head;
+- BF16 KV and a BF16 language-model head;
 - 30 Basic and 30 Advanced problems;
 - the exact hash-pinned `submission-32b-fix4.ipynb` v2 streaming prompts and
   scheduler;
@@ -135,7 +135,7 @@ The preflight must assert all of the following and stop on the first mismatch:
 - Humming preflight selects `Sm90Heuristics` on H200;
 - at least one target layer emits `HUMMING_W4A8_LAYER_READY`;
 - the FP32 LM-head override is disabled;
-- KV cache resolves to `fp8_e4m3` with checkpoint scales disabled;
+- KV cache resolves to BF16 (`auto`);
 - speculative algorithm is exactly `DFLASH`;
 - DFlash block size is 8;
 - number of draft tokens is 8;
@@ -175,7 +175,7 @@ the performance record internally inconsistent.
 - target: GPTQ INT4 OPD-32B through Humming W4A8 with SM90 heuristics;
 - draft: int4-MLP W4A16 DFlash draft;
 - BF16 LM head;
-- unit-scale FP8 E4M3 KV cache;
+- BF16 KV cache;
 - DFlash block/draft size 8;
 - DFlash window 512;
 - context length 200,000;

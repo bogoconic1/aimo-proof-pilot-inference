@@ -1,9 +1,9 @@
 #!/bin/bash
 # serve_opd32b.sh — serve OPD-32B with mandatory DFlash on one H200.
 # MODEL_MODE=humming_w4a8 selects the notebook model pair: GPTQ INT4 target
-# served through mandatory Humming W4A8, int4-MLP phase-L draft, and FP8 KV.
-# MODEL_MODE=bf16 selects the unquantized target, draft, and KV cache used by
-# the numerical experiments.
+# served through mandatory Humming W4A8, an int4-MLP phase-L draft, and BF16 KV.
+# MODEL_MODE=bf16 selects the unquantized target, draft, and BF16 KV cache used
+# by the numerical experiments.
 #
 # Prereqs (see README): proof-pilot-env venv staged at $VENV and patched via
 # sglang_patches/apply_patches.sh; model downloaded to $MODEL.
@@ -29,7 +29,7 @@ case "$MODEL_MODE" in
   humming_w4a8)
     MODEL="/workspace/original/models/opd-32b-v33-s200-gptq-w4a16"
     DRAFT="/workspace/original/models/dflash-32b-draft-v2test-phaseL-int4mlp"
-    KVDTYPE="fp8_e4m3"
+    KVDTYPE="auto"
     MEMFRAC="${MEMFRAC:-0.85}"
     MAXREQ="${MAXREQ:-48}"
     DRAFT_QUANT_ARGS=(--speculative-draft-model-quantization compressed-tensors)
@@ -98,8 +98,6 @@ export SGLANG_DFLASH_DRAFT_RING=1
 export SGLANG_DFLASH_DRAFT_RING_QUOTA=4
 export SGLANG_SWA_EVICTION_INTERVAL_MULTIPLIER=0.125
 export SGLANG_OPT_SWA_RELEASE_LEAF_LOCK_AFTER_WINDOW=1
-export SGLANG_LOAD_KV_SCALE=0
-
 SPEC_ARGS=(--speculative-algorithm DFLASH
            --speculative-draft-model-path "$DRAFT"
            --speculative-dflash-block-size 8

@@ -10,7 +10,7 @@ intentionally not carried here.
 
 - DFlash is mandatory.
 - `MODEL_MODE=humming_w4a8` is the active mode: GPTQ INT4 target, int4-MLP
-  phase-L draft, unit-scale FP8 E4M3 KV, and BF16 LM head. Eligible target MLP
+  phase-L draft, BF16 KV, and BF16 LM head. Eligible target MLP
   projections execute through mandatory Humming W4A8 with SM90 heuristics.
 - `MODEL_MODE=bf16` selects BF16 target, draft, KV cache, and LM head for
   controlled numerical comparisons.

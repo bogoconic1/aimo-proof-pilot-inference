@@ -104,13 +104,14 @@ DFlash preserves the target distribution. The suite therefore checks:
 
 ## Production configuration under test
 
-The primary GPU run mirrors `submission-32b-fix4.ipynb` on this H200 host:
+The primary GPU run uses the notebook model pair and DFlash flow on this H200
+host, with the H200-validated BF16 KV correction:
 
 | Component | Setting |
 |---|---|
 | Target | exact GPTQ W4A16 `opd-32b-v33-s200-gptq-w4a16` |
 | Draft | exact compressed-tensors int4-MLP DFlash draft |
-| Target KV cache | FP8 E4M3 |
+| Target and draft KV cache | BF16 (`auto`) |
 | Attention | Triton, stock GQA extend on H200 |
 | Target attention | hybrid: 48 SWA-4096 layers and 16 full-attention layers |
 | Draft attention | 8 SWA-512 layers with the compact KV ring enabled |
