@@ -31,7 +31,7 @@ def main() -> None:
     assert target_config.get("quantization_config") is None
     assert draft_config.get("quantization_config") is None
     assert server["speculative_algorithm"] == "DFLASH"
-    assert server["enable_fp32_lm_head"] is True
+    assert server["enable_fp32_lm_head"] is False
     assert server["speculative_draft_model_path"] == str(args.draft)
     assert server["kv_cache_dtype"] == "auto"
     assert server["context_length"] == 200000

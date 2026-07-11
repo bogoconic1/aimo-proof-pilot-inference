@@ -10,8 +10,8 @@ intentionally not carried here.
 
 - DFlash is mandatory.
 - Target weights, draft weights, and both KV caches use BF16.
-- The LM-head matrix multiplication uses FP32 operands to make greedy near-ties
-  stable; stored weights remain BF16.
+- The LM-head matrix multiplication remains BF16, matching the notebook's
+  serving path without its weight or KV quantization.
 - Every generation stage must produce valid output. There is no alternate proof,
   request retry, stub grader, or synthetic score.
 - Full stage traces and grader responses are written to disk.

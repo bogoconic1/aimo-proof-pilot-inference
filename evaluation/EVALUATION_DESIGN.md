@@ -16,7 +16,7 @@ Evaluate the local OPD-32B target on all 60 ProofBench v2 problems using:
 - SGLang inference only;
 - mandatory DFlash speculative decoding;
 - a BF16 target and BF16 DFlash draft;
-- an FP32 language-model head;
+- a BF16 language-model head, matching the notebook compute path;
 - 30 Basic and 30 Advanced problems;
 - the exact hash-pinned `submission-32b-fix4.ipynb` v2 streaming prompts and
   scheduler;
@@ -133,7 +133,7 @@ The preflight must assert all of the following and stop on the first mismatch:
 - draft model path equals
   `/workspace/models/dflash-32b-draft-v2test-phaseL`;
 - target and draft configurations declare BF16;
-- the FP32 LM head is enabled;
+- the FP32 LM-head override is disabled;
 - KV cache resolves to BF16/`auto`, never FP8 for this evaluation;
 - speculative algorithm is exactly `DFLASH`;
 - DFlash block size is 8;
@@ -173,7 +173,7 @@ the performance record internally inconsistent.
 
 - target: BF16 OPD-32B;
 - draft: BF16 DFlash draft;
-- FP32 LM head;
+- BF16 LM head;
 - BF16 KV cache;
 - DFlash block/draft size 8;
 - DFlash window 512;

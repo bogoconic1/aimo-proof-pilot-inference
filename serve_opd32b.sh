@@ -84,7 +84,6 @@ exec "$VENV/bin/python" -m sglang.launch_server \
   --cuda-graph-bs-decode $CG_BS_DECODE \
   --cuda-graph-backend-prefill "$PREFILL_CG" --cuda-graph-bs-prefill 256 1024 "$CHUNKED" \
   --triton-attention-num-kv-splits "$KV_SPLITS" \
-  --enable-fp32-lm-head \
   --enable-cache-report --enable-metrics \
   --random-seed 0 --enable-deterministic-inference \
   --reasoning-parser deepseek-r1
