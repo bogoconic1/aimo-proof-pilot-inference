@@ -7,6 +7,8 @@ import sys
 import unittest
 from pathlib import Path
 
+import torch
+
 REPO = Path(__file__).resolve().parents[1]
 M3R = REPO / "distill_gen" / "math_3r"
 HARNESS = REPO / "evaluation" / "harness"
@@ -16,6 +18,7 @@ sys.path.insert(0, str(HARNESS))
 from grader import parse_score  # noqa: E402
 from make_batches import build_batches  # noqa: E402
 from pipeline import Engine, solve_problem  # noqa: E402
+from sglang_patches.patch_canonical_greedy import HELPER  # noqa: E402
 
 
 class InvalidClient:
@@ -103,6 +106,13 @@ class ProofBenchEvaluationTests(unittest.TestCase):
         ):
             with self.assertRaises(ValueError):
                 parse_score(output)
+
+    def test_canonical_greedy_covers_one_bf16_logit_quantum(self):
+        namespace = {"torch": torch}
+        exec(HELPER, namespace)
+        canonical_argmax = namespace["canonical_greedy_argmax"]
+        logits = torch.tensor([[1.0, 1.125], [1.0, 1.127]])
+        self.assertEqual(canonical_argmax(logits).tolist(), [0, 1])
 
 
 if __name__ == "__main__":
