@@ -20,7 +20,7 @@ from grader import parse_score  # noqa: E402
 from make_batches import build_batches  # noqa: E402
 from pipeline import Engine, solve_problem  # noqa: E402
 from run_full_evaluation import generation_command, load_problem_ids  # noqa: E402
-from run_notebook_v2_eval import strict_trace  # noqa: E402
+from run_notebook_v2_eval import load_requested_ids, strict_trace  # noqa: E402
 from patch_w4a8_runtime_marker import BUILD, patch_source  # noqa: E402
 from patch_humming_sm90_config import (  # noqa: E402
     MARKER as SM90_MARKER,
@@ -47,6 +47,13 @@ class InvalidClient:
 
 
 class ProofBenchEvaluationTests(unittest.TestCase):
+    def test_notebook_runner_accepts_explicit_two_problem_shard(self):
+        ids_path = REPO / "tests" / "fixtures" / "proofbench_two_ids.json"
+        self.assertEqual(
+            load_requested_ids(ids_path),
+            ["PB-Basic-001", "PB-Basic-003"],
+        )
+
     def test_production_launcher_has_two_strict_model_modes(self):
         launcher = (REPO / "serve_opd32b.sh").read_text()
         self.assertIn("--speculative-algorithm DFLASH", launcher)

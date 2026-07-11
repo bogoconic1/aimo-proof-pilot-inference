@@ -26,6 +26,13 @@ def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def load_requested_ids(path: Path) -> list[str]:
+    requested_ids = json.loads(path.read_text())
+    assert requested_ids
+    assert len(requested_ids) == len(set(requested_ids))
+    return requested_ids
+
+
 def load_runtime(config: dict):
     runtime = config["notebook_runtime"]
     root = Path(runtime["root"])
@@ -89,8 +96,7 @@ async def main() -> None:
     rows_by_id = {
         row["Problem ID"]: row for row in all_rows if row["Problem ID"].startswith(prefix)
     }
-    requested_ids = json.loads(args.ids_file.read_text())
-    assert len(requested_ids) == len(set(requested_ids)) == 5
+    requested_ids = load_requested_ids(args.ids_file)
     rows = [rows_by_id[problem_id] for problem_id in requested_ids]
 
     batch_meta = {
@@ -190,7 +196,7 @@ async def main() -> None:
                 records.write(json.dumps(slim, ensure_ascii=False) + "\n")
                 records.flush()
                 print(
-                    f"[notebook-v2] {args.batch_id} {index}/5 {problem_id} "
+                    f"[notebook-v2] {args.batch_id} {index}/{len(rows)} {problem_id} "
                     f"calls={result['totals']['n_calls']} ctok={result['totals']['completion_tokens']} "
                     f"source={result['final_source']} wall={elapsed}s",
                     flush=True,
