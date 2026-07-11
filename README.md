@@ -1,11 +1,10 @@
 # aimo-proof-pilot-inference
 
-Inference for the **opd-32b-deploy** model (`Olmo3SinkForCausalLM` — Olmo3 32B
+Inference for the **OPD-32B** model family (`Olmo3SinkForCausalLM` — Olmo3 32B
 plus a trained per-head attention-sink logit in every layer, gpt-oss style,
-with hybrid sliding-window attention and YaRN rope). Weights:
-`ycchen/proof-pilot-deploy-bundle/opd-32b-deploy` on Hugging Face (bf16, 61 GB).
-
-bf16 serving only. Verified on 2× H200 (one replica per GPU).
+with hybrid sliding-window attention and YaRN rope). The production launcher
+supports the BF16 model pair and the notebook's quantized model pair. It is
+verified on 2× H200 with one replica per GPU.
 
 Stock sglang/vLLM don't know the `Olmo3Sink` architecture, so this runs a
 patched sglang: `sglang_patches/` carries the upstream proof-pilot patch files
@@ -29,26 +28,34 @@ cp -rn /workspace/pp/flashinfer_cache/. ~/.cache/flashinfer/
 bash sglang_patches/apply_patches.sh /workspace/pp/venv
 ```
 
-Model download (needs HF_TOKEN):
+Model downloads (need `HF_TOKEN`):
 
 ```bash
 hf download ycchen/proof-pilot-deploy-bundle --include "opd-32b-deploy/*" \
+  --include "dflash-32b-draft-v2test-phaseL/*" \
   --local-dir /workspace/models
+
+hf download ycchen/proof-pilot-deploy-bundle \
+  --include "opd-32b-v33-s200-gptq-w4a16/*" \
+  --include "dflash-32b-draft-v2test-phaseL-int4mlp/*" \
+  --local-dir /workspace/original/models
 ```
 
 ## Serve + solve
 
 ```bash
-bash serve_opd32b.sh &                                    # GPU 0, port 30000
-PORT=30001 CUDA_VISIBLE_DEVICES=1 bash serve_opd32b.sh &  # GPU 1, port 30001
+MODEL_MODE=quantized bash serve_opd32b.sh &
+MODEL_MODE=quantized PORT=30001 CUDA_VISIBLE_DEVICES=1 bash serve_opd32b.sh &
 python solve_problems.py                                  # fans out across both
 ```
 
-Each replica: bf16 weights (61 GB), fp8 KV cache, 200k context, triton
-attention with in-kernel sinks, CUDA graphs up to batch 48, deepseek-r1
-reasoning parser (`reasoning_content` separated from `content` in the API).
-First boot JIT-compiles triton kernels for sm90 (~2 min); later boots reuse
-the cache.
+`MODEL_MODE=quantized` uses the GPTQ-W4A16 target through Marlin, the int4-MLP
+phase-L DFlash draft, and unit-scale FP8 E4M3 KV. Humming W4A8 is intentionally
+not enabled because that notebook optimization targets Blackwell/SM120; Marlin
+is ycchen's robust baseline on this H200/SM90 host. `MODEL_MODE=bf16` selects
+the unquantized target, draft, and KV cache. Both modes use mandatory DFlash,
+200k context, Triton attention with in-kernel sinks, and CUDA graphs through
+batch 48.
 
 ## KV-cache reuse experiment
 

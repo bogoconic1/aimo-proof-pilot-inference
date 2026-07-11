@@ -34,14 +34,20 @@ class InvalidClient:
 
 
 class ProofBenchEvaluationTests(unittest.TestCase):
-    def test_production_launcher_has_one_strict_path(self):
+    def test_production_launcher_has_two_strict_model_modes(self):
         launcher = (REPO / "serve_opd32b.sh").read_text()
         self.assertIn("--speculative-algorithm DFLASH", launcher)
-        self.assertIn("--kv-cache-dtype auto", launcher)
+        self.assertIn('MODEL_MODE="${MODEL_MODE:-quantized}"', launcher)
+        self.assertIn("opd-32b-v33-s200-gptq-w4a16", launcher)
+        self.assertIn("dflash-32b-draft-v2test-phaseL-int4mlp", launcher)
+        self.assertIn("dflash-32b-draft-v2test-phaseL", launcher)
+        self.assertIn('KVDTYPE="fp8_e4m3"', launcher)
+        self.assertIn('KVDTYPE="auto"', launcher)
+        self.assertIn("--speculative-draft-model-quantization compressed-tensors", launcher)
+        self.assertIn('--kv-cache-dtype "$KVDTYPE"', launcher)
         self.assertNotIn("--enable-fp32-lm-head", launcher)
         self.assertIn("--tp 1", launcher)
         self.assertNotIn("DFLASH=", launcher)
-        self.assertNotIn("fp8_e4m3", launcher)
         self.assertNotIn("EXTRA_ARGS", launcher)
         self.assertIn('SGLANG_TRITON_PREFILL_TRUNCATION_ALIGN_SIZE="$CHUNKED"', launcher)
         self.assertIn('MAXREQ="${MAXREQ:-48}"', launcher)
@@ -58,25 +64,35 @@ class ProofBenchEvaluationTests(unittest.TestCase):
             self.assertEqual([len(batch) for batch in batches], [5] * 6)
             self.assertEqual([pid for batch in batches for pid in batch], ids)
 
-    def test_configs_require_bf16_dflash(self):
-        config = json.loads(
+    def test_configs_require_quantized_or_bf16_dflash(self):
+        quantized = json.loads(
+            (REPO / "evaluation/configs/opd32b_dflash_quantized.json").read_text()
+        )
+        bf16 = json.loads(
             (REPO / "evaluation/configs/opd32b_dflash_bf16.json").read_text()
         )
-        self.assertEqual(config["model"]["dtype"], "bfloat16")
-        self.assertEqual(config["model"]["lm_head_compute_dtype"], "bfloat16")
-        self.assertEqual(config["model"]["kv_cache_dtype"], "auto")
-        self.assertEqual(config["model"]["speculative_algorithm"], "DFLASH")
-        self.assertEqual(config["schema_version"], 3)
-        self.assertEqual(config["server"]["max_running_requests"], 48)
-        self.assertEqual(config["server"]["mem_fraction_static"], 0.88)
-        loop = config["agentic"]
+        self.assertEqual(quantized["model"]["mode"], "quantized")
+        self.assertEqual(quantized["model"]["kv_cache_dtype"], "fp8_e4m3")
+        self.assertEqual(quantized["model"]["kv_scale"], "unit")
+        self.assertIn("gptq_w4a16", quantized["model"]["target_weight_quantization"])
+        self.assertIn("int4_mlp", quantized["model"]["draft_weight_quantization"])
+        self.assertEqual(bf16["model"]["mode"], "bf16")
+        self.assertEqual(bf16["model"]["dtype"], "bfloat16")
+        self.assertEqual(bf16["model"]["kv_cache_dtype"], "auto")
+        for config in (quantized, bf16):
+            self.assertEqual(config["model"]["lm_head_compute_dtype"], "bfloat16")
+            self.assertEqual(config["model"]["speculative_algorithm"], "DFLASH")
+            self.assertEqual(config["schema_version"], 3)
+            self.assertEqual(config["server"]["max_running_requests"], 48)
+            self.assertEqual(config["server"]["mem_fraction_static"], 0.88)
+        loop = quantized["agentic"]
         self.assertEqual(loop["pipeline"], "notebook_v2_streaming_strict")
         self.assertEqual(loop["call_cap"], 60000)
         self.assertEqual(loop["concurrency"], 12)
         self.assertEqual(loop["generation_concurrency"], 6)
         self.assertEqual(loop["verify_k"], 3)
         self.assertEqual(loop["selectors"], 5)
-        grader = config["grader"]
+        grader = quantized["grader"]
         self.assertEqual(grader["served_model"], "deepseek-v4-flash")
         self.assertEqual(grader["reasoning"], "high")
         self.assertEqual(grader["passes"], 2)
@@ -90,7 +106,7 @@ class ProofBenchEvaluationTests(unittest.TestCase):
 
     def test_full_orchestrator_uses_all_problems_and_exact_agentic_config(self):
         config = json.loads(
-            (REPO / "evaluation/configs/opd32b_dflash_bf16.json").read_text()
+            (REPO / "evaluation/configs/opd32b_dflash_quantized.json").read_text()
         )
         self.assertEqual(len(load_problem_ids()), 60)
         command = generation_command(

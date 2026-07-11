@@ -1,13 +1,15 @@
 {
   "schema_version": 3,
   "model": {
-    "mode": "bf16",
-    "served_model": "/workspace/models/opd-32b-deploy",
-    "target": "/workspace/models/opd-32b-deploy",
-    "draft": "/workspace/models/dflash-32b-draft-v2test-phaseL",
-    "dtype": "bfloat16",
+    "mode": "quantized",
+    "served_model": "/workspace/original/models/opd-32b-v33-s200-gptq-w4a16",
+    "target": "/workspace/original/models/opd-32b-v33-s200-gptq-w4a16",
+    "draft": "/workspace/original/models/dflash-32b-draft-v2test-phaseL-int4mlp",
+    "target_weight_quantization": "gptq_w4a16_compressed_tensors",
+    "draft_weight_quantization": "int4_mlp_w4a16_compressed_tensors",
     "lm_head_compute_dtype": "bfloat16",
-    "kv_cache_dtype": "auto",
+    "kv_cache_dtype": "fp8_e4m3",
+    "kv_scale": "unit",
     "speculative_algorithm": "DFLASH"
   },
   "server": {

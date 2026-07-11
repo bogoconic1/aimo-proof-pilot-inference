@@ -1,13 +1,12 @@
-# IMO ProofBench BF16 DFlash Evaluation Design
+# IMO ProofBench DFlash Evaluation Design
 
-Status: **approved for a fresh notebook-equivalent run on 2026-07-11**
+Status: **quantized model run approved on 2026-07-11**
 
-The user explicitly directed the run to use the exact notebook serving and
-proof-loop settings except for quantization. That instruction supersedes the
-earlier proposed concurrency study: the server ceiling is 48, client concurrency
-is 12, and prove/refine concurrency is 6. Target weights, draft weights, and KV
-cache remain BF16. A server startup or runtime failure is terminal; settings are
-not reduced automatically.
+The active run uses the notebook proof-loop and serving settings with the
+H200-compatible quantized model path: GPTQ-W4A16/Marlin target, int4-MLP
+phase-L draft, unit-scale FP8 E4M3 KV, and BF16 LM head. The server ceiling is
+48, client concurrency is 12, and prove/refine concurrency is 6. A server
+startup or runtime failure is terminal; settings are not reduced automatically.
 
 ## 1. Objective
 
@@ -15,8 +14,8 @@ Evaluate the local OPD-32B target on all 60 ProofBench v2 problems using:
 
 - SGLang inference only;
 - mandatory DFlash speculative decoding;
-- a BF16 target and BF16 DFlash draft;
-- a BF16 language-model head, matching the notebook compute path;
+- a GPTQ-W4A16 target and int4-MLP DFlash draft;
+- FP8 E4M3 KV at unit scale and a BF16 language-model head;
 - 30 Basic and 30 Advanced problems;
 - the exact hash-pinned `submission-32b-fix4.ipynb` v2 streaming prompts and
   scheduler;
@@ -83,27 +82,25 @@ insufficient scheduling concurrency for the workload, not missing DFlash.
 
 ## 4. Constraints that prevent copying the notebook numbers blindly
 
-The notebook uses a quantized target and draft and is tuned for a different
-GPU memory envelope. This evaluation requires BF16 target and draft weights and
-BF16 KV cache. The active BF16 server reported approximately:
+The stopped BF16 attempt used a different GPU memory envelope. It reported:
 
 - 60.88 GiB of model-weight memory;
 - 53.19 GiB reserved for KV cache;
 - 544,697 tokens of KV capacity; and
 - a 200,000-token context limit.
 
-The user explicitly chose the notebook's `max_running_requests=48` ceiling
-despite this different memory envelope. The effective client ceiling remains
-12. If BF16 graph capture or runtime memory fails, the run stops; it does not
-fall back to a lower concurrency or quantized cache.
+That BF16 attempt passed startup but failed at runtime in DFlash hidden-state
+projection. Its evidence is preserved under the corresponding run directory.
+The approved quantized run keeps the notebook's `max_running_requests=48`
+ceiling and effective client ceiling of 12.
 
 ## 5. Evaluation architecture
 
 Two independent SGLang servers will run concurrently:
 
 ```text
-GPU 0: BF16 target + BF16 DFlash draft -> Basic shard
-GPU 1: BF16 target + BF16 DFlash draft -> Advanced shard
+GPU 0: W4A16 target + int4-MLP DFlash draft -> Basic shard
+GPU 1: W4A16 target + int4-MLP DFlash draft -> Advanced shard
 ```
 
 Each GPU holds both its target and draft model. DFlash is local to each server;
@@ -129,12 +126,12 @@ before any production generation request.
 The preflight must assert all of the following and stop on the first mismatch:
 
 - exactly two NVIDIA H200 GPUs are visible;
-- target model path equals `/workspace/models/opd-32b-deploy`;
+- target model path equals `/workspace/original/models/opd-32b-v33-s200-gptq-w4a16`;
 - draft model path equals
-  `/workspace/models/dflash-32b-draft-v2test-phaseL`;
-- target and draft configurations declare BF16;
+  `/workspace/original/models/dflash-32b-draft-v2test-phaseL-int4mlp`;
+- target and draft configurations declare compressed-tensors quantization;
 - the FP32 LM-head override is disabled;
-- KV cache resolves to BF16/`auto`, never FP8 for this evaluation;
+- KV cache resolves to `fp8_e4m3` with checkpoint scales disabled;
 - speculative algorithm is exactly `DFLASH`;
 - DFlash block size is 8;
 - number of draft tokens is 8;
@@ -171,10 +168,10 @@ the performance record internally inconsistent.
 
 ### 9.1 Fixed inference parameters
 
-- target: BF16 OPD-32B;
-- draft: BF16 DFlash draft;
+- target: GPTQ-W4A16 OPD-32B through Marlin;
+- draft: int4-MLP W4A16 DFlash draft;
 - BF16 LM head;
-- BF16 KV cache;
+- unit-scale FP8 E4M3 KV cache;
 - DFlash block/draft size 8;
 - DFlash window 512;
 - context length 200,000;
@@ -338,7 +335,7 @@ that later result-only commits changed the running code.
 
 ## 14. Execution authorization
 
-The user authorized killing the stopped run and starting a fresh run with the
-exact notebook settings except quantization. This authorization covers the
-source/configuration changes, two BF16 DFlash servers, 60-problem generation,
+The user authorized switching from the stopped BF16 run to the quantized model
+pair and starting a fresh evaluation. This authorization covers the
+source/configuration changes, two quantized DFlash servers, 60-problem generation,
 the previously specified two-pass DeepSeek grading, audits, commits, and pushes.

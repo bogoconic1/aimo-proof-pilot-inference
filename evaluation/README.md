@@ -1,6 +1,6 @@
 # ProofBench evaluation
 
-This directory contains one evaluation path for OPD-32B: strict-BF16 DFlash
+This directory contains one evaluation path for OPD-32B: mandatory DFlash
 serving followed by the `submission-32b-fix4.ipynb` v2 streaming proof pool.
 The unused single-round prompt sweep, Python-tool evaluator, calibration harness,
 local adapter, and auxiliary benchmark copies from the upstream repository are
@@ -9,9 +9,12 @@ intentionally not carried here.
 ## Invariants
 
 - DFlash is mandatory.
-- Target weights, draft weights, and both KV caches use BF16.
-- The LM-head matrix multiplication remains BF16, matching the notebook's
-  serving path without its weight or KV quantization.
+- `MODEL_MODE=quantized` is the active mode: GPTQ-W4A16 target, int4-MLP
+  phase-L draft, unit-scale FP8 E4M3 KV, and BF16 LM head.
+- `MODEL_MODE=bf16` selects BF16 target, draft, KV cache, and LM head for
+  controlled numerical comparisons.
+- Humming W4A8 is not used on H200; the quantized target uses the checkpoint's
+  native W4A16/Marlin path.
 - Every generation stage must produce valid output. There is no alternate proof,
   request retry, stub grader, or synthetic score.
 - Full stage traces and grader responses are written to disk.
@@ -20,9 +23,10 @@ intentionally not carried here.
 
 | Path | Purpose |
 |---|---|
-| `configs/opd32b_dflash_bf16.json` | required serving and agentic parameters |
+| `configs/opd32b_dflash_quantized.json` | active quantized serving and agentic parameters |
+| `configs/opd32b_dflash_bf16.json` | BF16 comparison serving and agentic parameters |
 | `data/proofbench_v2.csv` | 60-problem ProofBench v2 benchmark |
-| `harness/validate_bf16_dflash_server.py` | checks the live SGLang server configuration |
+| `harness/validate_dflash_server.py` | checks the live SGLang server against the selected config |
 | `harness/run_full_evaluation.py` | orchestrates all 60 generations and strict DeepSeek grading |
 | `harness/make_batches.py` | creates deterministic five-problem shards |
 | `harness/run_notebook_v2_eval.py` | runs the hash-pinned notebook scheduler and saves full traces |
@@ -34,11 +38,11 @@ intentionally not carried here.
 
 ## Full execution
 
-Start two mandatory BF16 DFlash replicas, one per H200:
+Start two mandatory quantized DFlash replicas, one per H200:
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 PORT=30000 bash serve_opd32b.sh
-CUDA_VISIBLE_DEVICES=1 PORT=30001 bash serve_opd32b.sh
+MODEL_MODE=quantized CUDA_VISIBLE_DEVICES=0 PORT=30000 bash serve_opd32b.sh
+MODEL_MODE=quantized CUDA_VISIBLE_DEVICES=1 PORT=30001 bash serve_opd32b.sh
 ```
 
 Load the DeepSeek credential and run the complete pipeline:
@@ -48,13 +52,14 @@ set -a
 source /workspace/.env
 set +a
 /workspace/pp/venv/bin/python evaluation/harness/run_full_evaluation.py \
-  --run-id opd32b-dflash-bf16-full-20260711
+  --config evaluation/configs/opd32b_dflash_quantized.json \
+  --run-id opd32b-dflash-quantized-full-20260711
 ```
 
 The servers use the notebook ceiling of 48 running requests while each streaming
 client admits 12 total calls, caps prove/refine at 6, and prioritizes verifiers.
-The target, draft, and KV cache remain BF16 instead of using notebook
-quantization. The orchestrator validates both live servers, confirms that the authenticated
+The orchestrator validates both live servers against the immutable quantized
+config, confirms that the authenticated
 DeepSeek model list contains `deepseek-v4-flash`, creates twelve deterministic
 five-problem shards, runs Basic and Advanced concurrently, requires exactly 60
 complete stage traces, converts the selected final proof for each problem, and

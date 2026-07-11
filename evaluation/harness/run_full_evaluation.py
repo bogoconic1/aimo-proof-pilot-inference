@@ -1,4 +1,4 @@
-"""Run the complete 60-problem BF16 DFlash IMO ProofBench evaluation.
+"""Run the complete 60-problem DFlash IMO ProofBench evaluation.
 
 The two local SGLang servers must already be running. Basic and Advanced shards
 run concurrently on their dedicated H200s. Generation checkpoints one problem at
@@ -26,7 +26,7 @@ from typing import Any
 REPO = Path(__file__).resolve().parents[2]
 EVALUATION = REPO / "evaluation"
 RUNS = EVALUATION / "runs"
-DEFAULT_CONFIG = EVALUATION / "configs" / "opd32b_dflash_bf16.json"
+DEFAULT_CONFIG = EVALUATION / "configs" / "opd32b_dflash_quantized.json"
 DATA = EVALUATION / "data" / "proofbench_v2.csv"
 GRADER_PROMPT = EVALUATION / "prompts" / "grader.md"
 HARNESS = EVALUATION / "harness"
@@ -202,13 +202,11 @@ def main() -> None:
         run(
             [
                 sys.executable,
-                str(HARNESS / "validate_bf16_dflash_server.py"),
+                str(HARNESS / "validate_dflash_server.py"),
                 "--url",
                 root_url,
-                "--target",
-                config["model"]["target"],
-                "--draft",
-                config["model"]["draft"],
+                "--config",
+                str(args.config.resolve()),
                 "--output",
                 str(run_root / f"{subset}_server_validation.json"),
             ]
