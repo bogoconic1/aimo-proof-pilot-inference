@@ -11,8 +11,7 @@ intentionally not carried here.
 - DFlash is mandatory.
 - Target weights, draft weights, and both KV caches use BF16.
 - The LM-head matrix multiplication uses FP32 operands to make greedy near-ties
-  stable; stored weights remain BF16. Greedy logits within one measured BF16
-  quantum (`0.126` with rounding slack) resolve to the lowest token ID.
+  stable; stored weights remain BF16.
 - Every generation stage must produce valid output. There is no alternate proof,
   request retry, stub grader, or synthetic score.
 - Full stage traces and grader responses are written to disk.

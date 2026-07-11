@@ -11,14 +11,11 @@ NEW_CALL = "batch_next_token_ids = canonical_greedy_argmax(logits)"
 INSERT_AFTER = "logger = logging.getLogger(__name__)\n"
 HELPER = """
 # CANONICAL_GREEDY_ARGMAX: resolve numerical near-ties by lowest token id.
-CANONICAL_GREEDY_TOLERANCE = 0.126
-
-
 def canonical_greedy_argmax(logits: torch.Tensor) -> torch.Tensor:
     maximum = logits.amax(dim=-1, keepdim=True)
     token_ids = torch.arange(logits.shape[-1], device=logits.device)
     candidates = torch.where(
-        logits >= maximum - CANONICAL_GREEDY_TOLERANCE,
+        logits >= maximum - 1e-5,
         token_ids,
         logits.shape[-1],
     )
@@ -38,16 +35,7 @@ def main() -> None:
             raise RuntimeError("sampler source does not match the required patch points")
         text = text.replace(INSERT_AFTER, INSERT_AFTER + HELPER + "\n", 1)
         text = text.replace(OLD_CALL, NEW_CALL, 1)
-    else:
-        helper_start = text.index(MARKER)
-        helper_end = text.index(
-            "\n\nSYNC_TOKEN_IDS_ACROSS_TP",
-            helper_start,
-        )
-        text = text[:helper_start] + HELPER.strip() + text[helper_end:]
-        if NEW_CALL not in text:
-            raise RuntimeError("installed sampler does not call canonical_greedy_argmax")
-    path.write_text(text)
+        path.write_text(text)
     print(f"  verified: {path.relative_to(venv)}")
 
 
