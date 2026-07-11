@@ -1,8 +1,9 @@
 #!/bin/bash
 # serve_opd32b.sh — serve OPD-32B with mandatory DFlash on one H200.
-# MODEL_MODE=quantized selects the notebook model pair: GPTQ-W4A16 target,
-# int4-MLP phase-L draft, and unit-scale FP8 KV. MODEL_MODE=bf16 selects the
-# unquantized target, draft, and KV cache used by the numerical experiments.
+# MODEL_MODE=quantized selects the notebook model pair: GPTQ INT4 target served
+# through mandatory Humming W4A8, int4-MLP phase-L draft, and unit-scale FP8 KV.
+# MODEL_MODE=bf16 selects the unquantized target, draft, and KV cache used by
+# the numerical experiments.
 #
 # Prereqs (see README): proof-pilot-env venv staged at $VENV and patched via
 # sglang_patches/apply_patches.sh; model downloaded to $MODEL.
@@ -11,6 +12,7 @@
 #         PORT=30001 CUDA_VISIBLE_DEVICES=1 bash serve_opd32b.sh   # second replica
 set -euo pipefail
 
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 VENV="${VENV:-/workspace/pp/venv}"
 PORT="${PORT:-30000}"
 HOST="${HOST:-127.0.0.1}"
@@ -30,6 +32,7 @@ case "$MODEL_MODE" in
     KVDTYPE="fp8_e4m3"
     MEMFRAC="${MEMFRAC:-0.85}"
     DRAFT_QUANT_ARGS=(--speculative-draft-model-quantization compressed-tensors)
+    TARGET_EXECUTION="humming_w4a8"
     ;;
   bf16)
     MODEL="/workspace/models/opd-32b-deploy"
@@ -37,6 +40,7 @@ case "$MODEL_MODE" in
     KVDTYPE="auto"
     MEMFRAC="${MEMFRAC:-0.88}"
     DRAFT_QUANT_ARGS=()
+    TARGET_EXECUTION="bf16"
     ;;
   *)
     echo "MODEL_MODE must be quantized or bf16" >&2
@@ -47,8 +51,23 @@ esac
 export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0}"
 export FLASHINFER_CUDA_ARCH_LIST="${FLASHINFER_CUDA_ARCH_LIST:-9.0a}"   # H200 = sm90
 export FLASHINFER_USE_CUDA_NORM=1
-export SGLANG_USE_HUMMING_W4A8=0
 export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
+
+if [ "$MODEL_MODE" = quantized ]; then
+  export SGLANG_USE_HUMMING_W4A8=1
+  export W4A8_DROP_MARLIN=1
+  export W4A8_M_THRESHOLD=64
+  export W4A8_HELPER_DIR="${W4A8_HELPER_DIR:-/workspace/pp/proof-pilot/deploy/w4a8}"
+  export HUMMING_PATH="${HUMMING_PATH:-/workspace/pp}"
+  NVRTC_LIB="${NVRTC_LIB:-$VENV/lib/python3.12/site-packages/nvidia/cu13/lib/libnvrtc.so.13}"
+  export LD_PRELOAD="$NVRTC_LIB${LD_PRELOAD:+:$LD_PRELOAD}"
+  "$VENV/bin/python" "$ROOT/evaluation/harness/validate_humming_install.py" \
+    --humming-path "$HUMMING_PATH" \
+    --helper-dir "$W4A8_HELPER_DIR" \
+    --nvrtc-lib "$NVRTC_LIB"
+else
+  export SGLANG_USE_HUMMING_W4A8=0
+fi
 # env-gated perf patches from sglang_patches/ (no-ops if not applied)
 export SGLANG_DECODE_NUM_STAGES="${SGLANG_DECODE_NUM_STAGES:-3}"
 export SGLANG_DECODE_BLOCK_N="${SGLANG_DECODE_BLOCK_N:-32}"
@@ -91,7 +110,7 @@ SPEC_ARGS=(--speculative-algorithm DFLASH
 # capture every decode bs 1..16 (no padding for small batches) + sparse tail to MAXREQ
 CG_BS_DECODE="$(for b in $(seq 1 16) 20 24 28 32 40 48 64 96 128; do if [ "$b" -le "$MAXREQ" ]; then printf '%s ' "$b"; fi; done)"
 
-echo "[serve_opd32b] mode=$MODEL_MODE model=$MODEL draft=$DRAFT gpu=$CUDA_VISIBLE_DEVICES kv=$KVDTYPE dflash=required port=$PORT ctx=$CTX memfrac=$MEMFRAC maxreq=$MAXREQ swa=$SWA_RATIO"
+echo "[serve_opd32b] mode=$MODEL_MODE target_execution=$TARGET_EXECUTION model=$MODEL draft=$DRAFT gpu=$CUDA_VISIBLE_DEVICES kv=$KVDTYPE dflash=required port=$PORT ctx=$CTX memfrac=$MEMFRAC maxreq=$MAXREQ swa=$SWA_RATIO"
 
 exec "$VENV/bin/python" -m sglang.launch_server \
   --model-path "$MODEL" \

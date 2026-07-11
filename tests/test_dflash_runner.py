@@ -154,12 +154,14 @@ class RunnerConfigurationTests(unittest.TestCase):
     def test_test_environment_requires_dflash_ring_only_for_sut(self) -> None:
         phase = self.config["phases"]["production"]
         target, _ = _build_environment(
+            self.profile,
             self.pair,
             phase,
             dflash=False,
             library_path_prefix="/tmp/test-libcuda",
         )
         dflash, _ = _build_environment(
+            self.profile,
             self.pair,
             phase,
             dflash=True,
@@ -168,6 +170,9 @@ class RunnerConfigurationTests(unittest.TestCase):
         self.assertNotIn("SGLANG_DFLASH_DRAFT_RING", target)
         self.assertEqual(dflash["SGLANG_DFLASH_DRAFT_RING"], "1")
         self.assertEqual(dflash["SGLANG_DFLASH_DRAFT_RING_QUOTA"], "4")
+        self.assertEqual(target["SGLANG_USE_HUMMING_W4A8"], "1")
+        self.assertEqual(dflash["SGLANG_USE_HUMMING_W4A8"], "1")
+        self.assertEqual(target["HUMMING_PATH"], "/workspace/pp")
 
     def test_radix_suite_runs_only_in_radix_phase(self) -> None:
         production = _harness_suites(self.config["phases"]["production"])

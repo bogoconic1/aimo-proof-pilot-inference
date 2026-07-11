@@ -1,10 +1,28 @@
 {
   "schema_version": 1,
   "description": "DFlash generation-correctness profiles and finite coverage matrix. This configuration is test-only and must not be sourced by production launchers.",
-  "default_profile": "fix4_w4a16_int4",
+  "default_profile": "fix4_humming_w4a8_int4",
   "profiles": {
+    "fix4_humming_w4a8_int4": {
+      "description": "Notebook-equivalent H200 profile: GPTQ INT4 target with mandatory Humming W4A8 SM90 execution, compressed-tensors int4-MLP DFlash draft, FP8 E4M3 KV, and runtime block 8.",
+      "python": "/workspace/pp/venv/bin/python",
+      "target_model": "/workspace/original/models/opd-32b-v33-s200-gptq-w4a16",
+      "tokenizer": "/workspace/original/models/opd-32b-v33-s200-gptq-w4a16",
+      "draft_model": "/workspace/original/models/dflash-32b-draft-v2test-phaseL-int4mlp",
+      "draft_quantization": "compressed-tensors",
+      "expected_checkpoint_block_size": 11,
+      "effective_dflash_block_size": 8,
+      "environment": {
+        "SGLANG_USE_HUMMING_W4A8": "1",
+        "W4A8_DROP_MARLIN": "1",
+        "W4A8_M_THRESHOLD": "64",
+        "W4A8_HELPER_DIR": "/workspace/pp/proof-pilot/deploy/w4a8",
+        "HUMMING_PATH": "/workspace/pp",
+        "LD_PRELOAD": "/workspace/pp/venv/lib/python3.12/site-packages/nvidia/cu13/lib/libnvrtc.so.13"
+      }
+    },
     "fix4_w4a16_int4": {
-      "description": "H200-safe, notebook-equivalent fix4 profile: GPTQ W4A16/Marlin target plus compressed-tensors int4-MLP DFlash draft, with the supported runtime block-8 override of the checkpoint-native block 11. This is not the Blackwell-only Humming W4A8 arithmetic path.",
+      "description": "Historical Marlin diagnostic: GPTQ W4A16 target plus compressed-tensors int4-MLP DFlash draft with runtime block 8. Humming supports H200; this profile intentionally does not enable it.",
       "python": "/workspace/original/runtime/venv/bin/python",
       "target_model": "/workspace/original/models/opd-32b-v33-s200-gptq-w4a16",
       "tokenizer": "/workspace/original/models/opd-32b-v33-s200-gptq-w4a16",

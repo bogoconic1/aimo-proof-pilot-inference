@@ -3,7 +3,9 @@
 The harness deliberately exposes one production evaluation route.
 
 1. `validate_dflash_server.py` rejects a live server unless DFlash and the
-   exact selected quantized or BF16 numerical configuration are active.
+   exact selected quantized or BF16 numerical configuration are active. In
+   quantized mode it additionally requires the SM90 Humming preflight and a
+   runtime marker proving that a W4A8 layer was constructed.
 2. `make_batches.py` splits each 30-problem subset into six ordered
    five-problem ID files.
 3. `run_notebook_v2_eval.py` imports the exact hash-pinned notebook scheduler,

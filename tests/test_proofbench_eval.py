@@ -21,7 +21,7 @@ from make_batches import build_batches  # noqa: E402
 from pipeline import Engine, solve_problem  # noqa: E402
 from run_full_evaluation import generation_command, load_problem_ids  # noqa: E402
 from run_notebook_v2_eval import strict_trace  # noqa: E402
-from patch_w4a8_mode_guard import patch_source  # noqa: E402
+from patch_w4a8_mode_guard import BUILD, patch_source  # noqa: E402
 
 
 class InvalidClient:
@@ -56,7 +56,11 @@ class ProofBenchEvaluationTests(unittest.TestCase):
         self.assertIn('MAXREQ="${MAXREQ:-48}"', launcher)
         self.assertIn('MEMFRAC="${MEMFRAC:-0.85}"', launcher)
         self.assertIn('MEMFRAC="${MEMFRAC:-0.88}"', launcher)
-        self.assertIn("export SGLANG_USE_HUMMING_W4A8=0", launcher)
+        self.assertIn("export SGLANG_USE_HUMMING_W4A8=1", launcher)
+        self.assertIn("W4A8_HELPER_DIR", launcher)
+        self.assertIn("HUMMING_PATH", launcher)
+        self.assertIn("W4A8_DROP_MARLIN=1", launcher)
+        self.assertIn("validate_humming_install.py", launcher)
         self.assertIn('SGLANG_GQA_PACKED_EXTEND="${SGLANG_GQA_PACKED_EXTEND:-1}"', launcher)
         self.assertNotIn("--served-model-name", launcher)
 
@@ -82,6 +86,11 @@ class ProofBenchEvaluationTests(unittest.TestCase):
         self.assertEqual(quantized["server"]["mem_fraction_static"], 0.85)
         self.assertIn("gptq_w4a16", quantized["model"]["target_weight_quantization"])
         self.assertIn("int4_mlp", quantized["model"]["draft_weight_quantization"])
+        self.assertEqual(
+            quantized["model"]["target_execution_quantization"], "humming_w4a8"
+        )
+        self.assertEqual(quantized["model"]["target_activation_dtype"], "fp8_e4m3")
+        self.assertIs(quantized["server"]["humming_required"], True)
         self.assertEqual(bf16["model"]["mode"], "bf16")
         self.assertEqual(bf16["model"]["dtype"], "bfloat16")
         self.assertEqual(bf16["model"]["kv_cache_dtype"], "auto")
@@ -124,13 +133,18 @@ class ProofBenchEvaluationTests(unittest.TestCase):
         self.assertIn("--config", rendered)
         self.assertNotIn("run_agentic_eval.py", rendered)
 
-    def test_humming_import_is_gated_for_h200_marlin(self):
-        unguarded = "before\n        if _humming_mod().humming_dispatch(layer, x):\nafter\n"
+    def test_humming_import_is_gated_and_runtime_is_marked(self):
+        unguarded = (
+            "before\n"
+            + BUILD
+            + "\n        if _humming_mod().humming_dispatch(layer, x):\nafter\n"
+        )
         guarded = patch_source(unguarded)
         self.assertIn(
             "if _humming_enabled() and _humming_mod().humming_dispatch(layer, x):",
             guarded,
         )
+        self.assertIn("HUMMING_W4A8_LAYER_READY", guarded)
         self.assertEqual(patch_source(guarded), guarded)
         with self.assertRaises(RuntimeError):
             patch_source("no humming dispatch here")

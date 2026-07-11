@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Keep the optional Blackwell Humming import behind its explicit mode gate."""
+"""Gate the Humming import and emit proof when a W4A8 layer is constructed."""
 
 from __future__ import annotations
 
@@ -15,16 +15,29 @@ UNGUARDED = "        if _humming_mod().humming_dispatch(layer, x):"
 GUARDED = (
     "        if _humming_enabled() and _humming_mod().humming_dispatch(layer, x):"
 )
+BUILD = "            built = hm.build_humming_w4a8(layer, self.group_size, self.symmetric)"
+MARKER = (
+    BUILD
+    + "\n            if built:\n"
+    + '                logger.info("HUMMING_W4A8_LAYER_READY device=%s group_size=%s", '\
+    + "layer.weight_packed.device, self.group_size)"
+)
 
 
 def patch_source(source: str) -> str:
-    if GUARDED in source:
-        if source.count(GUARDED) != 1:
-            raise RuntimeError("Expected exactly one guarded Humming dispatch")
-        return source
-    if source.count(UNGUARDED) != 1:
-        raise RuntimeError("Expected exactly one unguarded Humming dispatch")
-    return source.replace(UNGUARDED, GUARDED, 1)
+    if GUARDED not in source:
+        if source.count(UNGUARDED) != 1:
+            raise RuntimeError("Expected exactly one unguarded Humming dispatch")
+        source = source.replace(UNGUARDED, GUARDED, 1)
+    if source.count(GUARDED) != 1:
+        raise RuntimeError("Expected exactly one guarded Humming dispatch")
+    if MARKER not in source:
+        if source.count(BUILD) != 1:
+            raise RuntimeError("Expected exactly one Humming build call")
+        source = source.replace(BUILD, MARKER, 1)
+    if source.count("HUMMING_W4A8_LAYER_READY") != 1:
+        raise RuntimeError("Expected exactly one Humming runtime marker")
+    return source
 
 
 def patch_venv(venv: Path) -> None:
@@ -50,7 +63,7 @@ def main() -> None:
     if len(sys.argv) != 2:
         raise SystemExit(f"usage: {Path(sys.argv[0]).name} <venv_path>")
     patch_venv(Path(sys.argv[1]).resolve())
-    print("[patch] W4A8 mode guard verified")
+    print("[patch] W4A8 mode guard and runtime marker verified")
 
 
 if __name__ == "__main__":

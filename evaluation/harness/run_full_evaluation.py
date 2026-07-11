@@ -209,6 +209,8 @@ def main() -> None:
                 str(args.config.resolve()),
                 "--output",
                 str(run_root / f"{subset}_server_validation.json"),
+                "--server-log",
+                str(run_root / f"{subset}_server.log"),
             ]
         )
 

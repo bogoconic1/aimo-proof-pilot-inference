@@ -1,4 +1,4 @@
-# Startup failure: unconditional Blackwell Humming import on H200
+# Startup failure: unresolved Humming integration-helper path
 
 This first quantized attempt used source commit
 `0aaa9850d0a9ec6a9c8e773688d439d857cb68ab` and quantized config SHA-256
@@ -12,9 +12,15 @@ forward pass.
 
 The installed ycchen Humming patch guarded weight preparation with
 `_humming_enabled()` but called `_humming_mod()` unconditionally in
-`apply_weights`. Consequently the H200 W4A16/Marlin path tried to import the
-Blackwell-only `humming_w4a8` module and raised `ModuleNotFoundError` before
-Marlin could execute.
+`apply_weights`. The loader's default `W4A8_HELPER_DIR` did not match the local
+checkout, so it could not find ycchen's `humming_w4a8.py` integration helper
+and raised `ModuleNotFoundError`.
+
+This was not an H200 limitation. Humming supports FP8 E4M3 activations on SM89
+and newer, includes `Sm90Heuristics`, and the bundled checkout selects that
+implementation on H200. The later decision to guard the import and disable
+Humming was therefore a configuration mistake, preserved separately in the
+rerun2 stopped-run report.
 
 Supervisor restarted each identical server process before the loop was stopped.
 The evaluator was never started. This attempt issued zero ProofBench generation

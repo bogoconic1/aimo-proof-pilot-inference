@@ -89,6 +89,7 @@ _INHERITED_ENV_DENYLIST = {
     "W4A8_M_THRESHOLD",
     "W4A8_HELPER_DIR",
     "HUMMING_PATH",
+    "LD_PRELOAD",
     "SGLANG_LOAD_KV_SCALE",
     "SGLANG_ALLOW_OVERWRITE_LONGER_CONTEXT_LEN",
     "SGLANG_ENABLE_OVERLAP_PLAN_STREAM",
@@ -544,6 +545,7 @@ def _build_command(
 
 
 def _build_environment(
+    profile: dict[str, Any],
     pair: dict[str, Any],
     phase: dict[str, Any],
     *,
@@ -554,6 +556,9 @@ def _build_environment(
     for key in _INHERITED_ENV_DENYLIST:
         environment.pop(key, None)
     controlled = {str(key): str(value) for key, value in pair["common_environment"].items()}
+    controlled.update(
+        {str(key): str(value) for key, value in profile.get("environment", {}).items()}
+    )
     if dflash:
         controlled.update(
             {str(key): str(value) for key, value in pair["dflash_environment"].items()}
@@ -994,12 +999,14 @@ def _run(args: argparse.Namespace, config: dict[str, Any]) -> int:
     target_command = _build_command(profile, pair, phase, dflash=False)
     dflash_command = _build_command(profile, pair, phase, dflash=True)
     target_environment, target_controlled = _build_environment(
+        profile,
         pair,
         phase,
         dflash=False,
         library_path_prefix=jit["LIBRARY_PATH_PREFIX"],
     )
     dflash_environment, dflash_controlled = _build_environment(
+        profile,
         pair,
         phase,
         dflash=True,

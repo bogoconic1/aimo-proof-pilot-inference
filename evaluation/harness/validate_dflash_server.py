@@ -18,6 +18,7 @@ def main() -> None:
     parser.add_argument("--url", required=True)
     parser.add_argument("--config", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--server-log", required=True, type=Path)
     args = parser.parse_args()
 
     evaluation_config = json.loads(args.config.read_text())
@@ -29,6 +30,7 @@ def main() -> None:
     draft_config = json.loads((draft / "config.json").read_text())
     server = get_json(args.url.rstrip("/") + "/get_server_info")
     models = get_json(args.url.rstrip("/") + "/v1/models")
+    server_log = args.server_log.read_text()
 
     assert target_config["torch_dtype"] == "bfloat16"
     assert draft_config["torch_dtype"] == "bfloat16"
@@ -37,6 +39,9 @@ def main() -> None:
         assert draft_config["quantization_config"]["quant_method"] == "compressed-tensors"
         assert server["kv_cache_dtype"] == "fp8_e4m3"
         assert server["speculative_draft_model_quantization"] == "compressed-tensors"
+        assert "HUMMING_W4A8_PREFLIGHT " in server_log
+        assert "HUMMING_W4A8_LAYER_READY " in server_log
+        assert "target_execution=humming_w4a8" in server_log
     elif model["mode"] == "bf16":
         assert target_config.get("quantization_config") is None
         assert draft_config.get("quantization_config") is None
@@ -80,6 +85,11 @@ def main() -> None:
             ],
             text=True,
         ).splitlines(),
+        "runtime_markers": {
+            "humming_preflight": "HUMMING_W4A8_PREFLIGHT " in server_log,
+            "humming_layer_ready": "HUMMING_W4A8_LAYER_READY " in server_log,
+            "humming_target_execution": "target_execution=humming_w4a8" in server_log,
+        },
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n")

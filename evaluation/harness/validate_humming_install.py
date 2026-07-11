@@ -1,0 +1,56 @@
+"""Fail unless the configured Humming W4A8 runtime supports the visible GPU."""
+
+from __future__ import annotations
+
+import argparse
+import importlib
+import json
+import sys
+from pathlib import Path
+
+import torch
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--humming-path", required=True, type=Path)
+    parser.add_argument("--helper-dir", required=True, type=Path)
+    parser.add_argument("--nvrtc-lib", required=True, type=Path)
+    args = parser.parse_args()
+
+    package = args.humming_path / "humming" / "__init__.py"
+    helper = args.helper_dir / "humming_w4a8.py"
+    assert package.is_file(), package
+    assert helper.is_file(), helper
+    assert args.nvrtc_lib.is_file(), args.nvrtc_lib
+
+    sys.path.insert(0, str(args.humming_path))
+    sys.path.insert(0, str(args.helper_dir))
+    import humming
+    from humming.tune import get_heuristics_class
+
+    helper_module = importlib.import_module("humming_w4a8")
+    capability = torch.cuda.get_device_capability()
+    sm = capability[0] * 10 + capability[1]
+    assert sm == 90, capability
+    heuristic = get_heuristics_class()
+    assert heuristic.__name__ == "Sm90Heuristics", heuristic.__name__
+
+    print(
+        "HUMMING_W4A8_PREFLIGHT "
+        + json.dumps(
+            {
+                "device": torch.cuda.get_device_name(),
+                "compute_capability": list(capability),
+                "heuristics": heuristic.__name__,
+                "humming_module": str(Path(humming.__file__).resolve()),
+                "helper_module": str(Path(helper_module.__file__).resolve()),
+                "nvrtc_lib": str(args.nvrtc_lib.resolve()),
+            },
+            sort_keys=True,
+        )
+    )
+
+
+if __name__ == "__main__":
+    main()
