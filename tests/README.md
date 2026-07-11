@@ -11,6 +11,7 @@ Everything in this directory is test-only:
 - `results/` contains committed, immutable evidence from completed runs;
 - `dflash_correctness_harness.py` compares already-running servers;
 - `run_dflash_correctness.py` owns an isolated server pair for one test phase;
+- `run_kv_cache_experiment.py` benchmarks request-local KV reuse versus full re-prefill;
 - `test_*.py` contains unit, kernel, and harness regression tests.
 
 Production launchers must not source these configs, and this suite must not
@@ -38,10 +39,23 @@ timeout.
 `dflash_correctness_harness.py` entry point is available when the two servers
 are already running.
 
-All three runners fail closed if their requested output escapes
+Both generation entry points and the GPU control runner fail closed if output escapes
 `tests/results/`. Result directory names should be unique. Completed artifacts
 are append-only evidence and should be committed with ignored logs explicitly
 included.
+
+The earlier mandatory-DFlash KV-cache benchmark is also isolated here. Its
+source of truth is `configs/kv_cache_reuse_h200.json`, and it can be run with:
+
+```bash
+/workspace/pp/venv/bin/python tests/run_kv_cache_experiment.py \
+  --gpu 1 \
+  --json-out tests/results/<run-name>/kv_cache_reuse_h200_dflash.json
+```
+
+The benchmark rejects output paths outside `tests/results/`. Its three
+historical attempts—including the complete DFlash log—are preserved in dated
+subdirectories under that root.
 
 ## What “correct” means
 

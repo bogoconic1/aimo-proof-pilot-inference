@@ -56,23 +56,26 @@ For a diagram-first explanation of the submission notebook's complete
 target-KV, draft-ring, radix-prefix, and DFlash verification flow, see
 [`dflash-kv-cache-architecture.md`](dflash-kv-cache-architecture.md).
 
-`kv_cache_experiment.py` compares normal SGLang generation, which reuses the
-request's KV state while decoding, with an emulated no-reuse path that submits
-one-token requests over the entire growing sequence. Radix prefix caching is
-disabled for both paths, so every one-token request performs a full prefill.
-DFlash is mandatory in this experiment: there is no opt-in switch and no
-non-DFlash fallback. It always loads the local BF16 draft, uses block size 8,
-an auto-read 512-token draft ring, Triton draft attention, and the launcher
-environment settings.
+[`tests/run_kv_cache_experiment.py`](tests/run_kv_cache_experiment.py) compares
+normal SGLang generation, which reuses the request's KV state while decoding,
+with an emulated no-reuse path that submits one-token requests over the entire
+growing sequence. Its defaults, engine settings, and required environment are
+isolated in the test-only
+[`tests/configs/kv_cache_reuse_h200.json`](tests/configs/kv_cache_reuse_h200.json);
+production launchers do not source that file. Radix prefix caching is disabled
+for both paths, so every one-token request performs a full prefill. DFlash is
+mandatory in this experiment: there is no opt-in switch and no non-DFlash
+fallback. It always loads the local BF16 draft, uses block size 8, an auto-read
+512-token draft ring, and Triton draft attention.
 
 Run the default equation-solving experiment on GPU 1 with the patched
 environment:
 
 ```bash
 cd /workspace
-/workspace/pp/venv/bin/python kv_cache_experiment.py \
+/workspace/pp/venv/bin/python tests/run_kv_cache_experiment.py \
   --gpu 1 \
-  --json-out eval/results/kv_cache_reuse_h200_dflash.json
+  --json-out tests/results/<run-name>/kv_cache_reuse_h200_dflash.json
 ```
 
 The default target KV dtype is production's `fp8_e4m3`. The full-reprefill
@@ -87,8 +90,9 @@ override versus the draft's declared value, warmup data, and streaming chunk
 sizes so the speculative behavior is auditable.
 
 The recorded H200 run is in
-[`kv_cache_reuse_h200_dflash.json`](eval/results/kv_cache_reuse_h200_dflash.json)
-with its [complete console log](eval/results/kv_cache_reuse_h200_dflash.log):
+[`kv_cache_reuse_h200_dflash.json`](tests/results/20260710-kv-cache-reuse-h200-dflash/kv_cache_reuse_h200_dflash.json)
+with its
+[complete console log](tests/results/20260710-kv-cache-reuse-h200-dflash/kv_cache_reuse_h200_dflash.log):
 
 | Arm | Tokens | Elapsed | End-to-end rate | Correct |
 |---|---:|---:|---:|---|

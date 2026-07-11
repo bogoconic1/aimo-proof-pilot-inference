@@ -268,7 +268,7 @@ FP8 KV            = stored attention memory for both models
 
 ## 8. Notebook versus the H200 KV experiment
 
-| Behavior | Submission notebook | `kv_cache_experiment.py` |
+| Behavior | Submission notebook | `tests/run_kv_cache_experiment.py` |
 |---|---|---|
 | Target weights | GPTQ/Humming W4A8 | Local BF16 target |
 | Draft weights | INT4 MLP | Local BF16 draft |
@@ -345,8 +345,8 @@ Server stays alive
   8-layer draft.
 - [`kv-cache-and-prefix-caching.md`](kv-cache-and-prefix-caching.md): KV and
   prefix caching from first principles.
-- [`kv_cache_experiment.py`](kv_cache_experiment.py): H200 reuse versus
-  full-reprefill methodology.
+- [`tests/run_kv_cache_experiment.py`](tests/run_kv_cache_experiment.py): H200
+  reuse versus full-reprefill methodology.
 
 > **Invariant:** DFlash does not replace KV caching. It adds a second bounded
 > draft KV cache beside the target KV cache, and the target remains

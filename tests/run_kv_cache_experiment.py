@@ -14,10 +14,12 @@ therefore compares:
 The second path is an end-to-end emulation of naive no-cache decoding. Its
 timing includes scheduler/IPC/request overhead and is not a pure kernel A/B.
 
-Run with the patched proof-pilot environment, for example:
+Run with the patched proof-pilot environment and the test-only configuration,
+for example:
 
-    /workspace/pp/venv/bin/python kv_cache_experiment.py \
-        --gpu 1 --json-out eval/results/kv_cache_reuse_h200_dflash.json
+    /workspace/pp/venv/bin/python tests/run_kv_cache_experiment.py \
+        --gpu 1 \
+        --json-out tests/results/my-kv-cache-run/result.json
 """
 
 from __future__ import annotations
@@ -33,19 +35,78 @@ from pathlib import Path
 from typing import Any, Protocol
 
 
-DEFAULT_MODEL = "/workspace/models/opd-32b-deploy"
-DEFAULT_DRAFT_MODEL = "/workspace/models/dflash-32b-draft-v2test-phaseL"
-DEFAULT_QUESTION = "solve the equations 2x+2y=6 and 3x-y=5 for x and y"
-DEFAULT_MAX_NEW_TOKENS = 256
-DFLASH_BLOCK_SIZE = 8
-DFLASH_ENVIRONMENT = {
-    "SGLANG_ALLOW_OVERWRITE_LONGER_CONTEXT_LEN": "1",
-    "SGLANG_ENABLE_OVERLAP_PLAN_STREAM": "1",
-    "SGLANG_DFLASH_DRAFT_RING": "1",
-    "SGLANG_DFLASH_DRAFT_RING_QUOTA": "4",
-    "SGLANG_SWA_EVICTION_INTERVAL_MULTIPLIER": "0.125",
-    "SGLANG_OPT_SWA_RELEASE_LEAF_LOCK_AFTER_WINDOW": "1",
-}
+TESTS_DIR = Path(__file__).resolve().parent
+CONFIG_PATH = TESTS_DIR / "configs" / "kv_cache_reuse_h200.json"
+RESULTS_ROOT = TESTS_DIR / "results"
+
+
+def load_test_config(path: Path = CONFIG_PATH) -> dict[str, Any]:
+    """Load and validate the isolated configuration for this experiment."""
+
+    config = json.loads(path.read_text())
+    if config.get("schema_version") != 1:
+        raise ValueError(f"Unsupported KV-cache test config schema: {path}")
+
+    for section in ("defaults", "environment", "engine_kwargs"):
+        if not isinstance(config.get(section), Mapping):
+            raise ValueError(f"KV-cache test config has no {section} mapping: {path}")
+
+    defaults = config["defaults"]
+    for name in (
+        "question",
+        "model",
+        "draft_model",
+        "gpu",
+        "max_new_tokens",
+        "kv_cache_dtype",
+    ):
+        if name not in defaults:
+            raise ValueError(f"KV-cache test config has no defaults.{name}: {path}")
+
+    environment = config["environment"]
+    for section in ("defaults", "required"):
+        values = environment.get(section)
+        if not isinstance(values, Mapping):
+            raise ValueError(
+                f"KV-cache test config has no environment.{section} mapping: {path}"
+            )
+        if not all(
+            isinstance(key, str) and isinstance(value, str)
+            for key, value in values.items()
+        ):
+            raise ValueError(
+                f"KV-cache test environment.{section} must contain strings: {path}"
+            )
+
+    engine = config["engine_kwargs"]
+    if engine.get("speculative_algorithm") != "DFLASH":
+        raise ValueError("The KV-cache experiment requires mandatory DFLASH")
+    block_size = int(engine.get("speculative_dflash_block_size", 0))
+    if (
+        block_size < 1
+        or int(engine.get("speculative_num_draft_tokens", 0)) != block_size
+    ):
+        raise ValueError(
+            "Both DFlash block-size settings must be the same positive value"
+        )
+    if engine.get("disable_radix_cache") is not True:
+        raise ValueError("The KV-cache experiment requires disable_radix_cache=true")
+    if engine.get("enable_cache_report") is not True:
+        raise ValueError("The KV-cache experiment requires cache telemetry")
+    if environment["required"].get("SGLANG_DFLASH_DRAFT_RING") != "1":
+        raise ValueError("The KV-cache experiment requires the DFlash draft ring")
+    return config
+
+
+_TEST_CONFIG = load_test_config()
+_DEFAULTS = _TEST_CONFIG["defaults"]
+_ENGINE_DEFAULTS = _TEST_CONFIG["engine_kwargs"]
+DEFAULT_MODEL = str(_DEFAULTS["model"])
+DEFAULT_DRAFT_MODEL = str(_DEFAULTS["draft_model"])
+DEFAULT_QUESTION = str(_DEFAULTS["question"])
+DEFAULT_MAX_NEW_TOKENS = int(_DEFAULTS["max_new_tokens"])
+DFLASH_BLOCK_SIZE = int(_ENGINE_DEFAULTS["speculative_dflash_block_size"])
+DFLASH_ENVIRONMENT = dict(_TEST_CONFIG["environment"]["required"])
 
 
 class TokenizerLike(Protocol):
@@ -130,28 +191,33 @@ class GenerationRun:
         return result
 
 
-def build_parser() -> argparse.ArgumentParser:
+def build_parser(
+    config: Mapping[str, Any] | None = None,
+) -> argparse.ArgumentParser:
+    if config is None:
+        config = load_test_config()
+    defaults = config["defaults"]
     parser = argparse.ArgumentParser(
         description="Compare SGLang decode KV reuse with full re-prefill emulation."
     )
-    parser.add_argument("--question", default=DEFAULT_QUESTION)
-    parser.add_argument("--model", default=DEFAULT_MODEL)
+    parser.add_argument("--question", default=defaults["question"])
+    parser.add_argument("--model", default=defaults["model"])
     parser.add_argument(
         "--draft-model",
-        default=DEFAULT_DRAFT_MODEL,
+        default=defaults["draft_model"],
         help="Mandatory local BF16 DFlash draft model (there is no non-DFlash mode).",
     )
     parser.add_argument(
         "--gpu",
-        default="1",
+        default=str(defaults["gpu"]),
         help="Physical GPU selection written to CUDA_VISIBLE_DEVICES before importing SGLang.",
     )
     parser.add_argument(
-        "--max-new-tokens", type=int, default=DEFAULT_MAX_NEW_TOKENS
+        "--max-new-tokens", type=int, default=int(defaults["max_new_tokens"])
     )
     parser.add_argument(
         "--kv-cache-dtype",
-        default="fp8_e4m3",
+        default=defaults["kv_cache_dtype"],
         choices=("auto", "bf16", "fp8_e4m3"),
         help="Defaults to production's fp8_e4m3 target KV cache.",
     )
@@ -159,27 +225,29 @@ def build_parser() -> argparse.ArgumentParser:
         "--json-out",
         type=Path,
         default=None,
-        help="Optional path for a structured result artifact.",
+        help="Optional structured result path under tests/results/.",
     )
     return parser
 
 
-def configure_environment(gpu: str) -> None:
+def configure_environment(
+    gpu: str, config: Mapping[str, Any] | None = None
+) -> None:
     """Set runtime variables before importing SGLang or torch."""
 
+    if config is None:
+        config = load_test_config()
+    environment = config["environment"]
     os.environ["CUDA_VISIBLE_DEVICES"] = gpu
-    os.environ.setdefault("FLASHINFER_CUDA_ARCH_LIST", "9.0a")
-    os.environ.setdefault("FLASHINFER_USE_CUDA_NORM", "1")
-    os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
-    os.environ.setdefault("SGLANG_DECODE_NUM_STAGES", "3")
-    os.environ.setdefault("SGLANG_DECODE_BLOCK_N", "32")
-    os.environ.setdefault("SGLANG_GQA_PACKED_EXTEND", "1")
-    os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
-    for name, value in DFLASH_ENVIRONMENT.items():
+    for name, value in environment["defaults"].items():
+        os.environ.setdefault(name, value)
+    for name, value in environment["required"].items():
         os.environ[name] = value
 
 
-def load_dflash_draft_window(draft_model: str | Path) -> int:
+def load_dflash_draft_window(
+    draft_model: str | Path, minimum_block_size: int = DFLASH_BLOCK_SIZE
+) -> int:
     """Read the mandatory DFlash ring window from the local draft config."""
 
     config_path = Path(draft_model) / "config.json"
@@ -192,14 +260,17 @@ def load_dflash_draft_window(draft_model: str | Path) -> int:
     if value is None:
         raise ValueError(f"DFlash draft config has no sliding_window: {config_path}")
     window = int(value)
-    if window < DFLASH_BLOCK_SIZE:
+    if window < minimum_block_size:
         raise ValueError(
             "DFlash draft sliding_window must be at least the configured block "
-            f"size ({DFLASH_BLOCK_SIZE}), got {window}"
+            f"size ({minimum_block_size}), got {window}"
         )
     return window
 
-def load_dflash_draft_metadata(draft_model: str | Path) -> dict[str, Any]:
+
+def load_dflash_draft_metadata(
+    draft_model: str | Path, effective_block_size: int = DFLASH_BLOCK_SIZE
+) -> dict[str, Any]:
     """Record declared draft settings separately from effective overrides."""
 
     config_path = Path(draft_model) / "config.json"
@@ -215,52 +286,41 @@ def load_dflash_draft_metadata(draft_model: str | Path) -> dict[str, Any]:
         "declared_sliding_window": (
             config.get("sliding_window") or dflash_config.get("sliding_window")
         ),
-        "effective_block_size_override": DFLASH_BLOCK_SIZE,
+        "effective_block_size_override": effective_block_size,
         "draft_model_quantization": None,
     }
 
 
-def build_engine_kwargs(args: argparse.Namespace) -> dict[str, Any]:
+def build_engine_kwargs(
+    args: argparse.Namespace, config: Mapping[str, Any] | None = None
+) -> dict[str, Any]:
     """Return the mandatory-DFlash configuration shared by both paths."""
 
-    return {
-        "model_path": args.model,
-        "speculative_algorithm": "DFLASH",
-        "speculative_draft_model_path": args.draft_model,
-        "speculative_dflash_block_size": DFLASH_BLOCK_SIZE,
-        "speculative_num_draft_tokens": DFLASH_BLOCK_SIZE,
-        "speculative_draft_window_size": load_dflash_draft_window(
-            args.draft_model
-        ),
-        "speculative_draft_attention_backend": "triton",
-        "attention_backend": "triton",
-        "tp_size": 1,
-        "context_length": 200_000,
-        "mem_fraction_static": 0.88,
-        "chunked_prefill_size": 2_048,
-        "kv_cache_dtype": args.kv_cache_dtype,
-        "max_running_requests": 1,
-        "stream_interval": 1,
-        "swa_full_tokens_ratio": 0.1,
-        "disable_radix_cache": True,
-        "enable_cache_report": True,
-        "enable_metrics": True,
-        "random_seed": 0,
-        "cuda_graph_max_bs_decode": 1,
-        "cuda_graph_bs_decode": [1],
-        "cuda_graph_backend_prefill": "tc_piecewise",
-        "cuda_graph_bs_prefill": [256, 1_024, 2_048],
-        "triton_attention_num_kv_splits": 32,
-        "log_level": "warning",
-    }
+    if config is None:
+        config = load_test_config()
+    engine_kwargs = dict(config["engine_kwargs"])
+    block_size = int(engine_kwargs["speculative_dflash_block_size"])
+    engine_kwargs.update(
+        {
+            "model_path": args.model,
+            "speculative_draft_model_path": args.draft_model,
+            "speculative_draft_window_size": load_dflash_draft_window(
+                args.draft_model, block_size
+            ),
+            "kv_cache_dtype": args.kv_cache_dtype,
+        }
+    )
+    return engine_kwargs
 
 
-def create_engine(args: argparse.Namespace) -> EngineLike:
+def create_engine(
+    args: argparse.Namespace, config: Mapping[str, Any] | None = None
+) -> EngineLike:
     """Import the patched runtime lazily, after GPU selection is configured."""
 
     import sglang as sgl
 
-    return sgl.Engine(**build_engine_kwargs(args))
+    return sgl.Engine(**build_engine_kwargs(args, config))
 
 
 def build_prompt_ids(tokenizer: TokenizerLike, question: str) -> list[int]:
@@ -583,7 +643,23 @@ def print_run(run: GenerationRun) -> None:
     print(f"output              : {run.output_text!r}")
 
 
+def require_test_result_path(path: Path) -> None:
+    """Reject result paths outside the test-only evidence directory."""
+
+    results_root = RESULTS_ROOT.resolve()
+    resolved = path.expanduser().resolve()
+    try:
+        relative = resolved.relative_to(results_root)
+    except ValueError as exc:
+        raise ValueError(
+            f"KV-cache test results must stay under {RESULTS_ROOT}, got {path}"
+        ) from exc
+    if not relative.parts:
+        raise ValueError("--json-out must name a file below tests/results/")
+
+
 def write_json(path: Path, payload: Mapping[str, Any]) -> None:
+    require_test_result_path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n")
 
@@ -591,13 +667,19 @@ def write_json(path: Path, payload: Mapping[str, Any]) -> None:
 def run_experiment(args: argparse.Namespace) -> dict[str, Any]:
     if args.max_new_tokens < 1:
         raise ValueError("--max-new-tokens must be at least 1")
+    if args.json_out is not None:
+        require_test_result_path(args.json_out)
 
-    configure_environment(args.gpu)
+    config = load_test_config()
+    configure_environment(args.gpu, config)
 
     import sglang
     import torch
 
-    engine = create_engine(args)
+    engine_kwargs = build_engine_kwargs(args, config)
+    block_size = int(engine_kwargs["speculative_dflash_block_size"])
+    draft_window = int(engine_kwargs["speculative_draft_window_size"])
+    engine = create_engine(args, config)
     try:
         server_args = getattr(engine, "server_args", None)
         if not getattr(server_args, "disable_radix_cache", False):
@@ -618,7 +700,10 @@ def run_experiment(args: argparse.Namespace) -> dict[str, Any]:
         print(f"model         : {args.model}")
         print(f"GPU           : {torch.cuda.get_device_name(0)}")
         print(f"DFlash draft  : {args.draft_model}")
-        print("DFlash        : mandatory (block=8, draft window from config)")
+        print(
+            "DFlash        : mandatory "
+            f"(block={block_size}, draft window={draft_window} from draft config)"
+        )
         print("warming prefill and decode kernels ...", flush=True)
         warmup = warm_up(engine, prompt_ids)
 
@@ -645,8 +730,8 @@ def run_experiment(args: argparse.Namespace) -> dict[str, Any]:
                 ),
                 "radix_prefix_cache": "disabled for both paths",
                 "speculative_decoding": (
-                    "DFLASH is mandatory; block size 8 with a local BF16 draft "
-                    "model and a 512-token FP8 draft KV ring"
+                    f"DFLASH is mandatory; block size {block_size} with a local "
+                    f"BF16 draft model and a {draft_window}-token FP8 draft KV ring"
                 ),
                 "caveat": (
                     "The full-reprefill timing includes scheduler, IPC, and per-request "
@@ -667,16 +752,19 @@ def run_experiment(args: argparse.Namespace) -> dict[str, Any]:
                 "kv_cache_dtype": args.kv_cache_dtype,
                 "prompt_token_ids": prompt_ids,
                 "draft_model": args.draft_model,
-                "dflash_draft_metadata": load_dflash_draft_metadata(args.draft_model),
+                "dflash_draft_metadata": load_dflash_draft_metadata(
+                    args.draft_model, block_size
+                ),
                 "eos_token_ids": sorted(eos_token_ids),
-                "engine_kwargs": build_engine_kwargs(args),
+                "engine_kwargs": engine_kwargs,
             },
             "runtime": {
                 "sglang": sglang.__version__,
                 "torch": torch.__version__,
                 "torch_cuda": torch.version.cuda,
                 "dflash_environment": {
-                    name: os.environ[name] for name in DFLASH_ENVIRONMENT
+                    name: os.environ[name]
+                    for name in config["environment"]["required"]
                 },
             },
             "warmup": warmup,

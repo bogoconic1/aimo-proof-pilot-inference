@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import builtins
+import copy
 import importlib.util
 import json
 import os
@@ -14,7 +15,7 @@ from pathlib import Path
 from typing import Any
 from unittest import mock
 
-import kv_cache_experiment as experiment
+from tests import run_kv_cache_experiment as experiment
 
 
 class FakeClock:
@@ -299,6 +300,52 @@ class ComparisonTests(unittest.TestCase):
 
 
 class ConfigurationTests(unittest.TestCase):
+    def test_runner_config_and_results_are_isolated_under_tests(self) -> None:
+        self.assertEqual(
+            experiment.CONFIG_PATH.parent, experiment.TESTS_DIR / "configs"
+        )
+        self.assertEqual(experiment.RESULTS_ROOT, experiment.TESTS_DIR / "results")
+        self.assertTrue(experiment.CONFIG_PATH.is_file())
+        self.assertNotIn("eval", experiment.CONFIG_PATH.parts)
+        self.assertNotIn("eval", experiment.RESULTS_ROOT.parts)
+
+    def test_parser_defaults_come_from_config_and_cli_overrides_still_win(self) -> None:
+        config = experiment.load_test_config()
+        defaults = config["defaults"]
+
+        default_args = experiment.build_parser(config).parse_args([])
+        self.assertEqual(default_args.question, defaults["question"])
+        self.assertEqual(default_args.model, defaults["model"])
+        self.assertEqual(default_args.draft_model, defaults["draft_model"])
+        self.assertEqual(default_args.gpu, str(defaults["gpu"]))
+        self.assertEqual(default_args.max_new_tokens, defaults["max_new_tokens"])
+        self.assertEqual(default_args.kv_cache_dtype, defaults["kv_cache_dtype"])
+
+        override_args = experiment.build_parser(config).parse_args(
+            [
+                "--question",
+                "override question",
+                "--model",
+                "override-target",
+                "--draft-model",
+                "override-draft",
+                "--gpu",
+                "4",
+                "--max-new-tokens",
+                "17",
+                "--kv-cache-dtype",
+                "bf16",
+                "--json-out",
+                "tests/results/unit-override/result.json",
+            ]
+        )
+        self.assertEqual(override_args.question, "override question")
+        self.assertEqual(override_args.model, "override-target")
+        self.assertEqual(override_args.draft_model, "override-draft")
+        self.assertEqual(override_args.gpu, "4")
+        self.assertEqual(override_args.max_new_tokens, 17)
+        self.assertEqual(override_args.kv_cache_dtype, "bf16")
+
     def test_engine_kwargs_make_dflash_mandatory_and_disable_radix(self) -> None:
         args = argparse.Namespace(
             model="fake-model",
@@ -321,6 +368,27 @@ class ConfigurationTests(unittest.TestCase):
         self.assertEqual(kwargs["speculative_draft_window_size"], 512)
         self.assertEqual(kwargs["speculative_draft_attention_backend"], "triton")
 
+    def test_engine_defaults_come_from_test_config(self) -> None:
+        config = copy.deepcopy(experiment.load_test_config())
+        config["engine_kwargs"]["context_length"] = 12345
+        config["engine_kwargs"]["stream_interval"] = 7
+        args = argparse.Namespace(
+            model="cli-target",
+            draft_model="cli-draft",
+            kv_cache_dtype="bf16",
+        )
+
+        with mock.patch.object(
+            experiment, "load_dflash_draft_window", return_value=321
+        ):
+            kwargs = experiment.build_engine_kwargs(args, config)
+
+        self.assertEqual(kwargs["context_length"], 12345)
+        self.assertEqual(kwargs["stream_interval"], 7)
+        self.assertEqual(kwargs["model_path"], "cli-target")
+        self.assertEqual(kwargs["speculative_draft_model_path"], "cli-draft")
+        self.assertEqual(kwargs["kv_cache_dtype"], "bf16")
+
     def test_dflash_window_is_required_from_draft_config(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             config_path = Path(directory) / "config.json"
@@ -338,6 +406,32 @@ class ConfigurationTests(unittest.TestCase):
             self.assertEqual(os.environ["CUDA_VISIBLE_DEVICES"], "7")
             for name, value in experiment.DFLASH_ENVIRONMENT.items():
                 self.assertEqual(os.environ[name], value)
+
+    def test_environment_defaults_and_required_values_come_from_config(self) -> None:
+        config = copy.deepcopy(experiment.load_test_config())
+        config["environment"]["defaults"] = {"KV_TEST_DEFAULT": "configured"}
+        config["environment"]["required"] = {
+            "SGLANG_DFLASH_DRAFT_RING": "1",
+            "KV_TEST_REQUIRED": "configured",
+        }
+        with mock.patch.dict(
+            os.environ,
+            {"KV_TEST_DEFAULT": "existing", "KV_TEST_REQUIRED": "stale"},
+            clear=False,
+        ):
+            experiment.configure_environment("6", config)
+            self.assertEqual(os.environ["CUDA_VISIBLE_DEVICES"], "6")
+            self.assertEqual(os.environ["KV_TEST_DEFAULT"], "existing")
+            self.assertEqual(os.environ["KV_TEST_REQUIRED"], "configured")
+
+    def test_result_writes_cannot_escape_tests_results(self) -> None:
+        with self.assertRaisesRegex(ValueError, "tests/results"):
+            experiment.require_test_result_path(Path("/tmp/kv-cache-result.json"))
+
+        with tempfile.TemporaryDirectory(dir=experiment.RESULTS_ROOT) as directory:
+            result_path = Path(directory) / "result.json"
+            experiment.write_json(result_path, {"ok": True})
+            self.assertEqual(json.loads(result_path.read_text()), {"ok": True})
 
     def test_parser_has_no_dflash_opt_in_and_defaults_to_fp8(self) -> None:
         parser = experiment.build_parser()
