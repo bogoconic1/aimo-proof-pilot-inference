@@ -60,6 +60,11 @@ _RUNTIME_PATCH_REQUIREMENTS = {
         ),
         "finish_kv_trim_call": "_trim_dflash_finished_committed_tail(",
     },
+    "layers/sampler.py": {
+        "canonical_greedy_argmax": (
+            "# CANONICAL_GREEDY_ARGMAX: resolve numerical near-ties by lowest token id."
+        ),
+    },
     "speculative/dflash_utils.py": {
         "sampling_guard": (
             "# DFLASH_SAMPLING_GUARD: reject transforms this verifier cannot preserve."
@@ -342,7 +347,10 @@ def _audit_runtime_patches(profile: dict[str, Any]) -> dict[str, Any]:
 
     root = roots[0]
     report["srt_root"] = str(root)
-    for relative, requirements in _RUNTIME_PATCH_REQUIREMENTS.items():
+    requirements_by_file = dict(_RUNTIME_PATCH_REQUIREMENTS)
+    if not profile.get("common_argument_overrides", {}).get("enable_fp32_lm_head"):
+        requirements_by_file.pop("layers/sampler.py")
+    for relative, requirements in requirements_by_file.items():
         path = root / relative
         file_report: dict[str, Any] = {"path": str(path), "markers": {}}
         if not path.is_file():

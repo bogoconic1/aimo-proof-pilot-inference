@@ -5,6 +5,7 @@
     "target": "/workspace/models/opd-32b-deploy",
     "draft": "/workspace/models/dflash-32b-draft-v2test-phaseL",
     "dtype": "bfloat16",
+    "lm_head_compute_dtype": "float32",
     "kv_cache_dtype": "auto",
     "speculative_algorithm": "DFLASH"
   },
