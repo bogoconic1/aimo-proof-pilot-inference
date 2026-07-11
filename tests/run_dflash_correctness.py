@@ -160,11 +160,11 @@ def _new_results_dir(args: argparse.Namespace) -> Path:
         if not path.is_absolute():
             path = REPO_ROOT / path
     path = path.resolve()
-    evaluation_results = (REPO_ROOT / "eval" / "results").resolve()
-    if path == evaluation_results or evaluation_results in path.parents:
+    test_results = DEFAULT_RESULTS_ROOT.resolve()
+    if path == test_results or test_results not in path.parents:
         raise RunnerError(
-            "DFlash correctness evidence is test-only; choose tests/results or "
-            "another directory outside eval/results"
+            f"DFlash correctness evidence must be written below {test_results}; "
+            f"got {path}"
         )
     path.mkdir(parents=True, exist_ok=True)
     artifact_names = (
@@ -890,7 +890,7 @@ def _run_harness(
     dflash_url: str,
     results_dir: Path,
     phase: dict[str, Any],
-    pair: dict[str, Any],
+    request_timeout_seconds: float,
 ) -> tuple[int, list[str]]:
     suites = _harness_suites(phase, args.suites)
     command = [
@@ -914,7 +914,7 @@ def _run_harness(
         "--suites",
         ",".join(suites),
         "--request-timeout",
-        str(pair["request_timeout_seconds"]),
+        str(request_timeout_seconds),
     ]
     log_path = results_dir / "harness.log"
     with log_path.open("w", encoding="utf-8", buffering=1) as log_handle:
@@ -1072,8 +1072,17 @@ def _run(args: argparse.Namespace, config: dict[str, Any]) -> int:
 
         run_record["status"] = "running_harness"
         _json_dump(results_dir / "run.json", run_record)
+        request_timeout_seconds = float(
+            config["matrix"][args.tier]["request_timeout_seconds"]
+        )
         harness_returncode, harness_command = _run_harness(
-            profile, args, target_url, dflash_url, results_dir, phase, pair
+            profile,
+            args,
+            target_url,
+            dflash_url,
+            results_dir,
+            phase,
+            request_timeout_seconds,
         )
         run_record["harness_command"] = harness_command
         run_record["harness_returncode"] = harness_returncode

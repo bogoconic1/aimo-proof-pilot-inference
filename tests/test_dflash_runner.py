@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import json
 import socket
 import tempfile
@@ -17,6 +18,7 @@ from tests.run_dflash_correctness import (
     _checkpoint_block_size_report,
     _effective_dflash_arguments,
     _harness_suites,
+    _new_results_dir,
     _port_bind_error,
     _validate_dflash_activation,
     _wait_for_ports_released,
@@ -29,7 +31,8 @@ class RunnerConfigurationTests(unittest.TestCase):
         cls.config = json.loads(CONFIG_PATH.read_text())
         cls.profile = cls.config["profiles"][cls.config["default_profile"]]
         cls.pair = cls.config["server_pair"]
-        assert cls.pair["request_timeout_seconds"] == 300
+        assert cls.config["matrix"]["quick"]["request_timeout_seconds"] == 300
+        assert cls.config["matrix"]["full"]["request_timeout_seconds"] == 1800
 
     def test_commands_keep_dflash_out_of_target_server(self) -> None:
         phase = self.config["phases"]["production"]
@@ -50,6 +53,16 @@ class RunnerConfigurationTests(unittest.TestCase):
             alignment,
             str(self.pair["common_arguments"]["chunked_prefill_size"]),
         )
+
+    def test_result_directory_override_cannot_escape_tests(self) -> None:
+        args = argparse.Namespace(
+            results_dir=Path("eval/results/escaped"),
+            profile="unused",
+            phase="unused",
+            tier="unused",
+        )
+        with self.assertRaisesRegex(RunnerError, "tests/results"):
+            _new_results_dir(args)
 
     def test_explicit_block_profiles_set_both_runtime_flags(self) -> None:
         expected = {

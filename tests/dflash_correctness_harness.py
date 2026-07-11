@@ -28,8 +28,10 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping, Sequence
 
 SCHEMA_VERSION = 1
-DEFAULT_CONFIG = Path(__file__).parent / "configs" / "dflash_generation_h200.json"
-DEFAULT_RESULTS = Path(__file__).parent / "results" / "dflash_generation_correctness_h200.json"
+TESTS_DIR = Path(__file__).resolve().parent
+TEST_RESULTS_ROOT = TESTS_DIR / "results"
+DEFAULT_CONFIG = TESTS_DIR / "configs" / "dflash_generation_h200.json"
+DEFAULT_RESULTS = TEST_RESULTS_ROOT / "dflash_generation_correctness_h200.json"
 SUPPORTED_SUITES = ("greedy", "stop", "stream", "radix", "native-batch", "sampling", "negative", "stress")
 PRODUCTION_TEMPERATURE, PRODUCTION_TOP_P = 0.6, 0.95
 
@@ -46,6 +48,21 @@ class HTTPRequestError(HarnessError):
 
 class RequestTimeoutError(HarnessError):
     pass
+
+
+def require_test_result_path(path: Path) -> Path:
+    """Resolve a result file and fail if it escapes ``tests/results``."""
+
+    candidate = path.expanduser()
+    if not candidate.is_absolute():
+        candidate = Path.cwd() / candidate
+    candidate = candidate.resolve()
+    root = TEST_RESULTS_ROOT.resolve()
+    if candidate == root or root not in candidate.parents:
+        raise HarnessError(
+            f"correctness evidence must be written below {root}, got {candidate}"
+        )
+    return candidate
 
 
 def utc_now() -> str:
@@ -675,7 +692,8 @@ def main(argv=None):
     pair, host = config["server_pair"], config["server_pair"]["host"]; target_url = args.target_url or f"http://{host}:{pair['target_port']}"; dflash_url = args.dflash_url or f"http://{host}:{pair['dflash_port']}"
     fingerprint = {"config_sha256": file_sha256(args.config), "profile": profile_name, "phase": args.phase, "tier": args.tier, "suites": suites, "target_url": target_url, "dflash_url": dflash_url, "sampling_count": sampling_count, "permutations": args.permutations}
     metadata = {"run_fingerprint": stable_json_hash(fingerprint), "config": {"path": str(args.config), "sha256": file_sha256(args.config), "profile": profile_name, "phase": args.phase, "tier": args.tier, "matrix": matrix}, "declared_suites": suites, "target_url": target_url, "dflash_url": dflash_url, "sampling_count": sampling_count, "permutations": args.permutations, "argv": list(sys.argv if argv is None else argv), "git": git_metadata(), "models": model_manifest(profile), "environment": {key: os.environ.get(key) for key in sorted(set(pair.get("common_environment", {})) | set(pair.get("dflash_environment", {}))) if key.startswith("SGLANG_")}}
-    checkpoint = ResultCheckpoint(args.results, metadata, args.resume, args.overwrite); target, dflash = NativeSGLangClient(target_url, args.request_timeout), NativeSGLangClient(dflash_url, args.request_timeout)
+    results_path = require_test_result_path(args.results)
+    checkpoint = ResultCheckpoint(results_path, metadata, args.resume, args.overwrite); target, dflash = NativeSGLangClient(target_url, args.request_timeout), NativeSGLangClient(dflash_url, args.request_timeout)
     try:
         target.get_text("/health"); dflash.get_text("/health"); ts = sanitized_server_snapshot(target.get_json("/model_info"), target.get_json("/server_info")); ds = sanitized_server_snapshot(dflash.get_json("/model_info"), dflash.get_json("/server_info")); checkpoint.data["servers"] = {"target": ts, "dflash": ds}; checkpoint._write(); errors = validate_server_pair(ts, ds, profile, phase)
         if "preflight-server-pair" not in checkpoint.completed_ids: checkpoint.append({"id": "preflight-server-pair", "suite": "preflight", "ok": not errors, "status": "pass" if not errors else "fail", "errors": errors})

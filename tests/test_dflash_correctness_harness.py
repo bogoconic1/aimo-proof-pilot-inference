@@ -24,6 +24,7 @@ from dflash_correctness_harness import (
     parse_suite_names,
     permutation_distribution_bound,
     reconstruct_sse,
+    require_test_result_path,
     resolve_matrix,
     response_from_mapping,
     sanitized_server_snapshot,
@@ -38,6 +39,16 @@ class ArgumentParserTests(unittest.TestCase):
         self.assertEqual(args.phase, "graphs_no_radix")
         args = argument_parser().parse_args(["--phase", "future_test_phase"])
         self.assertEqual(args.phase, "future_test_phase")
+
+    def test_results_must_stay_below_test_results_root(self):
+        accepted = require_test_result_path(
+            Path(__file__).parent / "results" / "unit" / "result.json"
+        )
+        self.assertEqual(accepted.name, "result.json")
+        with self.assertRaisesRegex(HarnessError, "tests/results"):
+            require_test_result_path(
+                Path(__file__).parent.parent / "eval" / "result.json"
+            )
 
 class StopExpectationTests(unittest.TestCase):
     @staticmethod

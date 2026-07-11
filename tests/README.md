@@ -16,6 +16,33 @@ Everything in this directory is test-only:
 Production launchers must not source these configs, and this suite must not
 write test artifacts into production/evaluation result directories.
 
+## Running the isolated suite
+
+Run the production-equivalent quick matrix with:
+
+```bash
+/workspace/original/runtime/venv/bin/python tests/run_dflash_correctness.py \
+  --profile fix4_w4a16_int4 \
+  --phase production \
+  --tier quick \
+  --results-dir tests/results/<run-name>
+```
+
+Use `--tier full` for the extended prompt, batch, sampling, and soak matrix, or
+`--suites greedy,radix` for a declared isolation run. The quick matrix gives
+each HTTP request 300 seconds; the full matrix gives it 1,800 seconds so the
+20,481-token soak remains bounded without being misclassified as a short-request
+timeout.
+
+`run_target_gpu_control.py` runs the target-only A/A GPU control. The direct
+`dflash_correctness_harness.py` entry point is available when the two servers
+are already running.
+
+All three runners fail closed if their requested output escapes
+`tests/results/`. Result directory names should be unique. Completed artifacts
+are append-only evidence and should be committed with ignored logs explicitly
+included.
+
 ## What “correct” means
 
 For greedy decoding, a case passes only when the target-only and DFlash servers
