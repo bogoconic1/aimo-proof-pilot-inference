@@ -429,3 +429,30 @@ contract requires new target-oracle probes at each first mismatch, which the old
 result does not contain. Exact and numerical outcomes from a new run must be
 reported separately. See [`results/REPORT.md`](results/REPORT.md) for the
 complete historical evidence and limits.
+
+## Current schema-v2 results
+
+The final BF16 production quick matrix completed 100/100 cases with zero
+failures, errors, or skips:
+
+| Verdict class | Count |
+|---|---:|
+| Exact cross-engine | 67 |
+| Numerical cross-engine | 16 |
+| Other invariant pass | 17 |
+| Failed/error/skipped | 0 |
+
+The complete artifacts are in
+[`20260711-proofbench-bf16-pure-logprob-delta-production-quick-all`](results/20260711-proofbench-bf16-pure-logprob-delta-production-quick-all/).
+All declared suites passed under production radix, overlap scheduling, and CUDA
+graphs.
+
+The BF16 sync-eager greedy isolation is deliberately reported separately. It
+completed 30/31: 26 exact cross-engine, three numerical cross-engine, one
+preflight pass, and one over-bound failure. The failing target token was
+`0.136747` below the replay maximum, exceeding the configured `0.13` delta.
+See [`20260711-proofbench-bf16-pure-logprob-delta-sync-eager-quick`](results/20260711-proofbench-bf16-pure-logprob-delta-sync-eager-quick/).
+
+The final unit discovery passed 137/137 tests. These results support the finite
+production quick matrix only; they do not establish bitwise identity or replace
+a schema-v2 full-tier production run.

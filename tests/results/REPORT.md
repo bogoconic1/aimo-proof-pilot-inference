@@ -1,9 +1,9 @@
 # DFlash generation-correctness evidence report
 
-This report is a snapshot of persisted evidence produced on branch
-`test/dflash-generation-correctness` on 2026-07-11 under the then-active
-exact-token-only predicate. Counts below come from the JSON/JSONL results and
-logs linked in each table.
+This report contains the current schema-v2 numerical-equivalence evidence and
+the earlier exact-token-only evidence produced on 2026-07-11. Counts below come
+from the committed JSON/JSONL results and logs linked in each table; historical
+artifacts retain the contract active when they were generated.
 
 Schema version 2 later introduced a bounded first-mismatch target-oracle logprob
 predicate. These historical files do not contain those probes and are therefore
@@ -11,7 +11,44 @@ not retroactively reclassified. The current contract is defined by
 [`tests/README.md`](../README.md) and
 [`tests/configs/dflash_generation_h200.json`](../configs/dflash_generation_h200.json).
 
-## Verdict
+## Current schema-v2 validation
+
+The final BF16/BF16 production quick run is
+[`20260711-proofbench-bf16-pure-logprob-delta-production-quick-all`](./20260711-proofbench-bf16-pure-logprob-delta-production-quick-all/dflash_generation_correctness.json).
+It exercised radix caching, overlap scheduling, CUDA graphs, DFlash activity,
+streaming, native batches, sampling, negative guards, and stress on two H200s.
+
+| Suite | Total pass | Exact | Numerical | Other invariant | Fail |
+|---|---:|---:|---:|---:|---:|
+| Greedy | 30 | 23 | 7 | 0 | 0 |
+| Stop | 10 | 9 | 1 | 0 | 0 |
+| Stream | 24 | 22 | 2 | 0 | 0 |
+| Radix | 10 | 5 | 1 | 4 | 0 |
+| Native batch | 11 | 8 | 3 | 0 | 0 |
+| Sampling | 3 | 0 | 0 | 3 | 0 |
+| Negative guards | 9 | 0 | 0 | 9 | 0 |
+| Stress | 2 | 0 | 2 | 0 | 0 |
+| Preflight | 1 | 0 | 0 | 1 | 0 |
+| **Total** | **100** | **67** | **16** | **17** | **0** |
+
+The run had zero errors and zero skips. Therefore **100/100 of the declared
+production quick matrix passed the schema-v2 contract**. This means 67
+cross-engine comparisons were exact, 16 passed the bounded first-mismatch
+predicate, and 17 tested non-equivalence invariants. It does not mean bitwise
+identity or a proof beyond the finite quick matrix.
+
+The matching sync-eager greedy isolation
+[`20260711-proofbench-bf16-pure-logprob-delta-sync-eager-quick`](./20260711-proofbench-bf16-pure-logprob-delta-sync-eager-quick/dflash_generation_correctness.json)
+finished 30/31: 26 exact, three numerical, one preflight pass, and one failure.
+`greedy-output-64` placed the original target token `0.136747` logprob below the
+replay maximum, exceeding the predeclared `0.13` tolerance. The threshold was
+not widened after observing that result.
+
+The final unit discovery is recorded at
+[`20260711-logprob-delta-unit`](./20260711-logprob-delta-unit/RESULT.md): 137/137
+tests passed.
+
+## Historical strict-exact verdict
 
 **DFlash was not 100% correct under the historical strict-exact generation contract.**
 
@@ -361,6 +398,7 @@ not be added into one synthetic total.
 
 | Artifact | Exact recorded outcome | What it covers |
 |---|---|---|
+| [`logprob-delta-unit`](./20260711-logprob-delta-unit/RESULT.md) | 137/137 pass | Final schema-v2 delta predicate, replay request, structural rejection, result accounting, harness, runner, kernels, and evaluation tests. |
 | [`tests-layout-isolation-unit`](./20260711-tests-layout-isolation-unit/unit-tests.log) | 125/125 pass | Full discovery run, including DFlash patch, kernel, sampling-guard, KV-experiment, harness, runner, and layout-isolation tests. |
 | [`alignment-block-profiles-unit`](./20260711-alignment-block-profiles-unit/unit-tests.log) | 47/47 pass; patch verification pass | Alignment guard/progress, harness comparisons/SSE/statistics, runner block/ring validation, and GPU-control helpers. |
 | [`BF16 runtime preflight`](./20260711-bf16-runtime-preflight/unit-tests.log) | 9/9 pass; runtime audit `passed: true`, `missing: []` | Alignment patch plus required finish, KV-tail, sampling, and stateless-seed markers in the BF16 runtime. |
@@ -403,20 +441,20 @@ differential results in this report supersede them for cache/correctness claims.
 
 ## Bottom line
 
-The evidence supports a narrow, defensible conclusion:
+The evidence supports these separate conclusions:
 
 - DFlash is genuinely active and uses both the target KV cache/radix reuse and
   its compact draft KV ring.
-- Cache reuse, stop handling, fail-closed guards, sampling distribution, seeded
-  independent repeatability, and prefill liveness pass their current tests.
-- Exact target-token equivalence fails reproducibly across greedy, streaming,
-  batching, radix-fork content, and stress cases.
-- The failures persist after removing radix/overlap/graphs, changing speculative
-  block size, eliminating draft proposals, switching to BF16 weights, and
-  controlling for the physical GPU.
+- Historical exact-token equivalence failed reproducibly across greedy,
+  streaming, batching, radix-fork content, and stress cases.
+- The current BF16 production quick matrix passes the explicitly bounded
+  numerical contract 100/100, including cache, stop, streaming, batching,
+  sampling, guards, and stress.
+- The BF16 sync-eager greedy isolation passes 30/31 and retains one result
+  `0.006747` beyond the configured tolerance.
 
-Consequently, these artifacts report **DFlash generation correctness: failed
-under the historical strict exact-token contract**. The newer numerical contract
-is stated and tested explicitly in schema version 2, but it requires fresh
-target-oracle evidence. Until such a run is recorded, this report makes no
-numerical-equivalence verdict for the historical mismatches.
+Consequently, the defensible current statement is: **DFlash passes the declared
+schema-v2 BF16 production quick matrix, with exact and numerical passes reported
+separately; it is not bitwise equivalent, and the same bounded contract does not
+pass every tested execution phase.** A full-tier schema-v2 production run remains
+necessary before extending the 100/100 claim beyond the quick matrix.
