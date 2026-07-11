@@ -169,7 +169,10 @@
         8,
         16
       ],
-      "sampling_count": 512
+      "sampling_count": 512,
+      "single_soak_tokens": 513,
+      "concurrent_soak_streams": 2,
+      "concurrent_soak_tokens": 65
     },
     "full": {
       "extends": "quick",
