@@ -199,7 +199,7 @@ class ResponseComparisonTests(unittest.TestCase):
         with self.assertRaisesRegex(HarnessError, "integer token"):
             response_from_mapping(raw)
     @staticmethod
-    def logprob_probe(dflash_logprob=-0.2):
+    def logprob_probe(dflash_logprob=-0.2, output_token=10):
         reason = {"type": "length", "length": 1}
         meta = {
             "finish_reason": reason,
@@ -208,9 +208,9 @@ class ResponseComparisonTests(unittest.TestCase):
             "output_token_ids_logprobs": [
                 [[-0.1, 10, None], [dflash_logprob, 20, None]]
             ],
-            "output_top_logprobs": [[[-0.1, 10, None], [-0.2, 20, None]]],
+            "output_top_logprobs": [[[-0.1, 10, None], [dflash_logprob, 20, None]]],
         }
-        return ResponseRecord([10], reason, None, meta)
+        return ResponseRecord([output_token], reason, None, meta)
 
     def test_numerical_equivalence_accepts_bounded_oracle_delta(self):
         report = numerical_equivalence_from_probe(
@@ -218,6 +218,14 @@ class ResponseComparisonTests(unittest.TestCase):
         )
         self.assertTrue(report["ok"])
         self.assertAlmostEqual(report["dflash_token_delta"], 0.1)
+
+    def test_numerical_equivalence_does_not_require_replay_argmax_identity(self):
+        report = numerical_equivalence_from_probe(
+            self.logprob_probe(-0.08, output_token=20), 10, 20, 0.13
+        )
+        self.assertTrue(report["ok"])
+        self.assertFalse(report["oracle_selected_target_token"])
+        self.assertAlmostEqual(report["target_token_delta"], 0.02)
 
     def test_numerical_equivalence_rejects_out_of_tolerance_token(self):
         report = numerical_equivalence_from_probe(

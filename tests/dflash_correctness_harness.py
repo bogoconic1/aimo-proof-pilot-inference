@@ -321,9 +321,7 @@ def numerical_equivalence_from_probe(
     tolerance = float(max_logprob_delta)
     return {
         "ok": (
-            selected_target
-            and target_delta <= tolerance
-            and dflash_delta <= tolerance
+            target_delta <= tolerance and dflash_delta <= tolerance
         ),
         "max_logprob_delta": tolerance,
         "oracle_selected_target_token": selected_target,

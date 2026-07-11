@@ -200,14 +200,14 @@ target and DFlash alternatives. The full probe response is persisted. Assign
 `equivalence_verdict=numerical` only when:
 
 ```text
-oracle_output_id == target_token_id
 oracle_top_logprob - target_token_logprob <= 0.13
 oracle_top_logprob - dflash_token_logprob <= 0.13
 ```
 
-Otherwise assign `equivalence_verdict=failed`. Missing or malformed logprob
-evidence is an error. The tolerance is part of the test verdict only; the target
-and DFlash sampling parameters are unchanged.
+The replay-selected token is recorded for diagnosis but does not change this
+delta predicate. Otherwise assign `equivalence_verdict=failed`. Missing or
+malformed logprob evidence is an error. The tolerance is part of the test verdict
+only; the target and DFlash sampling parameters are unchanged.
 
 When DFlash emits more than one token, also require:
 

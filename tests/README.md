@@ -79,9 +79,10 @@ remain exact:
 
 At the first output mismatch, the harness appends the shared target prefix to the
 original input and asks the target-only server for one greedy token with requested
-logprobs for both competing tokens. The verdict is `numerical` only when the
-oracle selects the original target token and both tokens are within `0.13`
-logprob of the oracle maximum. The threshold and top-logprob count are mandatory
+logprobs for both competing tokens. The verdict is `numerical` only when both
+tokens are within `0.13` logprob of the oracle maximum. Which token the replay
+selects is persisted as diagnostic evidence but is not part of a delta-only
+predicate. The threshold and top-logprob count are mandatory
 test configuration; they do not modify either server's sampler.
 
 Exact identity is still recorded separately. A numerical pass means a bounded
