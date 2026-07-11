@@ -18,7 +18,8 @@
         "W4A8_M_THRESHOLD": "64",
         "W4A8_HELPER_DIR": "/workspace/pp/proof-pilot/deploy/w4a8",
         "HUMMING_PATH": "/workspace/pp",
-        "LD_PRELOAD": "/workspace/pp/venv/lib/python3.12/site-packages/nvidia/cu13/lib/libnvrtc.so.13"
+        "LD_PRELOAD": "/workspace/pp/venv/lib/python3.12/site-packages/nvidia/cu13/lib/libnvrtc.so.13",
+        "LD_LIBRARY_PATH": "/workspace/pp/venv/lib/python3.12/site-packages/nvidia/cu13/lib"
       }
     },
     "fix4_w4a16_int4": {

@@ -61,6 +61,9 @@ class ProofBenchEvaluationTests(unittest.TestCase):
         self.assertIn("HUMMING_PATH", launcher)
         self.assertIn("W4A8_DROP_MARLIN=1", launcher)
         self.assertIn("validate_humming_install.py", launcher)
+        humming_preflight = (HARNESS / "validate_humming_install.py").read_text()
+        self.assertIn("libnvrtc-builtins.so.13.0", humming_preflight)
+        self.assertIn('export LD_LIBRARY_PATH="$NVRTC_DIR', launcher)
         self.assertIn('SGLANG_GQA_PACKED_EXTEND="${SGLANG_GQA_PACKED_EXTEND:-1}"', launcher)
         self.assertNotIn("--served-model-name", launcher)
 

@@ -59,8 +59,10 @@ if [ "$MODEL_MODE" = quantized ]; then
   export W4A8_M_THRESHOLD=64
   export W4A8_HELPER_DIR="${W4A8_HELPER_DIR:-/workspace/pp/proof-pilot/deploy/w4a8}"
   export HUMMING_PATH="${HUMMING_PATH:-/workspace/pp}"
-  NVRTC_LIB="${NVRTC_LIB:-$VENV/lib/python3.12/site-packages/nvidia/cu13/lib/libnvrtc.so.13}"
+  NVRTC_DIR="${NVRTC_DIR:-$VENV/lib/python3.12/site-packages/nvidia/cu13/lib}"
+  NVRTC_LIB="$NVRTC_DIR/libnvrtc.so.13"
   export LD_PRELOAD="$NVRTC_LIB${LD_PRELOAD:+:$LD_PRELOAD}"
+  export LD_LIBRARY_PATH="$NVRTC_DIR${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
   "$VENV/bin/python" "$ROOT/evaluation/harness/validate_humming_install.py" \
     --humming-path "$HUMMING_PATH" \
     --helper-dir "$W4A8_HELPER_DIR" \

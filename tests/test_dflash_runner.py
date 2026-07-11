@@ -173,6 +173,10 @@ class RunnerConfigurationTests(unittest.TestCase):
         self.assertEqual(target["SGLANG_USE_HUMMING_W4A8"], "1")
         self.assertEqual(dflash["SGLANG_USE_HUMMING_W4A8"], "1")
         self.assertEqual(target["HUMMING_PATH"], "/workspace/pp")
+        self.assertEqual(
+            target["LD_LIBRARY_PATH"],
+            "/workspace/pp/venv/lib/python3.12/site-packages/nvidia/cu13/lib",
+        )
 
     def test_radix_suite_runs_only_in_radix_phase(self) -> None:
         production = _harness_suites(self.config["phases"]["production"])

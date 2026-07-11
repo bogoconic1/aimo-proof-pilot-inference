@@ -23,6 +23,8 @@ def main() -> None:
     assert package.is_file(), package
     assert helper.is_file(), helper
     assert args.nvrtc_lib.is_file(), args.nvrtc_lib
+    nvrtc_builtins = args.nvrtc_lib.parent / "libnvrtc-builtins.so.13.0"
+    assert nvrtc_builtins.is_file(), nvrtc_builtins
 
     sys.path.insert(0, str(args.humming_path))
     sys.path.insert(0, str(args.helper_dir))
@@ -46,6 +48,7 @@ def main() -> None:
                 "humming_module": str(Path(humming.__file__).resolve()),
                 "helper_module": str(Path(helper_module.__file__).resolve()),
                 "nvrtc_lib": str(args.nvrtc_lib.resolve()),
+                "nvrtc_builtins": str(nvrtc_builtins.resolve()),
             },
             sort_keys=True,
         )
