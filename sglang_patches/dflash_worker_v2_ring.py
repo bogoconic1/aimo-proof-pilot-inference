@@ -147,6 +147,7 @@ class DFlashWorkerV2(BaseSpecWorker):
         # Keep the same alias that other spec-v2 workers expose.
         self._draft_worker.draft_runner = self.draft_model_runner
         self.draft_model = self.draft_model_runner.model
+        self._configure_mixed_kv_capacity()
         draft_config = parse_dflash_draft_config(
             draft_hf_config=self.draft_model_runner.model_config.hf_config
         )
@@ -288,6 +289,55 @@ class DFlashWorkerV2(BaseSpecWorker):
             self._target_worker.model_runner.attn_backend,
             self.draft_model_runner.attn_backend,
         )
+
+    def _configure_mixed_kv_capacity(self) -> None:
+        from sglang.srt.model_executor.pool_configurator import (
+            HybridSWAPoolConfigurator,
+            create_memory_pool_configurator,
+        )
+
+        target_runner = self._target_worker.model_runner
+        target_configurator = create_memory_pool_configurator(target_runner)
+        draft_configurator = create_memory_pool_configurator(self.draft_model_runner)
+        if not isinstance(target_configurator, HybridSWAPoolConfigurator):
+            raise TypeError("DFLASH mixed-KV capacity requires a hybrid-SWA target")
+        if not isinstance(draft_configurator, HybridSWAPoolConfigurator):
+            raise TypeError("DFLASH mixed-KV capacity requires an all-SWA draft")
+        if target_configurator._full_layers_num <= 0:
+            raise ValueError("DFLASH mixed-KV target must contain full-attention layers")
+        if draft_configurator._full_layers_num != 0:
+            raise ValueError("DFLASH mixed-KV draft must contain only SWA layers")
+        if self.server_args.max_total_tokens is not None:
+            raise ValueError("DFLASH mixed-KV capacity owns max_total_tokens")
+
+        target_bytes_per_token = int(target_configurator._cell_size)
+        draft_bytes_per_token = math.ceil(
+            int(draft_configurator._cell_size)
+            * float(self.server_args.swa_full_tokens_ratio)
+        )
+        combined_bytes_per_token = target_bytes_per_token + draft_bytes_per_token
+        available_bytes = target_runner._profile_available_bytes(
+            target_runner.pre_model_load_memory
+        )
+        page_size = int(self.server_args.page_size)
+        max_total_tokens = (
+            int(available_bytes) // int(combined_bytes_per_token) // page_size * page_size
+        )
+        if max_total_tokens <= 0:
+            raise RuntimeError("DFLASH mixed-KV capacity is zero")
+        self.server_args.max_total_tokens = max_total_tokens
+        target_runner.server_args.max_total_tokens = max_total_tokens
+        if self.tp_rank == 0:
+            logger.info(
+                "DFLASH mixed-KV capacity: available_bytes=%s, "
+                "target_bytes_per_token=%s, draft_bytes_per_token=%s, "
+                "combined_bytes_per_token=%s, max_total_tokens=%s",
+                available_bytes,
+                target_bytes_per_token,
+                draft_bytes_per_token,
+                combined_bytes_per_token,
+                max_total_tokens,
+            )
 
     def alloc_memory_pool(
         self,
