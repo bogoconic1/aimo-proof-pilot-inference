@@ -4,9 +4,9 @@
 
 The multiplication
 
-\[
+$$
 285.40 \times 3 \approx 856\ \text{tok/s}
-\]
+$$
 
 assumes that DFlash produces three tokens for the cost of one normal target
 decode step. That assumption is false.
@@ -19,15 +19,15 @@ cycle costs more than one ordinary decode step. In this experiment:
   steps per DFlash cycle**; therefore
 - the throughput multiplier was
 
-\[
+$$
 \frac{3.802}{2.239} = 1.698.
-\]
+$$
 
 Applying that measured multiplier gives the observed result:
 
-\[
+$$
 285.40 \times 1.698 = 484.65\ \text{tok/s}.
-\]
+$$
 
 The rest of this note derives that relationship from first principles and
 explains why speculative decoding helps a single request more than an already
@@ -38,15 +38,15 @@ batched server.
 A language model assigns a probability to the next token from all tokens that
 precede it:
 
-\[
+$$
 p(x_t \mid x_0, x_1, \ldots, x_{t-1}).
-\]
+$$
 
 After choosing `x_t`, the model can compute the distribution for `x_{t+1}`:
 
-\[
+$$
 p(x_{t+1} \mid x_0, x_1, \ldots, x_t).
-\]
+$$
 
 The second computation depends on the token selected by the first computation.
 Consequently, ordinary decoding cannot calculate 512 future tokens in one
@@ -67,9 +67,9 @@ sequential target decode steps.
 For one active request, one target decode step emits approximately one token.
 If a step takes 20 ms, that request runs at approximately:
 
-\[
+$$
 \frac{1}{0.020} = 50\ \text{tok/s}.
-\]
+$$
 
 With six independent requests, the server can batch their current positions.
 One target call then processes six rows and emits one token for each request:
@@ -144,37 +144,37 @@ Define:
 
 At the same batch size, approximate output rates are:
 
-\[
+$$
 Q_{base}(B) \approx \frac{B}{T_{base}(B)}
-\]
+$$
 
 and
 
-\[
+$$
 Q_{spec}(B) \approx \frac{B A}{T_{spec}(B)}.
-\]
+$$
 
 Dividing the second by the first gives the key equation:
 
-\[
+$$
 \boxed{
 S(B) = \frac{Q_{spec}(B)}{Q_{base}(B)}
 \approx A \frac{T_{base}(B)}{T_{spec}(B)}
 }
-\]
+$$
 
 Equivalently, if
 
-\[
+$$
 C(B) = \frac{T_{spec}(B)}{T_{base}(B)}
-\]
+$$
 
 is the cost of a speculative cycle measured in ordinary decode-step units,
 then
 
-\[
+$$
 \boxed{S(B) \approx \frac{A}{C(B)}}.
-\]
+$$
 
 Only when `C(B) = 1` does the acceptance length equal the speedup. That would
 mean draft generation, multi-position target verification, acceptance logic,
@@ -184,12 +184,12 @@ Real hardware cannot satisfy that assumption.
 This simple form assumes the two runs maintain the same active batch. If their
 average active batch sizes differ, use:
 
-\[
+$$
 S \approx
 A
 \frac{\overline{B}_{spec}}{\overline{B}_{base}}
 \frac{T_{base}}{T_{spec}}.
-\]
+$$
 
 The fixed experiment used the same client concurrency limit, but its measured
 average in-flight concurrency was not identical. Section 7 separates that
@@ -214,18 +214,18 @@ The controlled fixed-length results were:
 
 The actual throughput multiplier is:
 
-\[
+$$
 S = \frac{484.6519}{285.3999} = 1.69815.
-\]
+$$
 
 Using the simple `S = A/C` form, the implied **effective end-to-end**
 DFlash-cycle cost is:
 
-\[
+$$
 C = \frac{A}{S}
 = \frac{3.80243}{1.69815}
 = 2.23916.
-\]
+$$
 
 This 2.239 value is not a profiler measurement of one GPU kernel. It collapses
 every non-acceptance effect into one term: draft execution, target verification,
@@ -249,24 +249,24 @@ The same effective value appears in approximate cycle times. Twelve requests at
 concurrency six form two waves. Each wave needs 512 ordinary decode iterations,
 so the target-only workload has approximately 1,024 batched iterations:
 
-\[
+$$
 T_{base} \approx \frac{21.5277\ \text{s}}{1024}
 = 21.02\ \text{ms per batched step}.
-\]
+$$
 
 DFlash needs approximately `512 / 3.802` verification cycles per wave:
 
-\[
+$$
 T_{spec} \approx
 \frac{12.6771\ \text{s}}{1024 / 3.80243}
 = 47.07\ \text{ms per batched cycle}.
-\]
+$$
 
 The ratio is again:
 
-\[
+$$
 \frac{47.07}{21.02} = 2.239.
-\]
+$$
 
 These per-cycle times are an explanatory normalization, not direct timeline
 tracing. End-to-end benchmark duration also contains prefill and request
@@ -396,30 +396,30 @@ the final benchmark average.
 We can approximately expose this occupancy term. The measured occupancy ratio
 was:
 
-\[
+$$
 R_B = \frac{4.9409}{5.9927} = 0.8245.
-\]
+$$
 
 Using
 
-\[
+$$
 S \approx A \frac{R_B}{C_{active}},
-\]
+$$
 
 the occupancy-normalized active-cycle cost is:
 
-\[
+$$
 C_{active}
 \approx \frac{A R_B}{S}
 = \frac{3.80243 \times 0.8245}{1.69815}
 = 1.846.
-\]
+$$
 
 This produces the same observed speedup:
 
-\[
+$$
 3.80243 \times \frac{0.8245}{1.846} = 1.698.
-\]
+$$
 
 Interpret the 1.846 value cautiously: average request concurrency is not a GPU
 cycle trace. It is a more informative decomposition of the end-to-end result,
@@ -432,15 +432,15 @@ overhead.
 
 Three times the target-only batch throughput would be:
 
-\[
+$$
 3 \times 285.40 = 856.20\ \text{tok/s}.
-\]
+$$
 
 Generating 6,144 tokens at that rate would take:
 
-\[
+$$
 \frac{6144}{856.20} = 7.176\ \text{s}.
-\]
+$$
 
 The actual DFlash duration was 12.677 seconds.
 
@@ -450,9 +450,9 @@ There are two ways the speedup equation could reach 3x:
 
 With `A = 3.802`, a 3x speedup requires:
 
-\[
+$$
 C = \frac{3.802}{3} = 1.267.
-\]
+$$
 
 The complete DFlash cycle would need to cost only 26.7% more than a normal
 decode step. It actually cost 123.9% more (`C = 2.239`).
@@ -461,9 +461,9 @@ decode step. It actually cost 123.9% more (`C = 2.239`).
 
 With `C = 2.239`, a 3x speedup requires:
 
-\[
+$$
 A = 3 \times 2.239 = 6.717
-\]
+$$
 
 committed tokens per cycle. That would require accepting most of the eight-token
 block while preserving roughly the same cycle time.
@@ -475,15 +475,15 @@ cycle cost, increase target-draft agreement, or both.
 
 Throughput improved by:
 
-\[
+$$
 (1.698 - 1) \times 100\% = 69.8\%.
-\]
+$$
 
 The fixed workload's wall time fell from 21.5277 seconds to 12.6771 seconds:
 
-\[
+$$
 1 - \frac{12.6771}{21.5277} = 41.1\%.
-\]
+$$
 
 Throughput percentage and runtime reduction percentage are different
 representations of the same result. A 69.8% throughput increase corresponds to
@@ -505,10 +505,10 @@ record:
 
 Then evaluate:
 
-\[
+$$
 S(B) \approx
 \frac{A(B)}{T_{spec}(B) / T_{base}(B)}.
-\]
+$$
 
 That equation distinguishes two very different failure modes:
 
