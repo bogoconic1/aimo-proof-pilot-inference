@@ -38,7 +38,8 @@ def main() -> None:
     draft_w4a16_layers = server_log.count("DFLASH_DRAFT_W4A16_LAYER_READY")
 
     assert target_config["torch_dtype"] == "bfloat16"
-    assert server["tp_size"] == model.tensor_parallel_size == 2
+    assert server["tp_size"] == model.tensor_parallel_size
+    assert model.tensor_parallel_size in {1, 2}
     assert server["kv_cache_dtype"] == model.kv_cache_dtype == "auto"
     assert server["enable_fp32_lm_head"] is False
     assert server["context_length"] == expected["context_length"]

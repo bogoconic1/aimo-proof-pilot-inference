@@ -1,4 +1,4 @@
-"""Launch the one strictly configured TP=2 OPD SGLang server."""
+"""Launch the one strictly configured OPD SGLang server."""
 
 from __future__ import annotations
 
@@ -35,7 +35,7 @@ def main() -> None:
     env = os.environ.copy()
     env["CUDA_VISIBLE_DEVICES"] = env.get("CUDA_VISIBLE_DEVICES", "0,1")
     if len(env["CUDA_VISIBLE_DEVICES"].split(",")) != model.tensor_parallel_size:
-        raise RuntimeError("CUDA_VISIBLE_DEVICES must expose exactly two GPUs for TP=2")
+        raise RuntimeError("CUDA_VISIBLE_DEVICES count must equal model.tensor_parallel_size")
 
     env["FLASHINFER_CUDA_ARCH_LIST"] = env.get("FLASHINFER_CUDA_ARCH_LIST", "9.0a")
     env["FLASHINFER_USE_CUDA_NORM"] = "1"
@@ -120,7 +120,7 @@ def main() -> None:
             command.extend(["--speculative-draft-model-quantization", "compressed-tensors"])
 
     print(
-        f"[serve_opd32b] mode={model.mode} dflash={str(model.dflash).lower()} tp=2 "
+        f"[serve_opd32b] mode={model.mode} dflash={str(model.dflash).lower()} tp={model.tensor_parallel_size} "
         f"model={model.target} draft={model.draft} kv={model.kv_cache_dtype} "
         f"port={server['port']} ctx={server['context_length']}", flush=True,
     )

@@ -56,6 +56,12 @@ class NemotronConfigTests(unittest.TestCase):
                 self.assertEqual(model.target.name, paths[1])
                 self.assertEqual(model.draft.name if model.draft else None, paths[2])
 
+    def test_tp1_is_supported_without_changing_production_default(self):
+        config = copy.deepcopy(self.config)
+        config["model"]["tensor_parallel_size"] = 1
+        model = active_model(config)
+        self.assertEqual(model.tensor_parallel_size, 1)
+
     def test_decode_graphs_cover_configured_ceiling(self):
         batches = decode_graph_batches(48)
         self.assertEqual(batches[:16], list(range(1, 17)))
