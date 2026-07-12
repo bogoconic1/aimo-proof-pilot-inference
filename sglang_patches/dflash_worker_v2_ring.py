@@ -111,10 +111,9 @@ class DFlashWorkerV2(BaseSpecWorker):
         draft_server_args = deepcopy(server_args)
         draft_server_args.skip_tokenizer_init = True
         draft_backend = draft_server_args.speculative_draft_attention_backend
-        if draft_backend != "fa4":
+        if draft_backend is None:
             raise ValueError(
-                "DFLASH draft attention backend must be fa4, "
-                f"got {draft_backend!r}"
+                "DFLASH draft attention backend must be explicitly configured"
             )
         # Make the draft worker backend explicit and self-contained.
         draft_server_args.speculative_draft_attention_backend = None
@@ -147,21 +146,19 @@ class DFlashWorkerV2(BaseSpecWorker):
             draft_hf_config=self.draft_model_runner.model_config.hf_config
         )
         if server_args.speculative_num_draft_tokens is None:
-            # Should not happen (ServerArgs should have inferred it), but keep a fallback.
-            self.block_size = int(draft_config.resolve_block_size(default=16))
-        else:
-            self.block_size = int(server_args.speculative_num_draft_tokens)
-            model_block_size = draft_config.block_size
-            if model_block_size is None:
-                model_block_size = getattr(self.draft_model, "block_size", None)
-            if model_block_size is not None and int(model_block_size) != int(
-                self.block_size
-            ):
-                logger.warning(
-                    "DFLASH block size mismatch: using speculative_num_draft_tokens=%s but draft config block_size=%s.",
-                    self.block_size,
-                    model_block_size,
-                )
+            raise ValueError("DFLASH speculative_num_draft_tokens is required")
+        self.block_size = int(server_args.speculative_num_draft_tokens)
+        model_block_size = draft_config.block_size
+        if model_block_size is None:
+            model_block_size = getattr(self.draft_model, "block_size", None)
+        if model_block_size is not None and int(model_block_size) != int(
+            self.block_size
+        ):
+            logger.warning(
+                "DFLASH block size mismatch: using speculative_num_draft_tokens=%s but draft config block_size=%s.",
+                self.block_size,
+                model_block_size,
+            )
         self.speculative_num_draft_tokens = int(self.block_size)
 
         # --- Draft SWA ring buffer (bound draft KV to the window, not full ctx) ---
@@ -177,19 +174,27 @@ class DFlashWorkerV2(BaseSpecWorker):
         # DFlash is lossless (target verifies every token), so a cold/missing
         # window only lowers acceptance, never correctness.
         # Gated: compact-cache path only, page_size==1, and an all-sliding draft
-        # (a hybrid draft with full layers would need full history -> fall back).
+        # (a hybrid draft with full layers would need full history -> fail startup).
         _draft_hf_cfg = self.draft_model_runner.model_config.hf_config
         _lt = getattr(_draft_hf_cfg, "layer_types", None)
         self._draft_all_swa = (_lt is None) or all(
             t == "sliding_attention" for t in _lt
         )
-        self.use_draft_kv_ring = (
-            get_bool_env_var("SGLANG_DFLASH_DRAFT_RING", "true")
-            and self.use_compact_draft_cache
+        requested_draft_kv_ring = get_bool_env_var(
+            "SGLANG_DFLASH_DRAFT_RING", "false"
+        )
+        draft_kv_ring_eligible = (
+            self.use_compact_draft_cache
             and int(self.page_size) == 1
             and self._draft_all_swa
             and self.draft_window_size is not None
         )
+        if requested_draft_kv_ring and not draft_kv_ring_eligible:
+            raise ValueError(
+                "DFLASH draft KV ring was requested but requires page_size=1, "
+                "a configured draft window, and an all-sliding draft model"
+            )
+        self.use_draft_kv_ring = requested_draft_kv_ring
         # ring must hold the live window + the in-flight block (+ slack for the
         # speculative tail re-proposed across overlap steps).
         self.draft_ring_size: Optional[int] = (

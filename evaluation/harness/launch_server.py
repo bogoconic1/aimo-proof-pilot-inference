@@ -89,8 +89,9 @@ def main() -> None:
 
     command = [
         str(venv / "bin/python"), "-m", "sglang.launch_server",
-        "--model-path", str(model.target), "--attention-backend", "fa4",
-        "--page-size", "128",
+        "--model-path", str(model.target),
+        "--attention-backend", str(server["attention_backend"]),
+        "--page-size", str(server["page_size"]),
         "--tp", str(model.tensor_parallel_size), "--dp", str(model.data_parallel_size),
         "--load-balance-method", "round_robin", "--host", str(server["host"]),
         "--port", str(server["port"]), "--mem-fraction-static", str(server["mem_fraction_static"]),
@@ -106,8 +107,17 @@ def main() -> None:
         "--enable-cache-report", "--enable-metrics", "--random-seed", str(config["search"]["seed"]),
         "--reasoning-parser", "deepseek-r1",
     ]
+    for option, key in (
+        ("--prefill-attention-backend", "prefill_attention_backend"),
+        ("--decode-attention-backend", "decode_attention_backend"),
+    ):
+        if server[key] is not None:
+            command.extend([option, str(server[key])])
+
     if model.dflash:
-        env["SGLANG_DFLASH_DRAFT_RING"] = "1"
+        env["SGLANG_DFLASH_DRAFT_RING"] = (
+            "1" if server["dflash_draft_kv_ring"] else "0"
+        )
         env["SGLANG_DFLASH_DRAFT_RING_QUOTA"] = "4"
         command.extend(
             [
@@ -115,7 +125,9 @@ def main() -> None:
                 "--speculative-dflash-block-size", str(server["dflash_block_size"]),
                 "--speculative-num-draft-tokens", str(server["dflash_num_draft_tokens"]),
                 "--speculative-draft-window-size", str(server["dflash_window_size"]),
-                "--speculative-draft-attention-backend", "fa4",
+                "--speculative-attention-mode", str(server["speculative_attention_mode"]),
+                "--speculative-draft-attention-backend",
+                str(server["speculative_draft_attention_backend"]),
             ]
         )
         if model.quantized:

@@ -102,16 +102,24 @@ class NemotronConfigTests(unittest.TestCase):
         self.assertNotIn("MODEL_MODE", launcher)
         self.assertNotIn("DFLASH=", launcher)
 
-    def test_launcher_requires_fa4_for_target_and_draft(self):
+    def test_launcher_uses_only_explicit_backend_configuration(self):
         launcher = (HARNESS / "launch_server.py").read_text()
-        self.assertIn('"--attention-backend", "fa4"', launcher)
-        self.assertIn('"--speculative-draft-attention-backend", "fa4"', launcher)
-        self.assertIn('"--page-size", "128"', launcher)
+        server = self.config["server"]
+        self.assertEqual(server["attention_backend"], "fa4")
+        self.assertIsNone(server["prefill_attention_backend"])
+        self.assertIsNone(server["decode_attention_backend"])
+        self.assertEqual(server["page_size"], 128)
+        self.assertEqual(server["speculative_attention_mode"], "prefill")
+        self.assertEqual(server["speculative_draft_attention_backend"], "fa4")
+        self.assertFalse(server["dflash_draft_kv_ring"])
+        self.assertIn("str(server[\"attention_backend\"])", launcher)
+        self.assertIn("str(server[\"page_size\"])", launcher)
+        self.assertIn("str(server[\"speculative_draft_attention_backend\"])", launcher)
+        self.assertIn("str(server[\"speculative_attention_mode\"])", launcher)
         self.assertNotIn("--enable-deterministic-inference", launcher)
-        self.assertNotIn('"--attention-backend", "fa3"', launcher)
-        self.assertNotIn('"--speculative-draft-attention-backend", "fa3"', launcher)
-        self.assertNotIn('"--attention-backend", "triton"', launcher)
-        self.assertNotIn('"--speculative-draft-attention-backend", "triton"', launcher)
+        self.assertNotIn("\"--attention-backend\", \"fa4\"", launcher)
+        self.assertNotIn("\"--attention-backend\", \"fa3\"", launcher)
+        self.assertNotIn("\"--attention-backend\", \"triton\"", launcher)
         self.assertNotIn("--triton-attention-num-kv-splits", launcher)
 
 

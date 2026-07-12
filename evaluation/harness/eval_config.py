@@ -15,7 +15,10 @@ MODEL_KEYS = {
     "tensor_parallel_size", "data_parallel_size", "quantized", "dflash", "kv_cache_dtype",
 }
 SERVER_KEYS = {
-    "host", "port", "context_length", "mem_fraction_static", "max_running_requests",
+    "host", "port", "attention_backend", "prefill_attention_backend",
+    "decode_attention_backend", "page_size", "speculative_attention_mode",
+    "speculative_draft_attention_backend", "dflash_draft_kv_ring",
+    "context_length", "mem_fraction_static", "max_running_requests",
     "swa_full_tokens_ratio", "chunked_prefill_size", "stream_interval",
     "prefill_cuda_graph_backend",
     "dflash_block_size", "dflash_num_draft_tokens", "dflash_window_size",
@@ -64,8 +67,8 @@ def load_config(path: Path) -> dict[str, Any]:
     if not isinstance(config, dict):
         raise ValueError("evaluation config must be a YAML mapping")
     _exact_keys(config, ROOT_KEYS, "root")
-    if config["schema_version"] != 7:
-        raise ValueError("schema_version must be 7")
+    if config["schema_version"] != 8:
+        raise ValueError("schema_version must be 8")
     for section, keys in (
         ("models", MODEL_PATH_KEYS), ("model", MODEL_KEYS), ("server", SERVER_KEYS),
         ("search", SEARCH_KEYS), ("grader", GRADER_KEYS),
@@ -83,12 +86,32 @@ def load_config(path: Path) -> dict[str, Any]:
     _positive_int(model["data_parallel_size"], "model.data_parallel_size")
     if type(model["quantized"]) is not bool or type(model["dflash"]) is not bool:
         raise ValueError("model.quantized and model.dflash must be booleans")
-    if model["kv_cache_dtype"] != "auto":
-        raise ValueError("model.kv_cache_dtype must be auto for BF16 target KV")
+    if model["kv_cache_dtype"] not in {"auto", "bfloat16", "fp8_e4m3"}:
+        raise ValueError(
+            "model.kv_cache_dtype must be auto, bfloat16, or fp8_e4m3"
+        )
 
     server = config["server"]
     for key in (
-        "port", "context_length", "max_running_requests", "chunked_prefill_size",
+        "attention_backend", "speculative_attention_mode",
+        "speculative_draft_attention_backend",
+    ):
+        if not isinstance(server[key], str) or not server[key]:
+            raise ValueError(f"server.{key} must be a non-empty string")
+    for key in ("prefill_attention_backend", "decode_attention_backend"):
+        if server[key] is not None and (
+            not isinstance(server[key], str) or not server[key]
+        ):
+            raise ValueError(f"server.{key} must be null or a non-empty string")
+    if type(server["dflash_draft_kv_ring"]) is not bool:
+        raise ValueError("server.dflash_draft_kv_ring must be a boolean")
+    if server["dflash_draft_kv_ring"] and server["page_size"] != 1:
+        raise ValueError(
+            "server.dflash_draft_kv_ring requires server.page_size=1"
+        )
+    for key in (
+        "port", "page_size", "context_length", "max_running_requests",
+        "chunked_prefill_size",
         "stream_interval", "dflash_block_size",
         "dflash_num_draft_tokens", "dflash_window_size",
     ):

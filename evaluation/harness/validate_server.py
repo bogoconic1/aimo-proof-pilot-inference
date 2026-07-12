@@ -40,7 +40,7 @@ def main() -> None:
     assert target_config["torch_dtype"] == "bfloat16"
     assert server["tp_size"] == model.tensor_parallel_size
     assert server["dp_size"] == model.data_parallel_size
-    assert server["kv_cache_dtype"] == model.kv_cache_dtype == "auto"
+    assert server["kv_cache_dtype"] == model.kv_cache_dtype
     assert server["enable_fp32_lm_head"] is False
     assert server["context_length"] == expected["context_length"]
     assert server["max_running_requests"] == expected["max_running_requests"]
@@ -53,8 +53,10 @@ def main() -> None:
     assert server["disable_overlap_schedule"] is False
     assert server["disable_cuda_graph"] is False
     assert server["enable_deterministic_inference"] is False
-    assert server["attention_backend"] == "fa4"
-    assert server["page_size"] == 128
+    assert server["attention_backend"] == expected["attention_backend"]
+    assert server["prefill_attention_backend"] == expected["prefill_attention_backend"]
+    assert server["decode_attention_backend"] == expected["decode_attention_backend"]
+    assert server["page_size"] == expected["page_size"]
     assert models["data"][0]["id"] == str(model.target)
 
     if model.quantized:
@@ -75,9 +77,17 @@ def main() -> None:
         assert server["speculative_dflash_block_size"] == expected["dflash_block_size"]
         assert server["speculative_num_draft_tokens"] == expected["dflash_num_draft_tokens"]
         assert server["speculative_draft_window_size"] == expected["dflash_window_size"]
-        assert server["speculative_draft_attention_backend"] == "fa4"
-        assert "draft_kv_ring=False" in server_log
-        assert "DFLASH draft KV ring" not in server_log
+        assert server["speculative_attention_mode"] == expected["speculative_attention_mode"]
+        assert (
+            server["speculative_draft_attention_backend"]
+            == expected["speculative_draft_attention_backend"]
+        )
+        if expected["dflash_draft_kv_ring"]:
+            assert "draft_kv_ring=True" in server_log
+            assert "DFLASH draft KV ring" in server_log
+        else:
+            assert "draft_kv_ring=False" in server_log
+            assert "DFLASH draft KV ring" not in server_log
         if model.quantized:
             assert draft_config["quantization_config"]["quant_method"] == "compressed-tensors"
             assert server["speculative_draft_model_quantization"] == "compressed-tensors"
