@@ -13,6 +13,7 @@ ROOT_KEYS = {"schema_version", "models", "model", "server", "search", "grader"}
 MODEL_PATH_KEYS = {"bf16_target", "quantized_target", "bf16_draft", "quantized_draft"}
 MODEL_KEYS = {
     "tensor_parallel_size", "data_parallel_size", "quantized", "dflash", "kv_cache_dtype",
+    "draft_kv_cache_dtype",
 }
 SERVER_KEYS = {
     "host", "port", "context_length", "mem_fraction_static", "max_running_requests",
@@ -40,6 +41,7 @@ class ActiveModel:
     tensor_parallel_size: int
     data_parallel_size: int
     kv_cache_dtype: str
+    draft_kv_cache_dtype: str
     quantized: bool
     dflash: bool
 
@@ -64,8 +66,8 @@ def load_config(path: Path) -> dict[str, Any]:
     if not isinstance(config, dict):
         raise ValueError("evaluation config must be a YAML mapping")
     _exact_keys(config, ROOT_KEYS, "root")
-    if config["schema_version"] != 7:
-        raise ValueError("schema_version must be 7")
+    if config["schema_version"] != 8:
+        raise ValueError("schema_version must be 8")
     for section, keys in (
         ("models", MODEL_PATH_KEYS), ("model", MODEL_KEYS), ("server", SERVER_KEYS),
         ("search", SEARCH_KEYS), ("grader", GRADER_KEYS),
@@ -83,8 +85,10 @@ def load_config(path: Path) -> dict[str, Any]:
     _positive_int(model["data_parallel_size"], "model.data_parallel_size")
     if type(model["quantized"]) is not bool or type(model["dflash"]) is not bool:
         raise ValueError("model.quantized and model.dflash must be booleans")
-    if model["kv_cache_dtype"] != "auto":
-        raise ValueError("model.kv_cache_dtype must be auto for BF16 target KV")
+    if model["kv_cache_dtype"] != "fp8_e4m3":
+        raise ValueError("model.kv_cache_dtype must be fp8_e4m3 for target KV")
+    if model["draft_kv_cache_dtype"] != "bfloat16":
+        raise ValueError("model.draft_kv_cache_dtype must be bfloat16 for draft KV")
 
     server = config["server"]
     for key in (
@@ -143,5 +147,6 @@ def active_model(config: dict[str, Any]) -> ActiveModel:
         mode="humming_w4a8" if quantized else "bf16", target=target, draft=draft,
         tensor_parallel_size=model["tensor_parallel_size"],
         data_parallel_size=model["data_parallel_size"],
-        kv_cache_dtype=model["kv_cache_dtype"], quantized=quantized, dflash=dflash,
+        kv_cache_dtype=model["kv_cache_dtype"],
+        draft_kv_cache_dtype=model["draft_kv_cache_dtype"], quantized=quantized, dflash=dflash,
     )

@@ -1,4 +1,4 @@
-schema_version: 7
+schema_version: 8
 
 models:
   bf16_target: /workspace/models/opd-32b-deploy
@@ -7,11 +7,12 @@ models:
   quantized_draft: /workspace/original/models/dflash-32b-draft-v2test-phaseL-int4mlp
 
 model:
-  tensor_parallel_size: 2
-  data_parallel_size: 1
+  tensor_parallel_size: 1
+  data_parallel_size: 2
   quantized: false
-  dflash: false
-  kv_cache_dtype: auto
+  dflash: true
+  kv_cache_dtype: fp8_e4m3
+  draft_kv_cache_dtype: bfloat16
 
 server:
   host: 127.0.0.1

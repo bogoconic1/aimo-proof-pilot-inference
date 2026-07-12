@@ -35,14 +35,16 @@ class NemotronConfigTests(unittest.TestCase):
         self.assertEqual(server["mem_fraction_static"], 0.82)
         self.assertNotIn("triton_attention_num_kv_splits", server)
 
-    def test_default_is_bf16_target_only_tp2_dp1(self):
+    def test_experiment_is_bf16_weights_dflash_tp1_dp2_with_split_kv(self):
         model = active_model(self.config)
         self.assertEqual(model.mode, "bf16")
-        self.assertEqual(model.tensor_parallel_size, 2)
-        self.assertEqual(model.data_parallel_size, 1)
+        self.assertEqual(model.tensor_parallel_size, 1)
+        self.assertEqual(model.data_parallel_size, 2)
         self.assertFalse(model.quantized)
-        self.assertFalse(model.dflash)
-        self.assertIsNone(model.draft)
+        self.assertTrue(model.dflash)
+        self.assertEqual(model.kv_cache_dtype, "fp8_e4m3")
+        self.assertEqual(model.draft_kv_cache_dtype, "bfloat16")
+        self.assertEqual(model.draft.name, "dflash-32b-draft-v2test-phaseL")
 
     def test_quantization_and_dflash_are_independent(self):
         expected = {
@@ -69,7 +71,7 @@ class NemotronConfigTests(unittest.TestCase):
             path = Path(directory) / "config.yaml"
             path.write_text(
                 self.path.read_text().replace(
-                    "tensor_parallel_size: 2", "tensor_parallel_size: 4"
+                    "tensor_parallel_size: 1", "tensor_parallel_size: 4"
                 )
             )
             model = active_model(load_config(path))
@@ -80,7 +82,7 @@ class NemotronConfigTests(unittest.TestCase):
             path = Path(directory) / "config.yaml"
             path.write_text(
                 self.path.read_text().replace(
-                    "data_parallel_size: 1", "data_parallel_size: 4"
+                    "data_parallel_size: 2", "data_parallel_size: 4"
                 )
             )
             model = active_model(load_config(path))
@@ -102,11 +104,12 @@ class NemotronConfigTests(unittest.TestCase):
         self.assertNotIn("MODEL_MODE", launcher)
         self.assertNotIn("DFLASH=", launcher)
 
-    def test_launcher_requires_fa4_for_target_and_draft(self):
+    def test_launcher_requires_fa4_and_split_kv_dtypes(self):
         launcher = (HARNESS / "launch_server.py").read_text()
         self.assertIn('"--attention-backend", "fa4"', launcher)
         self.assertIn('"--speculative-draft-attention-backend", "fa4"', launcher)
         self.assertIn('"--page-size", "128"', launcher)
+        self.assertIn("SGLANG_DFLASH_DRAFT_KV_CACHE_DTYPE", launcher)
         self.assertNotIn("--enable-deterministic-inference", launcher)
         self.assertNotIn('"--attention-backend", "fa3"', launcher)
         self.assertNotIn('"--speculative-draft-attention-backend", "fa3"', launcher)

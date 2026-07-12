@@ -40,7 +40,7 @@ def main() -> None:
     assert target_config["torch_dtype"] == "bfloat16"
     assert server["tp_size"] == model.tensor_parallel_size
     assert server["dp_size"] == model.data_parallel_size
-    assert server["kv_cache_dtype"] == model.kv_cache_dtype == "auto"
+    assert server["kv_cache_dtype"] == model.kv_cache_dtype == "fp8_e4m3"
     assert server["enable_fp32_lm_head"] is False
     assert server["context_length"] == expected["context_length"]
     assert server["max_running_requests"] == expected["max_running_requests"]
@@ -76,6 +76,8 @@ def main() -> None:
         assert server["speculative_num_draft_tokens"] == expected["dflash_num_draft_tokens"]
         assert server["speculative_draft_window_size"] == expected["dflash_window_size"]
         assert server["speculative_draft_attention_backend"] == "fa4"
+        assert "target_kv_cache_dtype=fp8_e4m3" in server_log
+        assert "draft_kv_cache_dtype=bfloat16" in server_log
         assert "draft_kv_ring=False" in server_log
         assert "DFLASH draft KV ring" not in server_log
         if model.quantized:
@@ -105,6 +107,8 @@ def main() -> None:
             "data_parallel_size": model.data_parallel_size,
             "quantized": model.quantized,
             "dflash": model.dflash,
+            "target_kv_cache_dtype": model.kv_cache_dtype,
+            "draft_kv_cache_dtype": model.draft_kv_cache_dtype,
         },
         "server": server,
         "models": models,

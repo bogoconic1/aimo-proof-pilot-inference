@@ -1,4 +1,5 @@
 import logging
+import os
 import math
 from copy import deepcopy
 from typing import Optional
@@ -110,6 +111,9 @@ class DFlashWorkerV2(BaseSpecWorker):
         # Draft runner (separate KV cache + attention backend).
         draft_server_args = deepcopy(server_args)
         draft_server_args.skip_tokenizer_init = True
+        draft_server_args.kv_cache_dtype = os.environ[
+            "SGLANG_DFLASH_DRAFT_KV_CACHE_DTYPE"
+        ]
         draft_backend = draft_server_args.speculative_draft_attention_backend
         if draft_backend != "fa4":
             raise ValueError(
@@ -206,8 +210,10 @@ class DFlashWorkerV2(BaseSpecWorker):
         )
         if self.tp_rank == 0:
             logger.info(
-                "Initialized DFLASH draft runner. attention_backend=%s, model=%s, block_size=%s, draft_window_size=%s, compact_cache=%s, draft_kv_ring=%s, draft_ring_size=%s (all_swa=%s)",
+                "Initialized DFLASH draft runner. attention_backend=%s, target_kv_cache_dtype=%s, draft_kv_cache_dtype=%s, model=%s, block_size=%s, draft_window_size=%s, compact_cache=%s, draft_kv_ring=%s, draft_ring_size=%s (all_swa=%s)",
                 getattr(draft_server_args, "attention_backend", None),
+                server_args.kv_cache_dtype,
+                draft_server_args.kv_cache_dtype,
                 self.draft_model.__class__.__name__,
                 self.block_size,
                 self.draft_window_size,

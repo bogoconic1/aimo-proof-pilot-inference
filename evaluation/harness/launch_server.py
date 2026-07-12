@@ -107,6 +107,7 @@ def main() -> None:
         "--reasoning-parser", "deepseek-r1",
     ]
     if model.dflash:
+        env["SGLANG_DFLASH_DRAFT_KV_CACHE_DTYPE"] = model.draft_kv_cache_dtype
         env["SGLANG_DFLASH_DRAFT_RING"] = "1"
         env["SGLANG_DFLASH_DRAFT_RING_QUOTA"] = "4"
         command.extend(
@@ -124,7 +125,8 @@ def main() -> None:
     print(
         f"[serve_opd32b] mode={model.mode} dflash={str(model.dflash).lower()} "
         f"tp={model.tensor_parallel_size} dp={model.data_parallel_size} "
-        f"model={model.target} draft={model.draft} kv={model.kv_cache_dtype} "
+        f"model={model.target} draft={model.draft} target_kv={model.kv_cache_dtype} "
+        f"draft_kv={model.draft_kv_cache_dtype} "
         f"port={server['port']} ctx={server['context_length']}", flush=True,
     )
     os.execvpe(command[0], command, env)
