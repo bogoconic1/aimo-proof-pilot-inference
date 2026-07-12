@@ -42,7 +42,8 @@ The server is a supervisor service named `opd32b-eval`; its canonical log is
 `/var/log/portal/opd32b-eval.log`. Once the server is ready:
 
 ```bash
-/workspace/pp/venv/bin/python evaluation/harness/run_full_evaluation.py \
+EVAL_SERVER_LOG=/var/log/portal/opd32b-eval.log \
+  /workspace/pp/venv/bin/python evaluation/harness/run_full_evaluation.py \
   --config evaluation/configs/nemotron_cascade2.yaml \
   --ids-file evaluation/manifests/imo-2025-problem-1.json \
   --run-id imo-2025-problem-1-debug

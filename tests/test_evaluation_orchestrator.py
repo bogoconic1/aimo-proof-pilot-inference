@@ -23,6 +23,11 @@ class EvaluationOrchestratorTests(unittest.TestCase):
         self.assertIn("sunny", rows[0]["Problem"])
         self.assertEqual(rows[0]["Points"], 7)
         self.assertEqual(len(rows[0]["Grading guidelines"].splitlines()), 7)
+        second = REPO / "evaluation/manifests/imo-2025-problem-2.json"
+        self.assertEqual(json.loads(second.read_text()), ["2"])
+        second_rows = load_requested_rows(second)
+        self.assertEqual([row["Problem ID"] for row in second_rows], ["2"])
+        self.assertIn("circles", second_rows[0]["Problem"])
 
     def test_dataset_is_the_pinned_matharena_parquet(self):
         import hashlib
@@ -39,6 +44,7 @@ class EvaluationOrchestratorTests(unittest.TestCase):
         self.assertIn('parser.add_argument("--ids-file"', source)
         self.assertIn('parser.add_argument("--run-id"', source)
         self.assertIn('run_root / "grader_models.json"', source)
+        self.assertIn('os.environ["EVAL_SERVER_LOG"]', source)
         for stale in ("Basic", "Advanced", "shard", "notebook", "best-of-k"):
             self.assertNotIn(stale, source)
 

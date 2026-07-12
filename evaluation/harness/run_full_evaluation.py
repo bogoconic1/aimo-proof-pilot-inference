@@ -24,7 +24,6 @@ from run_proof_search import DATA, load_requested_rows, run_search
 REPO = Path(__file__).resolve().parents[2]
 EVALUATION = REPO / "evaluation"
 RUNS = EVALUATION / "runs"
-SERVER_LOG = Path("/var/log/portal/opd32b-eval.log")
 RUN_ID_PATTERN = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*$")
 
 
@@ -143,8 +142,9 @@ async def evaluate(config_path: Path, ids_file: Path, run_id: str) -> Path:
     api_key = os.environ.get(grader["api_key_env"])
     if not api_key:
         raise RuntimeError(f"empty {grader['api_key_env']}")
-    if not SERVER_LOG.is_file():
-        raise RuntimeError(f"missing supervisor server log: {SERVER_LOG}")
+    server_log = Path(os.environ["EVAL_SERVER_LOG"])
+    if not server_log.is_file():
+        raise RuntimeError(f"missing supervisor server log: {server_log}")
 
     run_root = RUNS / run_id
     run_root.mkdir(parents=True, exist_ok=True)
@@ -228,12 +228,12 @@ async def evaluate(config_path: Path, ids_file: Path, run_id: str) -> Path:
                 "--output",
                 str(run_root / "server_validation.json"),
                 "--server-log",
-                str(SERVER_LOG),
+                str(server_log),
             ],
             cwd=REPO,
             check=True,
         )
-        shutil.copy2(SERVER_LOG, run_root / "server.log")
+        shutil.copy2(server_log, run_root / "server.log")
 
         update_manifest(manifest_path, manifest, "proof_search", "running")
         generation_dir = run_root / "generation"
