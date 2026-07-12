@@ -77,11 +77,13 @@ are no request retries, prompt fallbacks, model fallbacks, or synthetic scores.
 
 ## Final grading
 
-The existing policy remains unchanged: one selected proof is sent to
-`deepseek-v4-flash` 64 times with high reasoning and SDK retries disabled. If
-any score is zero, that problem receives zero; otherwise its score is the mean
-of all 64 attempts. This is our zero-veto protocol, not MathArena's leaderboard
-judge ensemble.
+The existing aggregation policy remains unchanged: one selected proof is sent to
+`deepseek-v4-flash` 64 times with high reasoning and SDK retries disabled. Each
+attempt returns strict JSON fields in `findings`, `grade`, `reasoning` order and
+may assign any integer grade from 0 through 7 under the problem-specific marking
+guidelines. If any grade is zero, that problem receives zero; otherwise its score
+is the mean of all 64 attempts. This is our zero-veto protocol, not MathArena's
+leaderboard judge ensemble.
 
 ## Artifacts
 

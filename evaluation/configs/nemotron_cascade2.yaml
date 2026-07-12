@@ -50,4 +50,4 @@ grader:
   concurrency: 60
   max_completion_tokens: 65536
   zero_veto: true
-  prompt_sha256: c7451f1e4f6d3749ef543443146362dc6521dc34973a09c8bad87390b6d54618
+  prompt_sha256: 4aa3702ac1875b5fdb8bdc9dc23bab901f2e2c1b2dfb01dff30c6f1b848571b5

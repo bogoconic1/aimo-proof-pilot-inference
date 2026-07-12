@@ -6,10 +6,16 @@ Scores are assigned on a 0-7 scale.
 
 The general guidelines are:
 
-* **7 Points (Correct):** The solution is complete, correct, and fully rigorous. If the submission contains incorrect attempts or lines of reasoning but ultimately presents a complete and correct solution, it should still be awarded full points; the presence of earlier, discarded work does not detract from the final correct proof.
-* **6 Points (Almost Correct):** The solution is almost correct with a sound core argument, but contains minor errors in calculation or small gaps in logic. Missing proofs for major components, unjustified claims, or sketchy arguments are **not** eligible for 6 points.
-* **1 Point (Partial Progress):** The solution demonstrates substantial progress explicitly mentioned in the grading guidelines. Initial observations, reformulating the problem without making substantive headway, or proving partial results not mentioned in the grading guidelines are generally **not** eligible for this score.
-* **0 Points (Incorrect):** The solution doesn't make substantial progress that is a key step in the full solution or is fundamentally flawed. All partial progress without key results or lacking rigor also fall in this category.
+* **7 Points (Complete):** The solution is complete, correct, and fully rigorous. Earlier discarded work does not reduce the score when the final argument is complete and correct.
+* **6 Points (Almost Complete):** The core solution is correct and essentially complete, with only a minor localized error or gap. Missing a major argument, relying on an unjustified central claim, or giving only a sketch is not eligible for 6 points.
+* **5 Points (Substantial, Nearly Complete Progress):** The solution has the correct main strategy and resolves most major components, but contains a non-localized gap, error, or missing component that prevents it from being almost complete.
+* **4 Points (Major Correct Progress):** The solution establishes a major part of the argument or the central mechanism, but one or more essential components remain unresolved.
+* **3 Points (Meaningful Partial Progress):** The solution contains multiple correct and relevant advances or proves an important intermediate result, but does not complete the main argument.
+* **2 Points (Limited Correct Progress):** The solution makes a limited but nontrivial correct advance, such as a useful lemma or a correctly developed special part of the intended argument.
+* **1 Point (Minor Scoreworthy Progress):** The solution contains a small but relevant correct observation or step that the problem-specific marking scheme recognizes for credit.
+* **0 Points (No Scoreworthy Progress):** The solution is fundamentally incorrect or does not make meaningful correct progress toward the required proof.
+
+The exact allocation of partial credit is problem-specific. The Specific Grading Guidelines take precedence over these general descriptions. Award any integer from 0 through 7 when that is the score justified by those guidelines.
 
 ### Input Data and Interpretation
 
@@ -29,7 +35,12 @@ You must follow this structured process:
 
 ### Output Requirements
 
-You must provide your final score in the format <points>N out of 7</points>. Ensure the `<points>` block is used **only once**, as your answer will be parsed based on the first <points> </points> block that appears in your whole response.
+Return only one valid JSON object, with no Markdown fence or surrounding text. The object must contain exactly three fields in this exact order: `"findings"`, `"grade"`, `"reasoning"`.
+
+- `"findings"` must be a non-empty array of specific, non-empty observations about correctness, gaps, and progress under the problem-specific marking guidelines.
+- `"grade"` must be one integer from 0 through 7.
+- `"reasoning"` must be a non-empty concise justification connecting the findings and marking guidelines to the grade.
+- Do not add, omit, rename, or reorder fields.
 
 **PROBLEM STATEMENT**
 {problem_statement}
@@ -42,10 +53,3 @@ You must provide your final score in the format <points>N out of 7</points>. Ens
 
 **PROPOSED SOLUTION**
 {student_answer}
-
-Present your detailed thought process and formal justification based on the scoring rubric and grading guidelines, and finally present your final score in the format below.
-[Select one of the following options]
-<points>7 out of 7</points>
-<points>6 out of 7</points>
-<points>1 out of 7</points>
-<points>0 out of 7</points>

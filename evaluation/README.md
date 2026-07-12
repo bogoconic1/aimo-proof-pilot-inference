@@ -13,7 +13,8 @@ policy remains:
 - 128 initial proofs, 64 verifications per proof, top 32 proofs, four
   refinements per selected proof, eight refinement analyses, and eight rounds;
 - ycchen's byte-identical deployed prover, verifier, and refiner prompts; and
-- 64 DeepSeek V4 Flash grader attempts per final proof with zero-veto
+- 64 DeepSeek V4 Flash grader attempts on the full integer 0-7 scale per
+  final proof, using strict `findings`, `grade`, `reasoning` JSON and zero-veto
   aggregation.
 
 The approved debug manifest is `manifests/imo-2025-problem-1.json`. Evaluating

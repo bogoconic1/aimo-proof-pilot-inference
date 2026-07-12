@@ -172,6 +172,7 @@ async def grade_final_proofs(
                 response = await client.chat.completions.create(
                     model=grader["model"],
                     messages=messages,
+                    response_format={"type": "json_object"},
                     max_tokens=grader["max_completion_tokens"],
                     extra_body={"reasoning_effort": grader["reasoning"]},
                 )
@@ -194,8 +195,9 @@ async def grade_final_proofs(
                 "finish_reason": choice.finish_reason,
                 "usage": usage,
                 "latency_s": round(time.monotonic() - started, 3),
-                "score": parsed["score"],
-                "rationale": parsed["rationale"],
+                "score": parsed["grade"],
+                "findings": parsed["findings"],
+                "reasoning": parsed["reasoning"],
                 "error": None,
             }
         except Exception as error:
