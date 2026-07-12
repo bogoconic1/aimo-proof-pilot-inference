@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "status": "failed",
+  "date": "2026-07-12",
+  "branch": "experiment/fa4-target-fp8-draft-bf16",
+  "base_commit": "b7ccd2f",
+  "configuration": {
+    "target_weights_dtype": "bfloat16",
+    "target_kv_cache_dtype": "fp8_e4m3",
+    "draft_weights_dtype": "bfloat16",
+    "draft_kv_cache_dtype": "bfloat16",
+    "target_attention_backend": "fa4",
+    "draft_attention_backend": "fa4",
+    "tensor_parallel_size": 1,
+    "data_parallel_size": 2,
+    "page_size": 128,
+    "mem_fraction_static": 0.82
+  },
+  "corrected_capacity_per_gpu": {
+    "available_bytes": 57094674841,
+    "target_bytes_per_token": 52428,
+    "draft_bytes_per_token": 32768,
+    "combined_bytes_per_token": 85196,
+    "max_total_tokens": 670080,
+    "free_memory_after_both_pools_gib": 20.32
+  },
+  "failure": {
+    "phase": "target FA4 CUDA graph capture",
+    "exception": "AssertionError",
+    "message": "inputs must have the same dtype",
+    "cause": "BF16 query with FP8 key/value cache is unsupported by the installed FA4 kernel"
+  },
+  "throughput_benchmark_run": false,
+  "fallback_used": false
+}
