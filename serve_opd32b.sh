@@ -1,6 +1,6 @@
 #!/bin/bash
-# Launch the single YAML-configured OPD-32B server. BF16 target-only TP=2 is
-# the default; quantization and DFlash are independent YAML opt-ins.
+# Launch the single YAML-configured OPD-32B server. The experiment YAML fixes
+# FA4 DFlash with FP8 target KV and BF16 draft KV across TP1/DP2.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
