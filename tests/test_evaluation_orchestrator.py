@@ -38,6 +38,7 @@ class EvaluationOrchestratorTests(unittest.TestCase):
         self.assertIn('parser.add_argument("--config"', source)
         self.assertIn('parser.add_argument("--ids-file"', source)
         self.assertIn('parser.add_argument("--run-id"', source)
+        self.assertIn('run_root / "grader_models.json"', source)
         for stale in ("Basic", "Advanced", "shard", "notebook", "best-of-k"):
             self.assertNotIn(stale, source)
 

@@ -5,7 +5,7 @@
 The active problem source is the six-record `MathArena/imo_2025` dataset. The
 approved debug run selects exactly problem `1`, the sunny-lines problem. This
 dataset change does not alter serving, prompts, search, selection, or final
-DeepSeek aggregation.
+GPT-5.6 Sol aggregation.
 
 `configs/nemotron_cascade2.yaml` remains the only configuration. There are no
 difficulty-specific configurations or problem-dependent budget branches.
@@ -78,7 +78,8 @@ are no request retries, prompt fallbacks, model fallbacks, or synthetic scores.
 ## Final grading
 
 The existing aggregation policy remains unchanged: one selected proof is sent to
-`deepseek-v4-flash` 64 times with high reasoning and SDK retries disabled. Each
+`gpt-5.6-sol` through the Responses API 64 times with high reasoning and SDK
+retries disabled. Each
 attempt returns strict JSON fields in `findings`, `grade`, `reasoning` order and
 may assign any integer grade from 0 through 7 under the problem-specific marking
 guidelines. If any grade is zero, that problem receives zero; otherwise its score

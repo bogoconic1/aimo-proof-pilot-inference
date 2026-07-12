@@ -2,7 +2,7 @@
 
 This directory contains the repository's single OPD-32B evaluation pipeline. A
 strict YAML file controls serving, generate-verify-refine search, and final
-DeepSeek grading. An explicit JSON manifest controls which IMO 2025 problems
+GPT-5.6 Sol grading. An explicit JSON manifest controls which IMO 2025 problems
 run.
 
 Only the problem source changed from the earlier plan. The checked-in inference
@@ -13,7 +13,7 @@ policy remains:
 - 128 initial proofs, 64 verifications per proof, top 32 proofs, four
   refinements per selected proof, eight refinement analyses, and eight rounds;
 - ycchen's byte-identical deployed prover, verifier, and refiner prompts; and
-- 64 DeepSeek V4 Flash grader attempts on the full integer 0-7 scale per
+- 64 GPT-5.6 Sol Responses grader attempts on the full integer 0-7 scale per
   final proof, using strict `findings`, `grade`, `reasoning` JSON and zero-veto
   aggregation.
 
@@ -29,7 +29,7 @@ problem-specific branches.
 | `manifests/imo-2025-problem-1.json` | exact debug input: problem 1 only |
 | `data/imo_2025.parquet` | MathArena's six IMO 2025 problems |
 | `prompts/ycchen_math_3r/` | byte-identical deployed proof prompts |
-| `prompts/grader.md` | existing pinned DeepSeek grader prompt |
+| `prompts/grader.md` | pinned GPT-5.6 Sol grader prompt |
 | `harness/launch_server.py` | launches the YAML-selected tensor-parallel SGLang mode |
 | `harness/validate_server.py` | rejects a live server that differs from YAML |
 | `harness/proof_search.py` | resumable cumulative proof-pool engine |
@@ -48,7 +48,7 @@ The server is a supervisor service named `opd32b-eval`; its canonical log is
   --run-id imo-2025-problem-1-debug
 ```
 
-The runner requires `DEEPSEEK_API_KEY` in the process environment. Every run is
+The runner requires `OPENAI_API_KEY` in the process environment. Every run is
 stored below `evaluation/runs/<run-id>/` with pinned inputs, prompt/model hashes,
 raw generation calls, raw grader calls, round summaries, and `RESULT.md`.
 

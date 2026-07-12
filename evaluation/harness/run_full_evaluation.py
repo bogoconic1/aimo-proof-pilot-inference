@@ -214,7 +214,7 @@ async def evaluate(config_path: Path, ids_file: Path, run_id: str) -> Path:
         )
         if grader["model"] not in {item["id"] for item in models["data"]}:
             raise RuntimeError(f"grader model is absent from catalog: {grader['model']}")
-        atomic_json(run_root / "deepseek_models.json", models)
+        atomic_json(run_root / "grader_models.json", models)
 
         server = config["server"]
         subprocess.run(

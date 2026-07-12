@@ -42,9 +42,9 @@ search:
   seed: 0
 
 grader:
-  base_url: https://api.deepseek.com/v1
-  model: deepseek-v4-flash
-  api_key_env: DEEPSEEK_API_KEY
+  base_url: https://api.openai.com/v1
+  model: gpt-5.6-sol
+  api_key_env: OPENAI_API_KEY
   reasoning: high
   attempts_per_proof: 64
   concurrency: 60

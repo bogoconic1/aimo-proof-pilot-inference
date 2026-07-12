@@ -9,7 +9,7 @@ REPO = Path(__file__).resolve().parents[1]
 HARNESS = REPO / "evaluation" / "harness"
 sys.path.insert(0, str(HARNESS))
 
-from grade_proofs import aggregate_grades, zero_veto_score  # noqa: E402
+from grade_proofs import GraderOutput, aggregate_grades, zero_veto_score  # noqa: E402
 from grader import parse_score  # noqa: E402
 
 
@@ -59,9 +59,20 @@ class FinalGradingTests(unittest.TestCase):
             prompt,
         )
         self.assertNotIn("<points>", prompt)
+        self.assertEqual(
+            list(GraderOutput.model_fields), ["findings", "grade", "reasoning"]
+        )
+        config = (REPO / "evaluation/configs/nemotron_cascade2.yaml").read_text()
+        self.assertIn("base_url: https://api.openai.com/v1", config)
+        self.assertIn("model: gpt-5.6-sol", config)
+        self.assertIn("api_key_env: OPENAI_API_KEY", config)
         source = (REPO / "evaluation/harness/grade_proofs.py").read_text()
         self.assertIn(
-            'response_format={"type": "json_object"}',
+            'client.responses.parse',
+            source,
+        )
+        self.assertIn(
+            "text_format=GraderOutput",
             source,
         )
 

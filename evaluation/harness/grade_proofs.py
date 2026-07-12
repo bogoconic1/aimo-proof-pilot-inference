@@ -11,8 +11,10 @@ import sys
 import time
 from pathlib import Path
 from statistics import mean
+from typing import Annotated
 
 from openai import AsyncOpenAI
+from pydantic import BaseModel, ConfigDict, Field
 
 from eval_config import load_config
 from grader import parse_score
@@ -20,6 +22,16 @@ from run_proof_search import load_requested_rows
 
 REPO = Path(__file__).resolve().parents[2]
 GRADER_PROMPT = REPO / "evaluation" / "prompts" / "grader.md"
+
+
+class GraderOutput(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    findings: Annotated[
+        list[Annotated[str, Field(min_length=1)]], Field(min_length=1)
+    ]
+    grade: Annotated[int, Field(ge=0, le=7)]
+    reasoning: Annotated[str, Field(min_length=1)]
 
 
 def sha256(path: Path) -> str:
@@ -169,15 +181,16 @@ async def grade_final_proofs(
         started = time.monotonic()
         try:
             async with semaphore:
-                response = await client.chat.completions.create(
+                response = await client.responses.parse(
                     model=grader["model"],
-                    messages=messages,
-                    response_format={"type": "json_object"},
-                    max_tokens=grader["max_completion_tokens"],
-                    extra_body={"reasoning_effort": grader["reasoning"]},
+                    input=messages,
+                    reasoning={"effort": grader["reasoning"]},
+                    max_output_tokens=grader["max_completion_tokens"],
+                    text_format=GraderOutput,
                 )
-            choice = response.choices[0]
-            content = choice.message.content or ""
+            if response.output_parsed is None:
+                raise RuntimeError("grader returned no parsed structured output")
+            content = response.output_text
             parsed = parse_score(content)
             usage = response.usage.model_dump() if response.usage else None
             record = {
@@ -186,13 +199,11 @@ async def grade_final_proofs(
                 "prompt_sha256": prompt_hash,
                 "messages": messages,
                 "grader_model": grader["model"],
+                "grader_api": "responses",
                 "grader_reasoning": grader["reasoning"],
                 "grader_content": content,
-                "grader_reasoning_content": (
-                    choice.message.model_extra or {}
-                ).get("reasoning_content")
-                or "",
-                "finish_reason": choice.finish_reason,
+                "response_status": response.status,
+                "response": response.model_dump(mode="json"),
                 "usage": usage,
                 "latency_s": round(time.monotonic() - started, 3),
                 "score": parsed["grade"],
@@ -207,6 +218,7 @@ async def grade_final_proofs(
                 "prompt_sha256": prompt_hash,
                 "messages": messages,
                 "grader_model": grader["model"],
+                "grader_api": "responses",
                 "grader_reasoning": grader["reasoning"],
                 "latency_s": round(time.monotonic() - started, 3),
                 "error": repr(error),
@@ -234,6 +246,7 @@ async def grade_final_proofs(
     summary.update(
         {
             "grader_model": grader["model"],
+            "grader_api": "responses",
             "grader_reasoning": grader["reasoning"],
             "grader_prompt_sha256": grader["prompt_sha256"],
         }
