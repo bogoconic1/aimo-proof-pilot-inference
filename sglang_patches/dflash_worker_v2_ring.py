@@ -292,6 +292,7 @@ class DFlashWorkerV2(BaseSpecWorker):
 
     def _configure_mixed_kv_capacity(self) -> None:
         from sglang.srt.model_executor.pool_configurator import (
+            DefaultPoolConfigurator,
             HybridSWAPoolConfigurator,
             create_memory_pool_configurator,
         )
@@ -301,20 +302,22 @@ class DFlashWorkerV2(BaseSpecWorker):
         draft_configurator = create_memory_pool_configurator(self.draft_model_runner)
         if not isinstance(target_configurator, HybridSWAPoolConfigurator):
             raise TypeError("DFLASH mixed-KV capacity requires a hybrid-SWA target")
-        if not isinstance(draft_configurator, HybridSWAPoolConfigurator):
-            raise TypeError("DFLASH mixed-KV capacity requires an all-SWA draft")
+        if not isinstance(draft_configurator, DefaultPoolConfigurator):
+            raise TypeError("DFLASH mixed-KV capacity requires the default draft pool")
         if target_configurator._full_layers_num <= 0:
             raise ValueError("DFLASH mixed-KV target must contain full-attention layers")
-        if draft_configurator._full_layers_num != 0:
+        draft_layer_types = getattr(
+            self.draft_model_runner.model_config.hf_config, "layer_types", None
+        )
+        if draft_layer_types is None or any(
+            layer_type != "sliding_attention" for layer_type in draft_layer_types
+        ):
             raise ValueError("DFLASH mixed-KV draft must contain only SWA layers")
         if self.server_args.max_total_tokens is not None:
             raise ValueError("DFLASH mixed-KV capacity owns max_total_tokens")
 
         target_bytes_per_token = int(target_configurator._cell_size)
-        draft_bytes_per_token = math.ceil(
-            int(draft_configurator._cell_size)
-            * float(self.server_args.swa_full_tokens_ratio)
-        )
+        draft_bytes_per_token = int(draft_configurator._cell_size)
         combined_bytes_per_token = target_bytes_per_token + draft_bytes_per_token
         available_bytes = target_runner._profile_available_bytes(
             target_runner.pre_model_load_memory
