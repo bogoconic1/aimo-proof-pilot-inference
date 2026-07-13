@@ -155,27 +155,27 @@ class NemotronConfigTests(unittest.TestCase):
         self.assertNotIn("DFLASH=", launcher)
 
     def test_launcher_selects_fa3_or_fa4_strictly_from_yaml(self):
-        fa4 = self.config["server"]
-        self.assertEqual(
-            attention_arguments(fa4),
-            ["--attention-backend", "fa4", "--page-size", "128"],
-        )
-
-        with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / "fa3.yaml"
-            path.write_text(
-                self.path.read_text()
-                .replace("attention_backend: fa4", "attention_backend: fa3")
-                .replace("page_size: 128", "page_size: 1")
-                .replace("deterministic_inference: false", "deterministic_inference: true")
-            )
-            fa3 = load_config(path)["server"]
+        fa3 = self.config["server"]
         self.assertEqual(
             attention_arguments(fa3),
             [
                 "--attention-backend", "fa3", "--page-size", "1",
                 "--enable-deterministic-inference",
             ],
+        )
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "fa4.yaml"
+            path.write_text(
+                self.path.read_text()
+                .replace("attention_backend: fa3", "attention_backend: fa4")
+                .replace("page_size: 1", "page_size: 128")
+                .replace("deterministic_inference: true", "deterministic_inference: false")
+            )
+            fa4 = load_config(path)["server"]
+        self.assertEqual(
+            attention_arguments(fa4),
+            ["--attention-backend", "fa4", "--page-size", "128"],
         )
 
         launcher = (HARNESS / "launch_server.py").read_text()
@@ -186,9 +186,9 @@ class NemotronConfigTests(unittest.TestCase):
 
     def test_attention_backend_validation_rejects_invalid_profiles(self):
         replacements = (
-            ("attention_backend: fa4", "attention_backend: triton"),
-            ("page_size: 128", "page_size: 1"),
-            ("deterministic_inference: false", "deterministic_inference: true"),
+            ("attention_backend: fa3", "attention_backend: triton"),
+            ("page_size: 1", "page_size: 128"),
+            ("deterministic_inference: true", "deterministic_inference: false"),
         )
         for old, new in replacements:
             with self.subTest(new=new), tempfile.TemporaryDirectory() as directory:

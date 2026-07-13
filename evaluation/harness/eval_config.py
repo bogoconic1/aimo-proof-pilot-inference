@@ -105,6 +105,11 @@ def load_config(path: Path) -> dict[str, Any]:
             raise ValueError("FA4 requires server.page_size=128")
         if server["deterministic_inference"]:
             raise ValueError("FA4 does not support deterministic inference")
+    else:
+        if server["page_size"] != 1:
+            raise ValueError("FA3 requires server.page_size=1")
+        if not server["deterministic_inference"]:
+            raise ValueError("FA3 requires deterministic inference")
     if server["context_length"] != 262144:
         raise ValueError("server.context_length must equal the OPD checkpoint limit 262144")
     if not 0 < server["mem_fraction_static"] < 1:

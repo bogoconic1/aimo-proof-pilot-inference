@@ -9,7 +9,7 @@ Only the problem source changed from the earlier plan. The checked-in inference
 policy remains:
 
 - BF16 target-only TP1/DP8 inference across all eight GPUs by default;
-- explicit FA3 or FA4 attention selected in YAML and applied identically to the target and DFlash draft, with no backend fallback;
+- FA3 attention by default, with explicit FA3 or FA4 selection in YAML applied identically to the target and DFlash draft and no backend fallback;
 - Humming W4A8 target quantization and DFlash as independent opt-in booleans;
 - 32 initial proof attempts, 16 verifications per admitted proof, cumulative top 8
   proofs, four lowest-rated analyses producing one refinement each, and four rounds;
