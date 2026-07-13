@@ -1,4 +1,4 @@
-"""Run one strict YAML-configured IMO 2025 generate-verify-refine evaluation."""
+"""Run one strict YAML-configured generate-verify-refine evaluation."""
 
 from __future__ import annotations
 
@@ -19,7 +19,12 @@ from typing import Any
 from eval_config import active_model, load_config
 from grade_proofs import GRADER_PROMPT, grade_final_proofs
 from proof_prompts import PROMPT_SOURCE_COMMIT, prompt_hashes
-from run_proof_search import DATA, load_requested_rows, run_search
+from run_proof_search import (
+    dataset_path,
+    load_problem_manifest,
+    load_requested_rows,
+    run_search,
+)
 
 REPO = Path(__file__).resolve().parents[2]
 EVALUATION = REPO / "evaluation"
@@ -111,24 +116,27 @@ def audit_generation(generation_dir: Path, problem_ids: list[str]) -> dict:
 
 def write_result(path: Path, manifest: dict, summary: dict) -> None:
     lines = [
-        "# IMO 2025 evaluation result",
+        "# Evaluation result",
         "",
         f"- Run: `{manifest['run_id']}`",
         f"- Git commit: `{manifest['git_commit']}`",
         f"- Model mode: `{manifest['active_model']['mode']}`",
         f"- DFlash: `{str(manifest['active_model']['dflash']).lower()}`",
+        f"- Dataset: `{manifest['dataset']}`",
         f"- Problems: {len(manifest['problem_ids'])}",
         f"- Grader attempts per proof: {summary['attempts_per_proof']}",
         f"- Aggregation: `{summary['aggregation']}`",
         f"- Overall score: {summary['overall_score_out_of_7']:.6f} / 7",
         f"- Overall percentage: {summary['overall_score_percent']:.6f}%",
         "",
-        "| Problem | Score / 7 | Zero veto |",
-        "|---|---:|:---:|",
+        "| Problem | Expected answer | Score / 7 | Zero veto |",
+        "|---|---:|---:|:---:|",
     ]
     for problem in summary["problems"]:
         lines.append(
-            f"| {problem['problem_id']} | {problem['score_out_of_7']:.6f} | "
+            f"| {problem['problem_id']} | "
+            f"{manifest['problem_answers'].get(problem['problem_id'])} | "
+            f"{problem['score_out_of_7']:.6f} | "
             f"{'yes' if problem['zero_veto_triggered'] else 'no'} |"
         )
     path.write_text("\n".join(lines) + "\n")
@@ -139,6 +147,8 @@ async def evaluate(config_path: Path, ids_file: Path, run_id: str) -> Path:
         raise ValueError("run-id must be one safe path component")
     config = load_config(config_path)
     model = active_model(config)
+    problem_manifest = load_problem_manifest(ids_file)
+    data_path = dataset_path(ids_file)
     rows = load_requested_rows(ids_file)
     problem_ids = [row["Problem ID"] for row in rows]
     grader = config["grader"]
@@ -154,7 +164,7 @@ async def evaluate(config_path: Path, ids_file: Path, run_id: str) -> Path:
     run_root = RUNS / run_id
     run_root.mkdir(parents=True, exist_ok=True)
     pinned_config = run_root / "config.yaml"
-    pinned_ids = run_root / "problem_ids.json"
+    pinned_ids = run_root / "problem_manifest.json"
     copy_pinned(config_path, pinned_config)
     copy_pinned(ids_file, pinned_ids)
 
@@ -164,13 +174,17 @@ async def evaluate(config_path: Path, ids_file: Path, run_id: str) -> Path:
     target_config = model.target / "config.json"
     draft_config = model.draft / "config.json" if model.draft else None
     expected_manifest = {
-        "schema_version": 2,
+        "schema_version": 3,
         "run_id": run_id,
         "git_commit": git_commit,
         "config_sha256": sha256(pinned_config),
-        "problem_ids_sha256": sha256(pinned_ids),
-        "dataset_sha256": sha256(DATA),
+        "problem_manifest_sha256": sha256(pinned_ids),
+        "dataset": problem_manifest["dataset"],
+        "dataset_sha256": sha256(data_path),
         "problem_ids": problem_ids,
+        "problem_answers": {
+            row["Problem ID"]: row["Answer"] for row in rows
+        },
         "prompt_source_repository": "https://github.com/ycchen-tw/proof-pilot-codes",
         "prompt_source_commit": PROMPT_SOURCE_COMMIT,
         "proof_prompt_sha256": prompt_hashes(),
@@ -198,9 +212,11 @@ async def evaluate(config_path: Path, ids_file: Path, run_id: str) -> Path:
             "run_id",
             "git_commit",
             "config_sha256",
-            "problem_ids_sha256",
+            "problem_manifest_sha256",
+            "dataset",
             "dataset_sha256",
             "problem_ids",
+            "problem_answers",
             "proof_prompt_sha256",
             "grader_prompt_sha256",
             "active_model",

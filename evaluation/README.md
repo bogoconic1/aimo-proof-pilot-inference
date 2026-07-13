@@ -1,12 +1,12 @@
-# IMO 2025 evaluation
+# MathArena proof evaluation
 
 This directory contains the repository's single OPD-32B evaluation pipeline. A
 strict YAML file controls serving, generate-verify-refine search, and final
-GPT-5.6 Sol grading. An explicit JSON manifest controls which IMO 2025 problems
-run.
+GPT-5.6 Sol grading. An explicit JSON manifest selects the pinned MathArena dataset and problem
+IDs.
 
-Only the problem source changed from the earlier plan. The checked-in inference
-policy remains:
+Problem selection does not alter the inference or search policy. The checked-in
+inference policy remains:
 
 - BF16 target-only TP1/DP8 inference across all eight GPUs by default;
 - FA3 attention by default, with explicit FA3 or FA4 selection in YAML applied identically to the target and DFlash draft and no backend fallback;
@@ -21,17 +21,18 @@ policy remains:
   final proof, using strict `findings`, `grade`, `reasoning` JSON and zero-veto
   aggregation.
 
-The approved debug manifest is `manifests/imo-2025-problem-1.json`. Evaluating
-all six problems requires only a different ID manifest; the code has no
-problem-specific branches.
+The checked-in manifests select IMO 2025 Problems 1 or 2 and AIME 2026 Problem
+10. The code has no problem-specific search branches.
 
 ## Active files
 
 | Path | Purpose |
 |---|---|
 | `configs/nemotron_cascade2.yaml` | the only serving, search, and grading config |
-| `manifests/imo-2025-problem-1.json` | exact debug input: problem 1 only |
-| `data/imo_2025.parquet` | MathArena's six IMO 2025 problems |
+| `manifests/imo-2025-problem-1.json` | exact IMO debug input: problem 1 only |
+| `manifests/aime-2026-problem-10.json` | exact AIME 2026 input: problem 10, answer 156 |
+| `data/imo_2025.parquet` | pinned MathArena IMO 2025 dataset |
+| `data/aime_2026.parquet` | pinned MathArena AIME 2026 dataset |
 | `prompts/ycchen_math_3r/` | byte-identical deployed proof prompts |
 | `prompts/grader.md` | pinned GPT-5.6 Sol grader prompt |
 | `harness/launch_server.py` | launches the YAML-selected tensor-parallel SGLang mode |

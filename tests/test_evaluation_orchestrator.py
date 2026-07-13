@@ -11,30 +11,56 @@ HARNESS = REPO / "evaluation" / "harness"
 sys.path.insert(0, str(HARNESS))
 
 from run_full_evaluation import audit_generation  # noqa: E402
-from run_proof_search import DATA, load_requested_rows  # noqa: E402
+from run_proof_search import DATASETS, dataset_path, load_requested_rows  # noqa: E402
 
 
 class EvaluationOrchestratorTests(unittest.TestCase):
-    def test_checked_in_debug_manifest_is_exactly_imo_2025_problem_one(self):
-        manifest = REPO / "evaluation/manifests/imo-2025-problem-1.json"
-        self.assertEqual(json.loads(manifest.read_text()), ["1"])
-        rows = load_requested_rows(manifest)
+    def test_checked_in_manifests_select_exact_datasets_and_problems(self):
+        first = REPO / "evaluation/manifests/imo-2025-problem-1.json"
+        self.assertEqual(
+            json.loads(first.read_text()),
+            {"dataset": "imo_2025", "problem_ids": ["1"]},
+        )
+        rows = load_requested_rows(first)
         self.assertEqual([row["Problem ID"] for row in rows], ["1"])
         self.assertIn("sunny", rows[0]["Problem"])
         self.assertEqual(rows[0]["Points"], 7)
         self.assertEqual(len(rows[0]["Grading guidelines"].splitlines()), 7)
+
         second = REPO / "evaluation/manifests/imo-2025-problem-2.json"
-        self.assertEqual(json.loads(second.read_text()), ["2"])
         second_rows = load_requested_rows(second)
         self.assertEqual([row["Problem ID"] for row in second_rows], ["2"])
         self.assertIn("circles", second_rows[0]["Problem"])
 
-    def test_dataset_is_the_pinned_matharena_parquet(self):
+        aime = REPO / "evaluation/manifests/aime-2026-problem-10.json"
+        self.assertEqual(
+            json.loads(aime.read_text()),
+            {"dataset": "aime_2026", "problem_ids": ["10"]},
+        )
+        aime_rows = load_requested_rows(aime)
+        self.assertEqual([row["Problem ID"] for row in aime_rows], ["10"])
+        self.assertEqual(aime_rows[0]["Competition"], "AIME I")
+        self.assertEqual(aime_rows[0]["Year"], 2026)
+        self.assertEqual(aime_rows[0]["Answer"], 156)
+        self.assertIn("AB = 13", aime_rows[0]["Problem"])
+
+    def test_datasets_are_the_pinned_matharena_parquets(self):
         import hashlib
 
+        expected = {
+            "imo_2025": "17592c82ae91049ae6215b3cece719fa62d37bcb82f9df16719d436797d03a6f",
+            "aime_2026": "d91db799651b4cc1f0734f52792a695c9cc60dac342524b3d8e5b2ff31c3e957",
+        }
+        self.assertEqual(set(DATASETS), set(expected))
+        for dataset, digest in expected.items():
+            with self.subTest(dataset=dataset):
+                self.assertEqual(
+                    hashlib.sha256(DATASETS[dataset].read_bytes()).hexdigest(),
+                    digest,
+                )
         self.assertEqual(
-            hashlib.sha256(DATA.read_bytes()).hexdigest(),
-            "17592c82ae91049ae6215b3cece719fa62d37bcb82f9df16719d436797d03a6f",
+            dataset_path(REPO / "evaluation/manifests/aime-2026-problem-10.json"),
+            DATASETS["aime_2026"],
         )
 
     def test_orchestrator_exposes_one_config_ids_and_run_id_interface(self):

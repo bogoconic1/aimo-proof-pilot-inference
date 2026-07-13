@@ -1,18 +1,15 @@
-# Nemotron-style IMO 2025 evaluation design
+# Nemotron-style MathArena evaluation design
 
 ## Scope
 
-The active problem source is the six-record `MathArena/imo_2025` dataset. The
-approved debug run selects exactly problem `1`, the sunny-lines problem. This
-dataset change does not alter serving, prompts, search, selection, or final
-GPT-5.6 Sol aggregation.
+The problem manifest explicitly selects either the pinned `MathArena/imo_2025` or `MathArena/aime_2026` parquet and a non-empty list of native problem IDs. The AIME 2026 full-run manifest selects Problem 10, whose official dataset answer is 156. Dataset selection does not alter serving, prompts, search, selection, or final GPT-5.6 Sol aggregation.
 
 `configs/nemotron_cascade2.yaml` remains the only configuration. There are no
 difficulty-specific configurations or problem-dependent budget branches.
 
 ## Serving modes
 
-All modes use one SGLang server with tensor parallelism 2 across both H200 GPUs,
+All modes use one SGLang server with YAML-configured tensor and data parallelism,
 BF16 KV cache, radix prefix caching, overlap scheduling, and CUDA graphs. The
 YAML selects `fa3` or `fa4` explicitly; the target and DFlash draft always receive
 the same selected backend. Page size and deterministic inference are also explicit
@@ -45,8 +42,7 @@ The active prover, verifier, and refiner templates are copied byte-for-byte from
 split, strict XML outputs, and XML candidate bundle. The unused selector is not
 copied because final selection is deterministic from verifier scores.
 
-The IMO 2025 statement is substituted only into ycchen's existing `{problem}`
-field. No MathArena-specific generation prompt or algorithm is used.
+The selected MathArena statement is substituted only into ycchen's existing `{problem}` field. No dataset-specific generation prompt or search algorithm is used.
 
 ## Search algorithm
 
