@@ -5,9 +5,49 @@ strict GPT-5.6 Sol grader. The checked-in production configuration uses all
 eight H200 GPUs as four TP2 replicas, with BF16 target and draft weights,
 DFlash speculative decoding, and FlashAttention 3.
 
-Follow this document in order on a clean machine. Commands assume the repository
-is at `/workspace/aimo-proof-pilot-inference` and the prebuilt runtime is at
-`/workspace/pp`.
+## VastAI Docker deployment
+
+The published image is:
+
+```text
+ghcr.io/bogoconic1/aimo-proof-pilot-inference:latest
+```
+
+Every image contains an immutable repository commit recorded in the OCI
+`org.opencontainers.image.revision` label. Branch builds use the sanitized
+branch name as their tag, and every build also receives a `sha-<commit>` tag.
+The target and DFlash draft are downloaded from
+`fieldsmodelorg/Olmo-3.1-32B-Think-OPD-ProofPilot` at pinned revision
+`87707b8030800b1e531b78c9823cb80a63d66e5e`.
+
+Configure VastAI with exactly eight H200 GPUs, at least 200 GB of persistent
+disk mounted at `/workspace`, and Docker options `--ipc=host --shm-size=32g`.
+Set `KAGGLE_USERNAME` and `KAGGLE_KEY`, or `KAGGLE_API_TOKEN`, with access to
+`threerabbits/proof-pilot-env`. `HF_TOKEN` is optional; `OPENAI_API_KEY` is
+needed only for strict final grading.
+
+The default `serve` command bootstraps the persistent volume, applies the
+checked-in patches, downloads both models, launches SGLang, and validates the
+live server. To generate an ungraded CSV submission, place `test.csv` in
+`/workspace` and use the `submission` command. It writes
+`/workspace/submission.csv` and does not call OpenAI.
+
+```bash
+docker run --rm --gpus all --ipc=host --shm-size=32g \
+  -v "$PWD/workspace:/workspace" \
+  -e KAGGLE_USERNAME \
+  -e KAGGLE_KEY \
+  -e HF_TOKEN \
+  ghcr.io/bogoconic1/aimo-proof-pilot-inference:latest submission
+```
+
+Other image commands are `bootstrap`, `validate`, `shell`, and `help`. The
+SGLang API has no application-level authentication, so do not publicly map port
+30000 without a private network or authenticated reverse proxy.
+
+For a manual installation, follow this document in order on a clean machine.
+Commands assume the repository is at `/workspace/aimo-proof-pilot-inference`
+and the prebuilt runtime is at `/workspace/pp`.
 
 ## Production defaults
 
@@ -61,14 +101,15 @@ You need all of the following before starting:
 
 - Linux x86_64 with exactly eight visible H200 GPUs and an NVIDIA driver that
   supports the CUDA 13 runtime in the supplied environment.
-- At least 100 GB of free local storage for the runtime, target model, draft
+- At least 200 GB of free local storage for the runtime, target model, draft
   model, logs, and evaluation artifacts.
 - Git, `uv`, `unzip`, `tar`, the Kaggle CLI, and network access to GitHub,
   Kaggle, and Hugging Face.
 - Access to the `threerabbits/proof-pilot-env` Kaggle dataset. There is no
   supported PyPI-only replacement for this patched runtime.
-- A Hugging Face token with access to
-  `ycchen/proof-pilot-deploy-bundle`.
+- Network access to the public
+  `fieldsmodelorg/Olmo-3.1-32B-Think-OPD-ProofPilot` repository. A Hugging
+  Face token is optional but recommended to avoid anonymous rate limits.
 - For strict grading only: network access to the OpenAI API and an API key with
   `gpt-5.6-sol` access and sufficient balance. The CSV submission workflow
   does not need either.
@@ -97,7 +138,9 @@ Create `/workspace/.env` and keep it outside the repository:
 
 ```bash
 cat > /workspace/.env <<'EOF'
-HF_TOKEN="replace-with-your-hugging-face-token"
+KAGGLE_USERNAME="replace-with-your-kaggle-username"
+KAGGLE_KEY="replace-with-your-kaggle-key"
+HF_TOKEN="optional-hugging-face-token"
 OPENAI_API_KEY="replace-with-your-openai-api-key"
 EOF
 chmod 600 /workspace/.env
@@ -157,7 +200,10 @@ set -a
 source /workspace/.env
 set +a
 
-"$VENV/bin/hf" download ycchen/proof-pilot-deploy-bundle \
+MODEL_REVISION=87707b8030800b1e531b78c9823cb80a63d66e5e
+"$VENV/bin/hf" download \
+  fieldsmodelorg/Olmo-3.1-32B-Think-OPD-ProofPilot \
+  --revision "$MODEL_REVISION" \
   --include 'opd-32b-deploy/*' \
   --include 'dflash-32b-draft-v2test-phaseL/*' \
   --local-dir /workspace/models
