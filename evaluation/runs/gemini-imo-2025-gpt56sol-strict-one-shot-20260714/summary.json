@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "run_id": "gemini-imo-2025-gpt56sol-strict-one-shot-20260714",
+  "grader_model": "gpt-5.6-sol",
+  "grader_reasoning": "high",
+  "calls_per_problem": 1,
+  "aggregation": "none",
+  "grades": {
+    "P1": 3,
+    "P2": 5,
+    "P3": 7,
+    "P4": 7,
+    "P5": 7,
+    "P6": 0
+  },
+  "total_out_of_42": 29,
+  "provided_solutions_total_out_of_35": 29,
+  "p6_source_present": false,
+  "p6_source_note": "The source PDF contains no P6 solution; P6 was graded as missing."
+}

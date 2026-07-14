@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "run_id": "gemini-imo-2025-gpt56sol-strict-one-shot-20260714",
+  "created_at_utc": "2026-07-14",
+  "repository_base_commit": "c86cbc8b6c67672c3c1c0ad131d12a6006521dda",
+  "source": {
+    "url": "https://storage.googleapis.com/deepmind-media/gemini/IMO_2025.pdf",
+    "sha256": "90040afd878059d3a8d20974b7bff8d4ef648a96352f61ed65540ed468eca935",
+    "page_count": 13,
+    "provided_problem_ids": ["1", "2", "3", "4", "5"],
+    "missing_problem_ids": ["6"],
+    "page_ranges": {
+      "1": [1, 2],
+      "2": [3, 4, 5],
+      "3": [6, 7, 8],
+      "4": [9, 10],
+      "5": [11, 12, 13],
+      "6": []
+    }
+  },
+  "grader": {
+    "model": "gpt-5.6-sol",
+    "api": "responses",
+    "reasoning": "high",
+    "max_output_tokens": 65536,
+    "structured_output": true,
+    "system_prompt_sha256": "5100cf0bcd50fdd54a413ed8f073653eecfe0da5eed46884de547f623958208b",
+    "user_prompt_sha256": "891fc2780e070dd0da7181a845798624e1d67ff598c96ec9f35c10dad7567c26"
+  },
+  "protocol": {
+    "calls_per_problem": 1,
+    "retries": 0,
+    "p1_reused_from_initial_one-shot_check": true,
+    "p2_through_p6_parallel": true,
+    "p6_candidate": "No solution was provided; the source PDF ends after Problem 5."
+  },
+  "privacy_and_copyright": {
+    "source_pdf_committed": false,
+    "full_source_proofs_committed": false,
+    "api_credentials_committed": false
+  }
+}
