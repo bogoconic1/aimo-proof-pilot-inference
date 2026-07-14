@@ -20,6 +20,31 @@ The target and DFlash draft are downloaded from
 `fieldsmodelorg/Olmo-3.1-32B-Think-OPD-ProofPilot` at pinned revision
 `87707b8030800b1e531b78c9823cb80a63d66e5e`.
 
+### Vast.ai template
+
+Create a template from **Templates > New** with these values:
+
+| Field | Value |
+|---|---|
+| Template name | `AIMO Proof Pilot - 8x H200` |
+| Image path | `ghcr.io/bogoconic1/aimo-proof-pilot-inference` |
+| Image tag | `sha-786eeb8` |
+| Launch mode | `docker ENTRYPOINT` |
+| Entrypoint arguments | `serve` |
+| Docker options | `--ipc=host --shm-size=32gb -p 30000:30000` |
+| Recommended disk | `200 GB` |
+| Machine filters | `num_gpus=8 gpu_name=H200 cuda_vers>=13.0 disk_space>=200 direct_port_count>=1 rented=False` |
+
+Leave all Docker registry login fields empty. The image, runtime dataset, and
+model repository are public, so the template must not contain Kaggle, GitHub,
+Hugging Face, OpenAI, or other credentials. If an optional token is needed,
+provide it privately when launching the instance or through a pre-existing
+`/workspace/.env`; never save it in a shared template.
+
+Attach at least 200 GB at `/workspace` before launch. The immutable image tag
+above is the build from repository commit `786eeb8`; use a newer immutable
+`sha-<commit>` tag only after its container workflow succeeds.
+
 Configure VastAI with exactly eight H200 GPUs, at least 200 GB of persistent
 disk mounted at `/workspace`, and Docker options `--ipc=host --shm-size=32g`.
 The `threerabbits/proof-pilot-env` Kaggle dataset is public and requires no
