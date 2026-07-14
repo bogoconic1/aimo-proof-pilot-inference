@@ -12,15 +12,18 @@ inference policy remains:
 - FA3 attention by default, with explicit FA3 or FA4 selection in YAML applied identically to the target and DFlash draft and no backend fallback;
 - Humming W4A8 target quantization as an opt-in boolean, with DFlash enabled by default and independently configurable;
 - 32 initial proof attempts, 16 verifications per admitted proof, cumulative top 8
-  proofs, four lowest-rated analyses producing one refinement each, and four rounds;
+  proofs, four lowest-rated analyses producing one refinement each, and eight rounds;
 - asynchronous per-candidate verification under a shared cluster-wide concurrency
   of 96, with ranking and subsequent rounds waiting at the current-round barrier;
 - configurable sampling temperature and top-p (defaults 1.0 and 0.95);
-- a configurable 128,000-token first segment plus one configurable 16,384-token
-  solution continuation after prover/refiner length truncation;
+- a configurable 128,000-token ordinary prover/refiner budget split by
+  rubric-blind reasoning audits every 16,384 tokens, plus one configurable
+  16,384-token terminal solution continuation;
 - one separately configurable 16,384-token verifier continuation, with malformed
   verifier outputs logged and skipped and at least four valid votes required;
-- ycchen's byte-identical deployed prover, verifier, and refiner prompts, with hidden thinking excluded from downstream prompts; and
+- ycchen's byte-identical deployed prover and refiner prompts, plus four
+  rubric-blind verifier audit focuses using the same XML contract, with hidden
+  thinking excluded from downstream prompts; and
 - 64 GPT-5.6 Sol Responses grader attempts on the full integer 0-7 scale per
   final proof, using strict `findings`, `grade`, `reasoning` JSON and zero-veto
   aggregation.
@@ -37,7 +40,7 @@ The checked-in manifests select IMO 2025 Problems 1 or 2 and AIME 2026 Problem
 | `manifests/aime-2026-problem-10.json` | exact AIME 2026 input: problem 10, answer 156 |
 | `data/imo_2025.parquet` | pinned MathArena IMO 2025 dataset |
 | `data/aime_2026.parquet` | pinned MathArena AIME 2026 dataset |
-| `prompts/ycchen_math_3r/` | byte-identical deployed proof prompts |
+| `prompts/ycchen_math_3r/` | deployed prover/refiner prompts and role-aware verifier |
 | `prompts/grader.md` | pinned GPT-5.6 Sol grader prompt |
 | `harness/launch_server.py` | launches the YAML-selected tensor-parallel SGLang mode |
 | `harness/validate_server.py` | rejects a live server that differs from YAML |

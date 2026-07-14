@@ -25,7 +25,8 @@ is the source of truth. Its current defaults are:
 | Search concurrency | 96 requests cluster-wide |
 | Search policy | 32 proofs, 16 verifications per proof, top 8, 4 refinements, up to 8 rounds |
 | Sampling | temperature 1.0, top-p 0.95 |
-| Local first segment | 128,000 tokens for prover, refiner, and verifier |
+| Local ordinary output budget | 128,000 generated tokens per prover, refiner, or verifier |
+| Reasoning probe interval | every 16,384 generated tokens for provers and refiners |
 | Solution continuation | at most one additional 16,384-token forced solution continuation |
 | Verifier continuation | at most one additional 16,384-token continuation |
 | Final grader | 64 GPT-5.6 Sol attempts per proof, strict zero-veto aggregation |
@@ -43,16 +44,21 @@ search:
   temperature: 1.0
   top_p: 0.95
   max_completion_tokens: 128000
+  reasoning_probe_interval_tokens: 16384
 ```
 
 `temperature` accepts any finite non-negative number; use `0` for greedy
 sampling. `top_p` accepts any finite number in `(0, 1]`.
-`max_completion_tokens` must be a positive integer and controls the first
-output segment for every local prover, refiner, and verifier request.
+`max_completion_tokens` must be a positive integer and controls the total
+ordinary generated output for every local prover, refiner, and verifier call.
+Prover and refiner calls split that total into physical segments no larger than
+`reasoning_probe_interval_tokens`. When a segment ends while the model is still
+thinking, the next segment continues the same sequence after a rubric-blind
+completeness audit. Verifier calls use the total as one ordinary segment.
 
 These settings do not change `server.context_length`. A configured solution or
-verifier continuation may extend a truncated local response beyond the first
-segment, and `grader.max_completion_tokens` separately controls the final
+verifier continuation may extend a truncated local response beyond the ordinary
+budget, and `grader.max_completion_tokens` separately controls the final
 OpenAI grader.
 
 ## 1. Prerequisites
@@ -289,7 +295,8 @@ Common search controls are:
 | `refinements_per_proof` | new proofs generated per selected parent |
 | `max_rounds` | maximum generate-verify-refine rounds |
 | `temperature`, `top_p` | generation sampling |
-| `max_completion_tokens` | first output segment for local model calls |
+| `max_completion_tokens` | total ordinary generated output per local call |
+| `reasoning_probe_interval_tokens` | maximum prover/refiner segment before a hidden self-audit |
 | `concurrency` | cluster-wide proof-search request concurrency |
 
 The validator enforces:

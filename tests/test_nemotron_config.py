@@ -33,6 +33,7 @@ class NemotronConfigTests(unittest.TestCase):
         self.assertEqual(search["max_completion_tokens"], 128000)
         self.assertEqual(search["temperature"], 1.0)
         self.assertEqual(search["top_p"], 0.95)
+        self.assertEqual(search["reasoning_probe_interval_tokens"], 16384)
         self.assertEqual(search["solution_continuation_tokens"], 16384)
         self.assertEqual(search["verifier_continuation_tokens"], 16384)
         self.assertEqual(search["min_valid_verifications"], 4)
@@ -139,6 +140,38 @@ class NemotronConfigTests(unittest.TestCase):
                 )
                 config = load_config(path)
                 self.assertEqual(config["search"]["temperature"], temperature)
+
+    def test_reasoning_probe_interval_is_configurable(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "config.yaml"
+            path.write_text(
+                self.path.read_text().replace(
+                    "reasoning_probe_interval_tokens: 16384",
+                    "reasoning_probe_interval_tokens: 32768",
+                    1,
+                )
+            )
+            config = load_config(path)
+        self.assertEqual(
+            config["search"]["reasoning_probe_interval_tokens"],
+            32768,
+        )
+
+    def test_reasoning_probe_interval_cannot_exceed_completion_budget(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "invalid.yaml"
+            path.write_text(
+                self.path.read_text().replace(
+                    "reasoning_probe_interval_tokens: 16384",
+                    "reasoning_probe_interval_tokens: 128001",
+                    1,
+                )
+            )
+            with self.assertRaisesRegex(
+                ValueError,
+                "reasoning_probe_interval_tokens cannot exceed",
+            ):
+                load_config(path)
 
     def test_search_temperature_rejects_invalid_values(self):
         invalid_values = ("-0.1", ".nan", "invalid")

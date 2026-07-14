@@ -91,7 +91,7 @@ class AsyncClientTests(unittest.TestCase):
 
         asyncio.run(run())
 
-    def test_thinking_only_length_uses_configured_native_continuation(self):
+    def test_segmented_thinking_uses_cumulative_terminal_continuation_telemetry(self):
         async def run():
             client = AsyncChatClient("http://127.0.0.1:30000/v1", "test-model")
             tokenizer = FakeTokenizer()
@@ -119,9 +119,17 @@ class AsyncClientTests(unittest.TestCase):
                 )
 
             client._post_native = post_native
+            initial = initial_response(reasoning="unfinished reasoning", content="")
+            initial.update(
+                completion_tokens=128000,
+                requested_max_completion_tokens=128000,
+                logical_max_completion_tokens=128000,
+                physical_request_count=8,
+                physical_prompt_tokens=200000,
+            )
             try:
                 result = await client.continue_solution_raw(
-                    initial_response(reasoning="unfinished reasoning", content=""),
+                    initial,
                     [{"role": "user", "content": "problem"}],
                     max_new_tokens=16384,
                     temperature=1.0,
@@ -141,9 +149,10 @@ class AsyncClientTests(unittest.TestCase):
             self.assertNotIn("</thinking>", tokenizer.encoded[0])
             self.assertTrue(result["message"]["content"].startswith("<solution>\n"))
             self.assertEqual(result["message"]["reasoning_content"], "unfinished reasoning")
-            self.assertEqual(result["logical_max_completion_tokens"], 81920)
-            self.assertEqual(result["physical_request_count"], 2)
-            self.assertEqual(result["physical_prompt_tokens"], 65950)
+            self.assertEqual(result["completion_tokens"], 128002)
+            self.assertEqual(result["logical_max_completion_tokens"], 144384)
+            self.assertEqual(result["physical_request_count"], 9)
+            self.assertEqual(result["physical_prompt_tokens"], 265750)
             self.assertEqual(result["finish_reason"], "stop")
             self.assertTrue(result["segments"][1]["injected_solution_tag"])
 
@@ -198,6 +207,122 @@ class AsyncClientTests(unittest.TestCase):
             )
             self.assertFalse(result["segments"][1]["injected_solution_tag"])
             self.assertEqual(result["logical_max_completion_tokens"], 67584)
+
+        asyncio.run(run())
+
+    def test_reasoning_probe_continues_same_hidden_sequence(self):
+        async def run():
+            client = AsyncChatClient("http://127.0.0.1:30000/v1", "test-model")
+            tokenizer = FakeTokenizer()
+            client._tokenizer = tokenizer
+
+            async def post_native(path: str, payload: dict) -> tuple[dict, float]:
+                return (
+                    {
+                        "text": (
+                            "Repaired reasoning.</think>"
+                            "<solution>Detailed proof begins."
+                        ),
+                        "output_ids": [70, 71],
+                        "meta_info": {
+                            "finish_reason": {"type": "length", "length": 2},
+                            "prompt_tokens": 66000,
+                            "completion_tokens": 2,
+                            "cached_tokens": 65000,
+                        },
+                    },
+                    1.5,
+                )
+
+            client._post_native = post_native
+            try:
+                result = await client.continue_reasoning_probe_raw(
+                    initial_response(reasoning="Original reasoning.", content=""),
+                    [{"role": "user", "content": "problem"}],
+                    max_new_tokens=16384,
+                    temperature=1.0,
+                    top_p=0.95,
+                    seed=13,
+                    request_id="probe",
+                    segment_index=1,
+                )
+            finally:
+                await client.aclose()
+
+            self.assertIn("audit the reasoning so far", tokenizer.encoded[0])
+            self.assertNotIn("</think>", tokenizer.encoded[0])
+            self.assertIn("audit the reasoning so far", result["message"]["reasoning_content"])
+            self.assertTrue(
+                result["message"]["reasoning_content"].endswith(
+                    "Repaired reasoning."
+                )
+            )
+            self.assertEqual(
+                result["message"]["content"],
+                "<solution>Detailed proof begins.",
+            )
+            segment = result["segments"][1]
+            self.assertEqual(segment["kind"], "reasoning_probe")
+            self.assertTrue(segment["injected_reasoning_probe"])
+            self.assertTrue(segment["transitioned_to_output"])
+            self.assertEqual(segment["cached_prompt_tokens"], 65000)
+            self.assertEqual(result["physical_request_count"], 2)
+            self.assertEqual(result["completion_tokens"], 65538)
+
+        asyncio.run(run())
+
+    def test_visible_output_continuation_never_injects_probe(self):
+        async def run():
+            client = AsyncChatClient("http://127.0.0.1:30000/v1", "test-model")
+            tokenizer = FakeTokenizer()
+            client._tokenizer = tokenizer
+
+            async def post_native(path: str, payload: dict) -> tuple[dict, float]:
+                return (
+                    {
+                        "text": " completed.</solution>",
+                        "output_ids": [80],
+                        "meta_info": {
+                            "finish_reason": "stop",
+                            "prompt_tokens": 100,
+                            "completion_tokens": 1,
+                        },
+                    },
+                    1.0,
+                )
+
+            client._post_native = post_native
+            try:
+                result = await client.continue_output_raw(
+                    initial_response(
+                        reasoning="Reasoning.",
+                        content="<solution>Partial proof",
+                    ),
+                    [{"role": "user", "content": "problem"}],
+                    max_new_tokens=2048,
+                    temperature=1.0,
+                    top_p=0.95,
+                    seed=14,
+                    request_id="output",
+                    segment_index=2,
+                )
+            finally:
+                await client.aclose()
+
+            self.assertEqual(
+                tokenizer.encoded[0],
+                "Reasoning.</think><solution>Partial proof",
+            )
+            self.assertNotIn(
+                "audit the reasoning so far",
+                result["message"]["content"],
+            )
+            self.assertEqual(
+                result["message"]["content"],
+                "<solution>Partial proof completed.</solution>",
+            )
+            self.assertEqual(result["segments"][1]["kind"], "output_continuation")
+            self.assertFalse(result["segments"][1]["injected_reasoning_probe"])
 
         asyncio.run(run())
 

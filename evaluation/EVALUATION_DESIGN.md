@@ -36,10 +36,11 @@ determinism setting changes automatically after failure.
 
 ## Ycchen prompt contract
 
-The active prover, verifier, and refiner templates are copied byte-for-byte from
+The active prover and refiner templates are copied byte-for-byte from
 `ycchen-tw/proof-pilot-codes` commit
-`bc03a2c71a076990deaad3d712c6889682e12c69`. The code uses ycchen's system/user
-split, strict XML outputs, and XML candidate bundle. The unused selector is not
+`bc03a2c71a076990deaad3d712c6889682e12c69`. The verifier retains ycchen's
+system/user split and strict XML envelope while adding four rubric-blind audit
+focuses. The XML candidate bundle remains unchanged. The unused selector is not
 copied because final selection is deterministic from verifier scores.
 
 The selected MathArena statement is substituted only into ycchen's existing `{problem}` field. No dataset-specific generation prompt or search algorithm is used.
@@ -49,15 +50,21 @@ The selected MathArena statement is substituted only into ycchen's existing `{pr
 For each requested problem:
 
 1. Make 32 initial proof attempts using stable, distinct request seeds.
-2. Give each prover/refiner a configurable first-segment budget. If it reaches
-   `length` without complete XML, issue one native continuation using the
-   independently configurable solution-continuation budget.
-3. Force `</think><solution>` when the first segment contains only hidden
-   thinking, or continue an already-started solution without duplicating its
-   tag. Admit only the combined output matching ycchen's complete XML contract.
+2. Give each prover/refiner one total ordinary completion budget, split into
+   configurable probe-sized physical segments. At every `length` boundary
+   that still contains only hidden reasoning, append the same rubric-blind
+   completeness audit and continue the sequence. Once visible output starts,
+   continue it without injecting probe text.
+3. After the ordinary total is exhausted, retain the existing one-time solution
+   continuation: force `</think><solution>` for thinking-only output or
+   continue an already-started solution without duplicating its tag. Admit only
+   the combined output matching ycchen's complete XML contract.
 4. Submit every round's proof-generation attempts together. As soon as one
-   attempt produces admissible XML, verify it independently 16 times using
-   ycchen's verifier prompt while unfinished proof generations continue. A
+   attempt produces admissible XML, verify it independently 16 times while
+   unfinished proof generations continue. Verifier indices are assigned
+   round-robin to logical-validity, proof-completeness, case-coverage, and
+   adversarial-falsification focuses. Every verifier emits numbered claim
+   findings and concrete repairs. A
    length-truncated verifier receives one verifier-specific native continuation;
    hidden thinking is never included in the retained analysis.
 5. Strictly parse each verifier XML response. Log and skip malformed model
@@ -70,17 +77,19 @@ For each requested problem:
    with a stable seeded tie-break. Put each analysis into its own ycchen XML
    candidate bundle and generate exactly one refinement from it.
 9. Run every refinement through the same asynchronous generate-verify
-   pipeline, add it to the cumulative pool, rerank, and continue for at most four
+   pipeline, add it to the cumulative pool, rerank, and continue for at most eight
    rounds.
 10. Return the highest-ranked proof. There is no selector-model call or proof
    fallback.
 
-A full-width four-round search makes at most 2,176 logical calls. Every local
-call can add at most one native continuation, producing a 4,352 physical-request
-ceiling. Invalid XML and early stopping reduce the verifier and continuation
-counts; there are no replacement calls.
+A full-width eight-round search makes at most 4,352 logical calls. Each
+prover/refiner can use eight ordinary physical segments and one terminal
+solution continuation; each verifier can use one ordinary request and one
+terminal continuation. The resulting physical-request ceiling is 10,496.
+Invalid XML, natural stops, and early stopping reduce these counts; there are no
+replacement calls.
 
-The checked-in YAML admits at most 64 local logical calls cluster-wide. Every
+The checked-in YAML admits at most 96 local logical calls cluster-wide. Every
 round creates all 32 generation tasks before candidate pipelines can enqueue
 verifiers. Each valid candidate immediately enqueues its 16 verifiers under the
 same shared semaphore. Ranking, early stopping, parent selection, and the next
@@ -104,8 +113,9 @@ are no request retries, second continuations, replacement verifier calls, prompt
 fallbacks, model fallbacks, or synthetic scores. Malformed model-level verifier
 outputs are successful call artifacts but do not enter the score mean.
 The YAML sets a strict 24-hour HTTP deadline for each local model response.
-The checked-in YAML uses a configurable 128,000-token first segment and separate
-configurable 16,384-token solution and verifier continuations. The client
+The checked-in YAML uses a configurable 128,000-token ordinary completion
+budget, a 16,384-token prover/refiner probe interval, and separate configurable
+16,384-token solution and verifier continuations. The client
 performs no prompt-size subtraction, output-budget clamp, or context preflight,
 and SGLang alone enforces its 262,144-token server context.
 
