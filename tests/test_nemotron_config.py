@@ -27,10 +27,10 @@ class NemotronConfigTests(unittest.TestCase):
         self.assertEqual(search["top_proofs"], 8)
         self.assertEqual(search["refinements_per_proof"], 4)
         self.assertEqual(search["analyses_per_refinement"], 4)
-        self.assertEqual(search["max_rounds"], 8)
+        self.assertEqual(search["max_rounds"], 16)
         self.assertEqual(search["concurrency"], 96)
         self.assertEqual(search["request_timeout_seconds"], 86400)
-        self.assertEqual(search["max_completion_tokens"], 128000)
+        self.assertEqual(search["max_completion_tokens"], 65536)
         self.assertEqual(search["temperature"], 1.0)
         self.assertEqual(search["top_p"], 0.95)
         self.assertEqual(search["solution_continuation_tokens"], 16384)
@@ -98,7 +98,7 @@ class NemotronConfigTests(unittest.TestCase):
             path.write_text(
                 self.path.read_text()
                 .replace(
-                    "max_completion_tokens: 128000",
+                    "max_completion_tokens: 65536",
                     "max_completion_tokens: 32768",
                     1,
                 )

@@ -38,11 +38,11 @@ search:
   top_proofs: 8
   refinements_per_proof: 4
   analyses_per_refinement: 4
-  max_rounds: 8
+  max_rounds: 16
   early_stop_threshold: 0.99999
   temperature: 1.0
   top_p: 0.95
-  max_completion_tokens: 128000
+  max_completion_tokens: 65536
   solution_continuation_tokens: 16384
   verifier_continuation_tokens: 16384
   min_valid_verifications: 4
