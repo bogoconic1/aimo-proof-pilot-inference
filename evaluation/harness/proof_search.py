@@ -17,6 +17,7 @@ from proof_prompts import (
     parse_generation,
     parse_verification,
     refinement_messages,
+    verifier_audit_role,
     verification_messages,
 )
 
@@ -39,6 +40,7 @@ class CallSpec:
     stage: str
     messages: list[dict[str, str]]
     seed: int
+    verifier_role: str | None = None
 
 
 @dataclass(frozen=True)
@@ -129,6 +131,7 @@ class CallStore:
         client: AsyncChatClient,
         semaphore: asyncio.Semaphore,
         max_completion_tokens: int,
+        reasoning_probe_interval_tokens: int,
         solution_continuation_tokens: int,
         verifier_continuation_tokens: int,
         temperature: float,
@@ -145,14 +148,6 @@ class CallStore:
         prompt_sha256 = self._save_prompt(spec.messages)
         try:
             async with semaphore:
-                response = await client.chat_raw(
-                    spec.messages,
-                    max_completion_tokens=max_completion_tokens,
-                    temperature=temperature,
-                    top_p=top_p,
-                    seed=spec.seed,
-                    request_id=spec.sample_id,
-                )
                 is_proof_generation = spec.stage.endswith("/generate")
                 is_verification = "/verify/" in spec.stage
                 parser = (
@@ -160,17 +155,92 @@ class CallStore:
                     if is_proof_generation
                     else parse_verification if is_verification else None
                 )
-                was_length = response["finish_reason"] == "length"
-                content = response["message"].get("content") or ""
-                xml_valid = False
-                xml_error = None
-                if parser is not None:
+                first_segment_tokens = (
+                    min(reasoning_probe_interval_tokens, max_completion_tokens)
+                    if is_proof_generation
+                    else max_completion_tokens
+                )
+                response = await client.chat_raw(
+                    spec.messages,
+                    max_completion_tokens=first_segment_tokens,
+                    temperature=temperature,
+                    top_p=top_p,
+                    seed=spec.seed,
+                    request_id=spec.sample_id,
+                )
+                response["requested_max_completion_tokens"] = max_completion_tokens
+                response["logical_max_completion_tokens"] = max_completion_tokens
+                if is_proof_generation:
+                    initial_completed = response.get("completion_tokens")
+                    if (
+                        type(initial_completed) is not int
+                        or initial_completed < 0
+                        or initial_completed > first_segment_tokens
+                    ):
+                        raise RuntimeError(
+                            f"{spec.sample_id} returned invalid initial completion tokens"
+                        )
+                    response["reasoning_probe_interval_tokens"] = (
+                        reasoning_probe_interval_tokens
+                    )
+
+                def parse_xml(value: dict) -> tuple[bool, str | None]:
+                    if parser is None:
+                        return False, None
+                    content = value["message"].get("content") or ""
                     try:
                         parser(content)
                     except ValueError as error:
-                        xml_error = str(error)
-                    else:
-                        xml_valid = True
+                        return False, str(error)
+                    return True, None
+
+                xml_valid, xml_error = parse_xml(response)
+                segment_index = 1
+                while (
+                    is_proof_generation
+                    and response["finish_reason"] == "length"
+                    and not xml_valid
+                ):
+                    completed = response.get("completion_tokens")
+                    if type(completed) is not int:
+                        raise RuntimeError(
+                            f"{spec.sample_id} omitted cumulative completion tokens"
+                        )
+                    remaining = max_completion_tokens - completed
+                    if remaining <= 0:
+                        break
+                    segment_tokens = min(
+                        reasoning_probe_interval_tokens,
+                        remaining,
+                    )
+                    continuation = (
+                        client.continue_output_raw
+                        if response["message"].get("content")
+                        else client.continue_reasoning_probe_raw
+                    )
+                    response = await continuation(
+                        response,
+                        spec.messages,
+                        max_new_tokens=segment_tokens,
+                        temperature=temperature,
+                        top_p=top_p,
+                        seed=spec.seed,
+                        request_id=spec.sample_id,
+                        segment_index=segment_index,
+                    )
+                    new_completed = response.get("completion_tokens")
+                    if (
+                        type(new_completed) is not int
+                        or new_completed <= completed
+                        or new_completed > max_completion_tokens
+                    ):
+                        raise RuntimeError(
+                            f"{spec.sample_id} continuation violated its token budget"
+                        )
+                    xml_valid, xml_error = parse_xml(response)
+                    segment_index += 1
+
+                was_length = response["finish_reason"] == "length"
                 if was_length and not xml_valid:
                     if is_proof_generation:
                         response = await client.continue_solution_raw(
@@ -192,15 +262,7 @@ class CallStore:
                             seed=spec.seed,
                             request_id=spec.sample_id,
                         )
-                    content = response["message"].get("content") or ""
-                    try:
-                        parser(content)
-                    except ValueError as error:
-                        xml_valid = False
-                        xml_error = str(error)
-                    else:
-                        xml_valid = True
-                        xml_error = None
+                    xml_valid, xml_error = parse_xml(response)
                 if was_length and xml_valid:
                     response["finish_reason"] = "stop"
                     response["xml_complete_after_length"] = True
@@ -219,6 +281,7 @@ class CallStore:
                 "sample_id": spec.sample_id,
                 "stage": spec.stage,
                 "seed": spec.seed,
+                "verifier_role": spec.verifier_role,
                 "prompt_sha256": prompt_sha256,
                 "content": message.get("content") or "",
                 "reasoning_content": message.get("reasoning_content") or "",
@@ -230,6 +293,7 @@ class CallStore:
                 "sample_id": spec.sample_id,
                 "stage": spec.stage,
                 "seed": spec.seed,
+                "verifier_role": spec.verifier_role,
                 "prompt_sha256": prompt_sha256,
                 "error": repr(error),
             }
@@ -278,12 +342,14 @@ class ProblemSearch:
         sample_id: str,
         stage: str,
         messages: list[dict[str, str]],
+        verifier_role: str | None = None,
     ) -> CallSpec:
         return CallSpec(
             sample_id=sample_id,
             stage=stage,
             messages=messages,
             seed=stable_seed(self.config["seed"], self.problem_id, sample_id),
+            verifier_role=verifier_role,
         )
 
     async def _perform(self, spec: CallSpec) -> dict:
@@ -291,6 +357,7 @@ class ProblemSearch:
             self.client,
             self.semaphore,
             self.config["max_completion_tokens"],
+            self.config["reasoning_probe_interval_tokens"],
             self.config["solution_continuation_tokens"],
             self.config["verifier_continuation_tokens"],
             self.config["temperature"],
@@ -412,15 +479,23 @@ class ProblemSearch:
 
     async def _verify_proof(self, proof: Proof) -> dict:
         stage = f"round-{proof.round_index:02d}/verify/{proof.proof_id}"
-        messages = verification_messages(
-            self.problem,
-            proof.proof,
-            proof.self_evaluation,
-        )
-        specs = [
-            self._spec(f"{stage}/v{index:03d}", stage, messages)
-            for index in range(self.config["verifications_per_proof"])
-        ]
+        specs = []
+        for index in range(self.config["verifications_per_proof"]):
+            role = verifier_audit_role(index)
+            messages = verification_messages(
+                self.problem,
+                proof.proof,
+                proof.self_evaluation,
+                role,
+            )
+            specs.append(
+                self._spec(
+                    f"{stage}/v{index:03d}",
+                    stage,
+                    messages,
+                    verifier_role=role,
+                )
+            )
         records = await asyncio.gather(
             *(self._perform(spec) for spec in specs)
         )

@@ -12,11 +12,14 @@ HARNESS = REPO / "evaluation" / "harness"
 sys.path.insert(0, str(HARNESS))
 
 from proof_prompts import (  # noqa: E402
+    VERIFIER_AUDIT_ROLES,
     generation_messages,
     parse_generation,
     parse_verification,
     prompt_hashes,
     refinement_messages,
+    verification_messages,
+    verifier_audit_role,
 )
 from proof_search import ProblemSearch, Proof, Verification  # noqa: E402
 
@@ -126,13 +129,42 @@ class LengthContinuationClient(ScriptedClient):
                 initial["requested_max_completion_tokens"]
                 + kwargs["max_new_tokens"]
             ),
-            "physical_request_count": 2,
+            "physical_request_count": initial["physical_request_count"] + 1,
             "physical_prompt_tokens": 150,
             "segments": [
                 *initial["segments"],
                 {"kind": "solution_continuation", "finish_reason": "stop"},
             ],
             "latency_s": initial["latency_s"] + 0.02,
+        }
+
+
+class ProbeToBudgetClient(LengthContinuationClient):
+    def __init__(self):
+        super().__init__()
+        self.probe_calls: list[dict] = []
+
+    async def continue_reasoning_probe_raw(self, initial, messages, **kwargs):
+        self.probe_calls.append({"messages": messages, **kwargs})
+        return {
+            **initial,
+            "message": {
+                "content": "",
+                "reasoning_content": (
+                    initial["message"]["reasoning_content"] + " Probed."
+                ),
+            },
+            "finish_reason": "length",
+            "completion_tokens": (
+                initial["completion_tokens"] + kwargs["max_new_tokens"]
+            ),
+            "physical_request_count": initial["physical_request_count"] + 1,
+            "physical_prompt_tokens": initial["physical_prompt_tokens"] + 100,
+            "segments": [
+                *initial["segments"],
+                {"kind": "reasoning_probe", "finish_reason": "length"},
+            ],
+            "latency_s": initial["latency_s"] + 0.01,
         }
 
 
@@ -156,6 +188,105 @@ class CompleteXMLAtLengthClient(ScriptedClient):
     async def continue_solution_raw(self, initial, messages, **kwargs):
         self.continuation_calls += 1
         raise AssertionError("complete XML must not receive a continuation")
+
+
+class ProbeContinuationClient(ScriptedClient):
+    def __init__(self, *, starts_with_output: bool = False):
+        super().__init__()
+        self.starts_with_output = starts_with_output
+        self.probe_calls: list[dict] = []
+        self.output_calls: list[dict] = []
+        self.forced_calls = 0
+
+    async def chat_raw(self, messages, *, request_id, **kwargs):
+        response = await super().chat_raw(
+            messages,
+            request_id=request_id,
+            **kwargs,
+        )
+        if "/generate/" not in request_id or not request_id.endswith("p0000"):
+            return response
+        response.update(
+            finish_reason="length",
+            completion_tokens=kwargs["max_completion_tokens"],
+            requested_max_completion_tokens=kwargs["max_completion_tokens"],
+            logical_max_completion_tokens=kwargs["max_completion_tokens"],
+            physical_request_count=1,
+            physical_prompt_tokens=10,
+            segments=[{"kind": "chat", "finish_reason": "length"}],
+        )
+        response["message"] = {
+            "content": "<solution>Partial proof." if self.starts_with_output else "",
+            "reasoning_content": "Initial reasoning.",
+        }
+        return response
+
+    def _continued(self, initial, content, reasoning, finish_reason, max_new_tokens):
+        completion_tokens = initial["completion_tokens"] + max_new_tokens
+        return {
+            **initial,
+            "message": {
+                "content": content,
+                "reasoning_content": reasoning,
+            },
+            "finish_reason": finish_reason,
+            "completion_tokens": completion_tokens,
+            "physical_request_count": initial["physical_request_count"] + 1,
+            "physical_prompt_tokens": initial["physical_prompt_tokens"] + 100,
+            "segments": [
+                *initial["segments"],
+                {
+                    "kind": (
+                        "output_continuation"
+                        if content
+                        else "reasoning_probe"
+                    ),
+                    "finish_reason": finish_reason,
+                },
+            ],
+            "latency_s": initial["latency_s"] + 0.01,
+        }
+
+    async def continue_reasoning_probe_raw(self, initial, messages, **kwargs):
+        self.probe_calls.append({"messages": messages, **kwargs})
+        if len(self.probe_calls) == 1:
+            return self._continued(
+                initial,
+                "",
+                initial["message"]["reasoning_content"] + " Audited once.",
+                "length",
+                kwargs["max_new_tokens"],
+            )
+        return self._continued(
+            initial,
+            (
+                "<solution>Probed rigorous proof.</solution>\n"
+                "<self_evaluation>Every step checked.</self_evaluation>\n"
+                "<score>1</score>"
+            ),
+            initial["message"]["reasoning_content"] + " Audited twice.",
+            "stop",
+            kwargs["max_new_tokens"],
+        )
+
+    async def continue_output_raw(self, initial, messages, **kwargs):
+        self.output_calls.append({"messages": messages, **kwargs})
+        return self._continued(
+            initial,
+            (
+                initial["message"]["content"]
+                + " Completed.</solution>\n"
+                "<self_evaluation>Every step checked.</self_evaluation>\n"
+                "<score>1</score>"
+            ),
+            initial["message"]["reasoning_content"],
+            "stop",
+            kwargs["max_new_tokens"],
+        )
+
+    async def continue_solution_raw(self, initial, messages, **kwargs):
+        self.forced_calls += 1
+        raise AssertionError("ordinary probe segments should complete this candidate")
 
 
 class LengthVerifierContinuationClient(ScriptedClient):
@@ -330,6 +461,7 @@ def small_config() -> dict:
         "temperature": 1.0,
         "top_p": 0.95,
         "max_completion_tokens": 128,
+        "reasoning_probe_interval_tokens": 128,
         "solution_continuation_tokens": 64,
         "verifier_continuation_tokens": 64,
         "min_valid_verifications": 2,
@@ -389,12 +521,12 @@ class ProofSearchTests(unittest.TestCase):
 
         asyncio.run(run())
 
-    def test_prompt_files_are_byte_identical_to_ycchen_commit(self):
+    def test_prompt_hashes_pin_verifier_audit_extension(self):
         self.assertEqual(
             prompt_hashes(),
             {
                 "prover.txt": "2f464567b97288c0b934b3aed2e32bdb5cd612a04c33f3ad86839b87005d5d4c",
-                "verifier.txt": "8c8e904270d6ae54d04aa8782d91f5eca94ccbc1c850bee0685b9a4668242dec",
+                "verifier.txt": "7642259b2708392c1e0a0b789d130d18c0f57ce5f5be6a439f7014b1090e17a4",
                 "refiner.txt": "0bc15f3fa590cc3970a5a65dd573ec3d31b39ad70a78179e5e06ac5b9654fb18",
             },
         )
@@ -412,6 +544,82 @@ class ProofSearchTests(unittest.TestCase):
         self.assertIn('<candidate id="r01-p0000">', user)
         self.assertIn('<verifier_review score="0">\nFatal review.', user)
         self.assertEqual(user.count("<verifier_review "), 1)
+
+    def test_verifier_audit_roles_are_round_robin_and_rubric_blind(self):
+        self.assertEqual(
+            [verifier_audit_role(index) for index in range(8)],
+            [*VERIFIER_AUDIT_ROLES, *VERIFIER_AUDIT_ROLES],
+        )
+        role_messages = []
+        for role in VERIFIER_AUDIT_ROLES:
+            with self.subTest(role=role):
+                messages = verification_messages(
+                    "Prove it.",
+                    "Candidate proof.",
+                    "Candidate audit.",
+                    role,
+                )
+                role_messages.append(messages)
+                rendered = "\n".join(message["content"] for message in messages)
+                self.assertIn("Give numbered findings", rendered)
+                self.assertIn("Status: exactly PROVED, UNSUPPORTED, or FALSE", rendered)
+                self.assertIn("concrete repair", rendered)
+                self.assertNotIn("grading_scheme", rendered)
+                self.assertNotIn("MathArena", rendered)
+        self.assertEqual(
+            len({messages[0]["content"] for messages in role_messages}),
+            1,
+        )
+        self.assertEqual(
+            len(
+                {
+                    messages[1]["content"].split(
+                        "Your primary audit focus",
+                        1,
+                    )[0]
+                    for messages in role_messages
+                }
+            ),
+            1,
+        )
+
+    def test_sixteen_verifiers_use_four_calls_per_audit_role(self):
+        async def run():
+            with tempfile.TemporaryDirectory() as directory:
+                config = small_config()
+                config["verifications_per_proof"] = 16
+                client = ScriptedClient()
+                search = ProblemSearch(
+                    problem_id="1",
+                    problem="Prove the claim.",
+                    output_dir=Path(directory),
+                    client=client,
+                    semaphore=asyncio.Semaphore(16),
+                    config=config,
+                )
+                proof = Proof(
+                    "r01-p0000",
+                    1,
+                    None,
+                    "Proof.",
+                    "Audit.",
+                    1.0,
+                    "generate",
+                )
+
+                stats = await search._verify_proof(proof)
+
+                roles = [
+                    record["verifier_role"]
+                    for record in search.calls.records.values()
+                ]
+                self.assertEqual(stats["valid"], 16)
+                self.assertEqual(
+                    {role: roles.count(role) for role in VERIFIER_AUDIT_ROLES},
+                    {role: 4 for role in VERIFIER_AUDIT_ROLES},
+                )
+
+        asyncio.run(run())
 
     def test_lowest_reviews_are_selected_deterministically(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -478,6 +686,47 @@ class ProofSearchTests(unittest.TestCase):
             self.assertEqual(
                 [proof.proof_id for proof in search.ranked()],
                 ["more", "fewer"],
+            )
+
+    def test_zero_scored_proof_remains_ranked_and_refinable(self):
+        with tempfile.TemporaryDirectory() as directory:
+            search = ProblemSearch(
+                problem_id="1",
+                problem="Prove the claim.",
+                output_dir=Path(directory),
+                client=ScriptedClient(),
+                semaphore=asyncio.Semaphore(4),
+                config=small_config(),
+            )
+            proof = Proof(
+                "zero",
+                1,
+                None,
+                "Incomplete proof.",
+                "Known gaps.",
+                0.0,
+                "generate",
+                [
+                    Verification("v0", 0.0, "Fatal review zero."),
+                    Verification("v1", 0.0, "Fatal review one."),
+                ],
+            )
+            search.proofs = {proof.proof_id: proof}
+
+            self.assertEqual(
+                [item.proof_id for item in search.ranked()],
+                ["zero"],
+            )
+            candidates = search._round_candidates(2)
+            self.assertEqual(
+                [candidate.parent_id for candidate in candidates],
+                ["zero", "zero"],
+            )
+            self.assertTrue(
+                all(
+                    "<verifier_review score=\"0\">" in candidate.generation.messages[1]["content"]
+                    for candidate in candidates
+                )
             )
 
     def test_strict_xml_response_parsers(self):
@@ -746,6 +995,109 @@ class ProofSearchTests(unittest.TestCase):
                 self.assertEqual(final["physical_requests_completed"], 6)
 
         asyncio.run(run())
+
+    def test_reasoning_is_probed_repeatedly_within_one_total_budget(self):
+        async def run():
+            with tempfile.TemporaryDirectory() as directory:
+                config = small_config()
+                config["max_rounds"] = 1
+                config["reasoning_probe_interval_tokens"] = 32
+                client = ProbeContinuationClient()
+                search = ProblemSearch(
+                    problem_id="20",
+                    problem="Prove the claim.",
+                    output_dir=Path(directory),
+                    client=client,
+                    semaphore=asyncio.Semaphore(4),
+                    config=config,
+                )
+
+                final = await search.solve()
+                record = search.calls.records["round-01/generate/r01-p0000"]
+
+                self.assertEqual(len(client.probe_calls), 2)
+                self.assertEqual(client.output_calls, [])
+                self.assertEqual(client.forced_calls, 0)
+                self.assertEqual(
+                    [call["max_new_tokens"] for call in client.probe_calls],
+                    [32, 32],
+                )
+                self.assertEqual(record["completion_tokens"], 96)
+                self.assertEqual(record["requested_max_completion_tokens"], 128)
+                self.assertEqual(record["logical_max_completion_tokens"], 128)
+                self.assertEqual(record["physical_request_count"], 3)
+                self.assertEqual(final["physical_requests_completed"], 8)
+
+        asyncio.run(run())
+
+    def test_partial_solution_continues_without_reasoning_probe(self):
+        async def run():
+            with tempfile.TemporaryDirectory() as directory:
+                config = small_config()
+                config["max_rounds"] = 1
+                config["reasoning_probe_interval_tokens"] = 32
+                client = ProbeContinuationClient(starts_with_output=True)
+                search = ProblemSearch(
+                    problem_id="21",
+                    problem="Prove the claim.",
+                    output_dir=Path(directory),
+                    client=client,
+                    semaphore=asyncio.Semaphore(4),
+                    config=config,
+                )
+
+                final = await search.solve()
+                record = search.calls.records["round-01/generate/r01-p0000"]
+
+                self.assertEqual(client.probe_calls, [])
+                self.assertEqual(len(client.output_calls), 1)
+                self.assertEqual(client.forced_calls, 0)
+                self.assertNotIn(
+                    "audit the reasoning so far",
+                    record["content"],
+                )
+                self.assertEqual(record["physical_request_count"], 2)
+                self.assertEqual(final["physical_requests_completed"], 7)
+
+        asyncio.run(run())
+
+    def test_probe_segments_exhaust_exact_and_remainder_budgets(self):
+        async def run(interval, expected_segments):
+            with tempfile.TemporaryDirectory() as directory:
+                config = small_config()
+                config["max_rounds"] = 1
+                config["reasoning_probe_interval_tokens"] = interval
+                client = ProbeToBudgetClient()
+                search = ProblemSearch(
+                    problem_id=f"budget-{interval}",
+                    problem="Prove the claim.",
+                    output_dir=Path(directory),
+                    client=client,
+                    semaphore=asyncio.Semaphore(4),
+                    config=config,
+                )
+
+                await search.solve()
+                record = search.calls.records["round-01/generate/r01-p0000"]
+
+                self.assertEqual(
+                    [call["max_new_tokens"] for call in client.probe_calls],
+                    expected_segments,
+                )
+                self.assertEqual(len(client.continuation_calls), 1)
+                self.assertEqual(
+                    record["logical_max_completion_tokens"],
+                    config["max_completion_tokens"]
+                    + config["solution_continuation_tokens"],
+                )
+                self.assertEqual(
+                    record["physical_request_count"],
+                    2 + len(expected_segments),
+                )
+
+        for interval, expected in ((32, [32, 32, 32]), (50, [50, 28])):
+            with self.subTest(interval=interval):
+                asyncio.run(run(interval, expected))
 
     def test_length_truncated_thinking_gets_one_configured_continuation(self):
         async def run():

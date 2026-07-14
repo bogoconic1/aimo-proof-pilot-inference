@@ -18,14 +18,16 @@ The harness exposes one production path:
 7. `run_full_evaluation.py` pins inputs, performs the audits, and writes the final
    machine-readable and Markdown reports.
 
-HTTP calls are issued once. Every raw response is appended and flushed before it
-can affect a derived artifact. Existing successful records are resume
-checkpoints; existing failed records terminate the resumed run. There are no
-alternate prompts, request retries, model fallbacks, proof fallbacks, stub
+Each logical proof-producing call can span configured probe segments and one
+terminal solution continuation. Every completed logical response is appended
+and flushed before it can affect a derived artifact. Existing successful
+records are resume checkpoints; existing failed records terminate the resumed
+run. There are no request retries, model fallbacks, proof fallbacks, stub
 graders, or synthetic scores.
 
-The proof prompt files are copied byte-for-byte from ycchen's deployed Math-3R
-pipeline at commit `bc03a2c71a076990deaad3d712c6889682e12c69`. The local code
-uses ycchen's system/user split, XML output contract, and XML candidate bundle,
-while the configurable multi-round search schedule follows the approved
-Nemotron-Cascade-style evaluation design.
+The prover and refiner prompts are copied byte-for-byte from ycchen's deployed
+Math-3R pipeline at commit
+`bc03a2c71a076990deaad3d712c6889682e12c69`. The verifier retains ycchen's
+system/user split and XML contract while assigning four rubric-blind audit
+focuses round-robin. Scores remain `0/0.5/1`; every proof with the required valid-vote count
+remains eligible regardless of score, and ranking remains the mean verifier score.

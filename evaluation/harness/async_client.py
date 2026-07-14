@@ -23,6 +23,12 @@ _FORCE_VERIFICATION_STEER = (
     "\n</think>\n\n<evaluation>\n"
 )
 
+_REASONING_PROBE_STEER = (
+    "\n\nBefore continuing, audit the reasoning so far for unsupported claims, "
+    "missing cases, hidden assumptions, and insufficiently justified steps. "
+    "Resolve every issue explicitly before finalizing, then continue.\n\n"
+)
+
 
 def _usage(data: dict) -> dict:
     usage = data.get("usage", {}) or {}
@@ -210,6 +216,180 @@ class AsyncChatClient:
         )
         return prefix + continuation, visible_prefix, not has_opening_tag
 
+    async def _continue_segment_raw(
+        self,
+        initial: dict,
+        messages: list[dict],
+        *,
+        max_new_tokens: int,
+        temperature: float,
+        top_p: float,
+        seed: int,
+        request_id: str,
+        segment_index: int,
+        inject_reasoning_probe: bool,
+    ) -> dict:
+        message = initial["message"]
+        reasoning = message.get("reasoning_content") or ""
+        content = message.get("content") or ""
+        if inject_reasoning_probe and content:
+            raise RuntimeError("reasoning probes cannot be injected into visible output")
+        if not inject_reasoning_probe and not content:
+            raise RuntimeError("visible-output continuation requires existing output")
+
+        tokenizer = self._get_tokenizer()
+        prefix = _token_ids(
+            tokenizer.apply_chat_template(
+                messages,
+                add_generation_prompt=True,
+                tokenize=True,
+                return_dict=False,
+            ),
+            "chat-template token IDs",
+        )
+        if inject_reasoning_probe:
+            suffix = reasoning + _REASONING_PROBE_STEER
+            segment_kind = "reasoning_probe"
+        else:
+            suffix = reasoning + "</think>" + content
+            segment_kind = "output_continuation"
+        continuation = _token_ids(
+            tokenizer.encode(suffix, add_special_tokens=False),
+            "continuation-prefix token IDs",
+        )
+        input_ids = prefix + continuation
+        continuation_id = f"{request_id}/{segment_kind}-{segment_index:03d}"
+        payload = {
+            "input_ids": input_ids,
+            "sampling_params": {
+                "temperature": temperature,
+                "top_p": top_p,
+                "max_new_tokens": max_new_tokens,
+                "sampling_seed": seed,
+            },
+            "rid": continuation_id,
+        }
+        data, latency = await self._post_native("/generate", payload)
+        if isinstance(data, list):
+            if len(data) != 1:
+                raise RuntimeError(
+                    f"expected one native continuation, received {len(data)}"
+                )
+            data = data[0]
+        if not isinstance(data, dict) or data.get("error") is not None:
+            raise RuntimeError(f"invalid native continuation response: {data!r}")
+
+        text = data.get("text") or ""
+        output_ids = _token_ids(data.get("output_ids") or [], "native output IDs")
+        meta = data.get("meta_info") or {}
+        native_finish = _native_finish_reason(meta.get("finish_reason"))
+        native_prompt_tokens = meta.get("prompt_tokens")
+        if type(native_prompt_tokens) is not int:
+            native_prompt_tokens = len(input_ids)
+        native_completion_tokens = meta.get("completion_tokens")
+        if type(native_completion_tokens) is not int:
+            native_completion_tokens = len(output_ids)
+
+        transitioned_to_output = False
+        if inject_reasoning_probe:
+            reasoning_delta, delimiter, content_delta = text.partition("</think>")
+            transitioned_to_output = bool(delimiter)
+            combined_reasoning = reasoning + _REASONING_PROBE_STEER + reasoning_delta
+            combined_content = content_delta if transitioned_to_output else ""
+        else:
+            combined_reasoning = reasoning
+            combined_content = content + text
+
+        segment = {
+            "kind": segment_kind,
+            "request_id": continuation_id,
+            "trigger": "length_reasoning" if inject_reasoning_probe else "length_output",
+            "injected_reasoning_probe": inject_reasoning_probe,
+            "probe_sha256": (
+                hashlib.sha256(_REASONING_PROBE_STEER.encode()).hexdigest()
+                if inject_reasoning_probe
+                else None
+            ),
+            "transitioned_to_output": transitioned_to_output,
+            "finish_reason": native_finish,
+            "raw_finish_reason": meta.get("finish_reason"),
+            "prompt_tokens": native_prompt_tokens,
+            "cached_prompt_tokens": meta.get("cached_tokens"),
+            "completion_tokens": native_completion_tokens,
+            "requested_max_completion_tokens": max_new_tokens,
+            "input_tokens": len(input_ids),
+            "input_ids_sha256": _ids_sha256(input_ids),
+            "output_ids_sha256": _ids_sha256(output_ids),
+            "raw_text_delta": text,
+            "latency_s": latency,
+        }
+        return {
+            **initial,
+            "message": {
+                **message,
+                "content": combined_content,
+                "reasoning_content": combined_reasoning,
+            },
+            "finish_reason": native_finish,
+            "completion_tokens": _optional_sum(
+                initial.get("completion_tokens"), native_completion_tokens
+            ),
+            "physical_request_count": initial.get("physical_request_count", 1) + 1,
+            "physical_prompt_tokens": _optional_sum(
+                initial.get("physical_prompt_tokens"), native_prompt_tokens
+            ),
+            "segments": [*initial.get("segments", []), segment],
+            "latency_s": round(initial.get("latency_s", 0.0) + latency, 3),
+        }
+
+    async def continue_reasoning_probe_raw(
+        self,
+        initial: dict,
+        messages: list[dict],
+        *,
+        max_new_tokens: int,
+        temperature: float,
+        top_p: float,
+        seed: int,
+        request_id: str,
+        segment_index: int,
+    ) -> dict:
+        return await self._continue_segment_raw(
+            initial,
+            messages,
+            max_new_tokens=max_new_tokens,
+            temperature=temperature,
+            top_p=top_p,
+            seed=seed,
+            request_id=request_id,
+            segment_index=segment_index,
+            inject_reasoning_probe=True,
+        )
+
+    async def continue_output_raw(
+        self,
+        initial: dict,
+        messages: list[dict],
+        *,
+        max_new_tokens: int,
+        temperature: float,
+        top_p: float,
+        seed: int,
+        request_id: str,
+        segment_index: int,
+    ) -> dict:
+        return await self._continue_segment_raw(
+            initial,
+            messages,
+            max_new_tokens=max_new_tokens,
+            temperature=temperature,
+            top_p=top_p,
+            seed=seed,
+            request_id=request_id,
+            segment_index=segment_index,
+            inject_reasoning_probe=False,
+        )
+
     async def _continue_xml_raw(
         self,
         initial: dict,
@@ -289,7 +469,7 @@ class AsyncChatClient:
             "content_delta": text,
             "latency_s": latency,
         }
-        initial_prompt_tokens = initial.get("prompt_tokens")
+        physical_prompt_tokens = initial.get("physical_prompt_tokens")
         requested_continuation_field = f"requested_{role}_continuation_tokens"
         return {
             **initial,
@@ -304,11 +484,15 @@ class AsyncChatClient:
             ),
             requested_continuation_field: max_new_tokens,
             "logical_max_completion_tokens": (
-                initial["requested_max_completion_tokens"] + max_new_tokens
+                initial.get(
+                    "logical_max_completion_tokens",
+                    initial["requested_max_completion_tokens"],
+                )
+                + max_new_tokens
             ),
-            "physical_request_count": 2,
+            "physical_request_count": initial.get("physical_request_count", 1) + 1,
             "physical_prompt_tokens": _optional_sum(
-                initial_prompt_tokens, native_prompt_tokens
+                physical_prompt_tokens, native_prompt_tokens
             ),
             "segments": [*initial.get("segments", []), segment],
             "latency_s": round(initial.get("latency_s", 0.0) + latency, 3),

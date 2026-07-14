@@ -1,8 +1,8 @@
-"""Verbatim ycchen Math-3R prompts, renderers, bundles, and XML parsers.
+"""Math-3R prompts, verifier audit roles, renderers, bundles, and XML parsers.
 
-The templates are copied byte-for-byte from ycchen-tw/proof-pilot-codes commit
-bc03a2c71a076990deaad3d712c6889682e12c69.  The same files occur in both
-``distill_gen/math_3r/prompts`` and ``kaggle/proof_agent/prompts`` there.
+The prover and refiner templates are copied byte-for-byte from the ycchen-tw
+proof-pilot-codes commit bc03a2c71a076990deaad3d712c6889682e12c69. The verifier
+retains that XML contract but adds deterministic rubric-blind audit focuses.
 """
 
 from __future__ import annotations
@@ -16,6 +16,30 @@ PROMPT_ROOT = Path(__file__).resolve().parent.parent / "prompts" / "ycchen_math_
 PROMPT_SOURCE_COMMIT = "bc03a2c71a076990deaad3d712c6889682e12c69"
 SYSTEM_DELIMITER = "===SYSTEM==="
 USER_DELIMITER = "===USER==="
+
+VERIFIER_AUDIT_FOCI = {
+    "logical_validity": (
+        "Trace every deduction and check definitions, implications, algebra, "
+        "and dependencies. Look especially for circular reasoning, invalid "
+        "converses, and conclusions that do not follow from the stated premises."
+    ),
+    "proof_completeness": (
+        "Inventory the nontrivial claims the proof uses and verify that each is "
+        "actually established. Treat words such as clearly, similarly, and one "
+        "checks as unsupported unless the required argument is present."
+    ),
+    "case_coverage": (
+        "Check that every case split is exhaustive and that boundary, equality, "
+        "degenerate, base, endpoint, and domain cases are handled wherever they "
+        "can affect the argument."
+    ),
+    "adversarial_falsification": (
+        "Try to falsify each lemma and coverage claim with minimal, extreme, or "
+        "degenerate examples. Accept a claim only after the attempted "
+        "counterexamples are ruled out by the written proof."
+    ),
+}
+VERIFIER_AUDIT_ROLES = tuple(VERIFIER_AUDIT_FOCI)
 
 _GENERATION = re.compile(
     r"\s*<solution>(.*?)</solution>\s*"
@@ -61,14 +85,26 @@ def verification_messages(
     problem: str,
     proof: str,
     self_evaluation: str,
+    audit_role: str,
 ) -> list[dict[str, str]]:
+    try:
+        audit_focus = VERIFIER_AUDIT_FOCI[audit_role]
+    except KeyError as error:
+        raise ValueError(f"unknown verifier audit role: {audit_role}") from error
     rendered = (
         template("verifier.txt")
         .replace("{problem}", problem)
         .replace("{candidate_solution}", proof)
         .replace("{candidate_self_eval}", self_evaluation)
+        .replace("{audit_focus}", audit_focus)
     )
     return _messages(rendered)
+
+
+def verifier_audit_role(index: int) -> str:
+    if type(index) is not int or index < 0:
+        raise ValueError("verifier audit index must be a non-negative integer")
+    return VERIFIER_AUDIT_ROLES[index % len(VERIFIER_AUDIT_ROLES)]
 
 
 def refinement_messages(

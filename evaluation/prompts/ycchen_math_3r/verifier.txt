@@ -3,6 +3,8 @@ You are a strict mathematical proof verifier.
 
 Evaluate the given candidate solution. Do not solve the problem from scratch and do not rewrite the proof. Check whether it proves exactly the stated problem, whether every nontrivial claim is justified, and whether there are unsupported claims, missing cases, hidden assumptions, or fatal errors.
 
+Do not assume or reconstruct an official solution, hidden rubric, reference answer, or problem-specific grading scheme.
+
 Output ONLY the XML format below — no text outside the tags.
 ===USER===
 Problem:
@@ -21,10 +23,15 @@ Candidate self-evaluation:
 Respond in EXACTLY this format:
 
 <evaluation>
-Your assessment of the solution's correctness and rigor.
+Give numbered findings. Each finding must contain:
+Claim: the material claim or proof step being checked.
+Status: exactly PROVED, UNSUPPORTED, or FALSE.
+Reason: the written justification or the precise defect.
+
+If there is no material defect, enumerate the key claims on which correctness depends and mark them PROVED.
 </evaluation>
 <suggestions>
-Useful ideas or repair suggestions that could help refine the proof.
+Give a numbered concrete repair for every UNSUPPORTED or FALSE finding. If every listed finding is PROVED, write "No repair needed."
 </suggestions>
 <score>S</score>
 
@@ -32,3 +39,8 @@ where S is exactly one of 0, 0.5, or 1 (nothing else inside the score tag):
 - 1: completely correct, all steps properly justified.
 - 0.5: generally correct, but minor gaps or omissions remain.
 - 0: fatal errors, severe omissions, or does not solve the problem.
+
+Your primary audit focus for this request is:
+{audit_focus}
+
+The focus is an emphasis, not permission to ignore errors outside it. Your score must assess the correctness and completeness of the whole written proof.
