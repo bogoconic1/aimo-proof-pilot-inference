@@ -22,9 +22,9 @@ The target and DFlash draft are downloaded from
 
 Configure VastAI with exactly eight H200 GPUs, at least 200 GB of persistent
 disk mounted at `/workspace`, and Docker options `--ipc=host --shm-size=32g`.
-Set `KAGGLE_USERNAME` and `KAGGLE_KEY`, or `KAGGLE_API_TOKEN`, with access to
-`threerabbits/proof-pilot-env`. `HF_TOKEN` is optional; `OPENAI_API_KEY` is
-needed only for strict final grading.
+The `threerabbits/proof-pilot-env` Kaggle dataset is public and requires no
+credentials. `HF_TOKEN` is optional; `OPENAI_API_KEY` is needed only for strict
+final grading.
 
 The default `serve` command bootstraps the persistent volume, applies the
 checked-in patches, downloads both models, launches SGLang, and validates the
@@ -35,8 +35,6 @@ live server. To generate an ungraded CSV submission, place `test.csv` in
 ```bash
 docker run --rm --gpus all --ipc=host --shm-size=32g \
   -v "$PWD/workspace:/workspace" \
-  -e KAGGLE_USERNAME \
-  -e KAGGLE_KEY \
   -e HF_TOKEN \
   ghcr.io/bogoconic1/aimo-proof-pilot-inference:latest submission
 ```
@@ -138,8 +136,6 @@ Create `/workspace/.env` and keep it outside the repository:
 
 ```bash
 cat > /workspace/.env <<'EOF'
-KAGGLE_USERNAME="replace-with-your-kaggle-username"
-KAGGLE_KEY="replace-with-your-kaggle-key"
 HF_TOKEN="optional-hugging-face-token"
 OPENAI_API_KEY="replace-with-your-openai-api-key"
 EOF

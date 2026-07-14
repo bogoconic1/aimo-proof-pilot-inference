@@ -87,12 +87,6 @@ validate_gpus() {
     log "validated ${#names[@]} GPUs: ${names[0]}"
 }
 
-have_kaggle_credentials() {
-    [[ -n "${KAGGLE_API_TOKEN:-}" ]] \
-        || { [[ -n "${KAGGLE_USERNAME:-}" ]] && [[ -n "${KAGGLE_KEY:-}" ]]; } \
-        || [[ -f /root/.kaggle/kaggle.json ]] \
-        || [[ -f /root/.config/kaggle/kaggle.json ]]
-}
 
 ensure_runtime() {
     if [[ -x "$VENV/bin/python" && -x "$RUNTIME_ROOT/pybase/bin/python3" ]]; then
@@ -102,7 +96,6 @@ ensure_runtime() {
     [[ ! -e "$RUNTIME_ROOT" ]] || die "$RUNTIME_ROOT exists but is incomplete; move or remove it before retrying"
 
     if [[ ! -f "$RUNTIME_ARCHIVE" ]]; then
-        have_kaggle_credentials || die "Kaggle credentials are required to download $RUNTIME_DATASET"
         log "downloading runtime dataset $RUNTIME_DATASET"
         kaggle datasets download "$RUNTIME_DATASET" --path "$WORKSPACE"
     fi
