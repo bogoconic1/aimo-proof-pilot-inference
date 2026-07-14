@@ -11,7 +11,7 @@ inference policy remains:
 - BF16 target with DFlash TP2/DP4 inference across all eight GPUs by default;
 - FA3 attention by default, with explicit FA3 or FA4 selection in YAML applied identically to the target and DFlash draft and no backend fallback;
 - Humming W4A8 target quantization as an opt-in boolean, with DFlash enabled by default and independently configurable;
-- 32 initial proof attempts, 16 verifications per admitted proof, cumulative top 8
+- 16 initial proof attempts, 8 verifications per admitted proof, cumulative top 4
   proofs, four lowest-rated analyses producing one refinement each, and four rounds;
 - asynchronous per-candidate verification under a shared cluster-wide concurrency
   of 96, with ranking and subsequent rounds waiting at the current-round barrier;
@@ -20,7 +20,11 @@ inference policy remains:
   solution continuation after prover/refiner length truncation;
 - one separately configurable 16,384-token verifier continuation, with malformed
   verifier outputs logged and skipped and at least four valid votes required;
-- ycchen's byte-identical deployed prover, verifier, and refiner prompts, with hidden thinking excluded from downstream prompts; and
+- rubric-independent local verifier votes on an integer 0-7 completeness scale,
+  with no official solution, reference answer, hidden checkpoints, or
+  problem-specific grading scheme in proof search;
+- ycchen's byte-identical deployed prover and refiner prompts, plus an experimental
+  verifier score-contract derivative, with hidden thinking excluded downstream; and
 - 64 GPT-5.6 Sol Responses grader attempts on the full integer 0-7 scale per
   final proof, using strict `findings`, `grade`, `reasoning` JSON and zero-veto
   aggregation.

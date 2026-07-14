@@ -22,12 +22,14 @@ class NemotronConfigTests(unittest.TestCase):
 
     def test_checked_in_config_is_full_uniform_policy(self):
         search = self.config["search"]
-        self.assertEqual(search["proofs_per_round"], 32)
-        self.assertEqual(search["verifications_per_proof"], 16)
-        self.assertEqual(search["top_proofs"], 8)
+        self.assertEqual(self.config["schema_version"], 12)
+        self.assertEqual(search["proofs_per_round"], 16)
+        self.assertEqual(search["verifications_per_proof"], 8)
+        self.assertEqual(search["top_proofs"], 4)
         self.assertEqual(search["refinements_per_proof"], 4)
         self.assertEqual(search["analyses_per_refinement"], 4)
         self.assertEqual(search["max_rounds"], 4)
+        self.assertEqual(search["early_stop_threshold"], 6.99999)
         self.assertEqual(search["concurrency"], 96)
         self.assertEqual(search["request_timeout_seconds"], 86400)
         self.assertEqual(search["max_completion_tokens"], 128000)
@@ -191,9 +193,9 @@ class NemotronConfigTests(unittest.TestCase):
 
     def test_search_shape_validation_rejects_inconsistent_profiles(self):
         replacements = (
-            ("proofs_per_round: 32", "proofs_per_round: 31"),
+            ("proofs_per_round: 16", "proofs_per_round: 15"),
             ("analyses_per_refinement: 4", "analyses_per_refinement: 3"),
-            ("verifications_per_proof: 16", "verifications_per_proof: 3"),
+            ("verifications_per_proof: 8", "verifications_per_proof: 3"),
             ("min_valid_verifications: 4", "min_valid_verifications: 3"),
             ("min_valid_verifications: 4", "min_valid_verifications: 17"),
         )

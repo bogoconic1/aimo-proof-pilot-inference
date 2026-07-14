@@ -17,6 +17,7 @@ from proof_prompts import (  # noqa: E402
     parse_verification,
     prompt_hashes,
     refinement_messages,
+    verification_messages,
 )
 from proof_search import ProblemSearch, Proof, Verification  # noqa: E402
 
@@ -33,7 +34,7 @@ class ScriptedClient:
         self.kwargs.append(kwargs)
         self.messages[request_id] = messages
         if "/verify/" in request_id:
-            score = 1 if self.stop_after_first_round or "round-02" in request_id else 0.5
+            score = 7 if self.stop_after_first_round or "round-02" in request_id else 4
             content = (
                 f"<evaluation>The argument is checked for {request_id}.</evaluation>\n"
                 "<suggestions>Make every equality explicit.</suggestions>\n"
@@ -193,7 +194,7 @@ class LengthVerifierContinuationClient(ScriptedClient):
             else (
                 "<evaluation>Recovered review.</evaluation>\n"
                 "<suggestions>No repairs.</suggestions>\n"
-                "<score>0.5</score>"
+                "<score>4</score>"
             )
         )
         return {
@@ -326,7 +327,7 @@ def small_config() -> dict:
         "refinements_per_proof": 2,
         "analyses_per_refinement": 2,
         "max_rounds": 2,
-        "early_stop_threshold": 0.99999,
+        "early_stop_threshold": 6.99999,
         "temperature": 1.0,
         "top_p": 0.95,
         "max_completion_tokens": 128,
@@ -389,15 +390,28 @@ class ProofSearchTests(unittest.TestCase):
 
         asyncio.run(run())
 
-    def test_prompt_files_are_byte_identical_to_ycchen_commit(self):
+    def test_prompt_hashes_match_verifier_scoring_experiment(self):
         self.assertEqual(
             prompt_hashes(),
             {
                 "prover.txt": "2f464567b97288c0b934b3aed2e32bdb5cd612a04c33f3ad86839b87005d5d4c",
-                "verifier.txt": "8c8e904270d6ae54d04aa8782d91f5eca94ccbc1c850bee0685b9a4668242dec",
+                "verifier.txt": "f8147f02e5b48e41e9e13d03ee34f12479f88ec3255fb72ea37af1d48ed23c0b",
                 "refiner.txt": "0bc15f3fa590cc3970a5a65dd573ec3d31b39ad70a78179e5e06ac5b9654fb18",
             },
         )
+
+    def test_verifier_scale_has_no_problem_specific_rubric(self):
+        messages = verification_messages("Problem only.", "Candidate.", "Audit.")
+        self.assertEqual(
+            [message["role"] for message in messages], ["system", "user"]
+        )
+        system, user = (message["content"] for message in messages)
+        self.assertIn("integer from 0 through 7", user)
+        self.assertIn("Do not assume or reconstruct", system)
+        combined = f"{system}\n{user}"
+        self.assertNotIn("MathArena", combined)
+        self.assertNotIn("PROBLEM-SPECIFIC", combined)
+        self.assertNotIn("checkpoint 1", combined.lower())
 
     def test_ycchen_system_user_split_and_candidate_bundle(self):
         messages = generation_messages("Prove it.")
@@ -436,13 +450,15 @@ class ProofSearchTests(unittest.TestCase):
                 generation_sample_id="generate",
                 verifications=[
                     Verification(f"v{index}", score, f"Review {index}.")
-                    for index, score in enumerate((1.0, 0.5, 0.0, 1.0, 0.5, 0.0))
+                    for index, score in enumerate(
+                        (7.0, 4.0, 0.0, 6.0, 3.0, 1.0)
+                    )
                 ],
             )
             selected = search._selected_reviews(proof, 2)
             repeated = search._selected_reviews(proof, 2)
 
-        self.assertEqual([item.score for item in selected], [0.0, 0.0, 0.5, 0.5])
+        self.assertEqual([item.score for item in selected], [0.0, 1.0, 3.0, 4.0])
         self.assertEqual(
             [item.sample_id for item in selected],
             [item.sample_id for item in repeated],
@@ -460,15 +476,15 @@ class ProofSearchTests(unittest.TestCase):
             )
             fewer = Proof(
                 "fewer", 1, None, "Proof.", "Audit.", 1.0, "generate",
-                [Verification(f"f{i}", 0.5, "Review.") for i in range(2)],
+                [Verification(f"f{i}", 4.0, "Review.") for i in range(2)],
             )
             more = Proof(
                 "more", 1, None, "Proof.", "Audit.", 0.0, "generate",
-                [Verification(f"m{i}", 0.5, "Review.") for i in range(3)],
+                [Verification(f"m{i}", 4.0, "Review.") for i in range(3)],
             )
             below_minimum = Proof(
                 "below", 1, None, "Proof.", "Audit.", 1.0, "generate",
-                [Verification("b0", 1.0, "Review.")],
+                [Verification("b0", 7.0, "Review.")],
             )
             search.proofs = {
                 proof.proof_id: proof
@@ -488,10 +504,20 @@ class ProofSearchTests(unittest.TestCase):
         self.assertEqual((proof, evaluation, score), ("Proof.", "Audit.", 0.5))
         verifier, verifier_score = parse_verification(
             "<evaluation>Valid.</evaluation>\n"
-            "<suggestions>No repairs.</suggestions>\n<score>1</score>"
+            "<suggestions>No repairs.</suggestions>\n<score>7</score>"
         )
         self.assertIn("<evaluation>Valid.</evaluation>", verifier)
-        self.assertEqual(verifier_score, 1.0)
+        self.assertEqual(verifier_score, 7.0)
+        for invalid_score in ("0.5", "8", "-1"):
+            with (
+                self.subTest(invalid_score=invalid_score),
+                self.assertRaises(ValueError),
+            ):
+                parse_verification(
+                    "<evaluation>Invalid.</evaluation>\n"
+                    "<suggestions>Repair.</suggestions>\n"
+                    f"<score>{invalid_score}</score>"
+                )
         with self.assertRaises(ValueError):
             parse_generation("unstructured")
         with self.assertRaises(ValueError):
@@ -518,7 +544,7 @@ class ProofSearchTests(unittest.TestCase):
                     self_score=1.0,
                     generation_sample_id="old-generate",
                     verifications=[
-                        Verification(f"old-v{index}", 1.0, f"Old review {index}.")
+                        Verification(f"old-v{index}", 7.0, f"Old review {index}.")
                         for index in range(2)
                     ],
                 )
@@ -531,7 +557,7 @@ class ProofSearchTests(unittest.TestCase):
                     self_score=1.0,
                     generation_sample_id="new-generate",
                     verifications=[
-                        Verification(f"new-v{index}", 0.5, f"New review {index}.")
+                        Verification(f"new-v{index}", 4.0, f"New review {index}.")
                         for index in range(2)
                     ],
                 )
@@ -573,7 +599,7 @@ class ProofSearchTests(unittest.TestCase):
                 self_score=1.0,
                 generation_sample_id="r01-generate",
                 verifications=[
-                    Verification(f"r01-v{index}", 0.5, f"Review {index}.")
+                    Verification(f"r01-v{index}", 4.0, f"Review {index}.")
                     for index in range(2)
                 ],
             )
@@ -586,7 +612,7 @@ class ProofSearchTests(unittest.TestCase):
                 self_score=1.0,
                 generation_sample_id="r02-generate",
                 verifications=[
-                    Verification(f"r02-v{index}", 1.0, f"Review {index}.")
+                    Verification(f"r02-v{index}", 7.0, f"Review {index}.")
                     for index in range(2)
                 ],
             )

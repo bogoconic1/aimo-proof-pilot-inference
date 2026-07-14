@@ -1,4 +1,4 @@
-schema_version: 11
+schema_version: 12
 
 models:
   bf16_target: /workspace/models/opd-32b-deploy
@@ -33,13 +33,13 @@ server:
   dflash_window_size: 512
 
 search:
-  proofs_per_round: 32
-  verifications_per_proof: 16
-  top_proofs: 8
+  proofs_per_round: 16
+  verifications_per_proof: 8
+  top_proofs: 4
   refinements_per_proof: 4
   analyses_per_refinement: 4
   max_rounds: 4
-  early_stop_threshold: 0.99999
+  early_stop_threshold: 6.99999
   temperature: 1.0
   top_p: 0.95
   max_completion_tokens: 128000

@@ -23,7 +23,8 @@ is the source of truth. Its current defaults are:
 | Server context | 262,144 tokens |
 | Server concurrency | 64 running requests per DP replica |
 | Search concurrency | 96 requests cluster-wide |
-| Search policy | 32 proofs, 16 verifications per proof, top 8, 4 refinements, up to 4 rounds |
+| Search policy | 16 proofs, 8 verifications per proof, top 4, 4 refinements, up to 4 rounds |
+| Local verifier | rubric-independent integer 0-7 completeness score |
 | Sampling | temperature 1.0, top-p 0.95 |
 | Local first segment | 128,000 tokens for prover, refiner, and verifier |
 | Solution continuation | at most one additional 16,384-token forced solution continuation |

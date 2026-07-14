@@ -1,8 +1,10 @@
-"""Verbatim ycchen Math-3R prompts, renderers, bundles, and XML parsers.
+"""Math-3R prompts, renderers, bundles, and XML parsers.
 
-The templates are copied byte-for-byte from ycchen-tw/proof-pilot-codes commit
-bc03a2c71a076990deaad3d712c6889682e12c69.  The same files occur in both
-``distill_gen/math_3r/prompts`` and ``kaggle/proof_agent/prompts`` there.
+The prover and refiner templates are copied byte-for-byte from
+ycchen-tw/proof-pilot-codes commit
+bc03a2c71a076990deaad3d712c6889682e12c69. The verifier is an experimental
+derivative that changes only its score contract from 0/0.5/1 to integer 0-7;
+it receives no official solution or problem-specific grading rubric.
 """
 
 from __future__ import annotations
@@ -26,7 +28,7 @@ _GENERATION = re.compile(
 _VERIFICATION = re.compile(
     r"\s*<evaluation>(.*?)</evaluation>\s*"
     r"<suggestions>(.*?)</suggestions>\s*"
-    r"<score>\s*(0(?:\.5)?|1)\s*</score>\s*",
+    r"<score>\s*([0-7])\s*</score>\s*",
     re.DOTALL,
 )
 
@@ -115,7 +117,7 @@ def parse_generation(text: str) -> tuple[str, str, float]:
 def parse_verification(text: str) -> tuple[str, float]:
     match = _VERIFICATION.fullmatch(text)
     if match is None:
-        raise ValueError("verification does not match ycchen's XML contract")
+        raise ValueError("verification does not match verifier XML contract")
     evaluation, suggestions, score = match.groups()
     if not evaluation.strip() or not suggestions.strip():
         raise ValueError("verification contains an empty required XML element")

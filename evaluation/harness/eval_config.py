@@ -69,8 +69,8 @@ def load_config(path: Path) -> dict[str, Any]:
     if not isinstance(config, dict):
         raise ValueError("evaluation config must be a YAML mapping")
     _exact_keys(config, ROOT_KEYS, "root")
-    if config["schema_version"] != 11:
-        raise ValueError("schema_version must be 11")
+    if config["schema_version"] != 12:
+        raise ValueError("schema_version must be 12")
     for section, keys in (
         ("models", MODEL_PATH_KEYS), ("model", MODEL_KEYS), ("server", SERVER_KEYS),
         ("search", SEARCH_KEYS), ("grader", GRADER_KEYS),
@@ -158,8 +158,13 @@ def load_config(path: Path) -> dict[str, Any]:
             "search.min_valid_verifications cannot be less than "
             "search.analyses_per_refinement"
         )
-    if not 0 < search["early_stop_threshold"] <= 1:
-        raise ValueError("search.early_stop_threshold must be in (0, 1]")
+    early_stop_threshold = search["early_stop_threshold"]
+    if (
+        type(early_stop_threshold) not in {int, float}
+        or not math.isfinite(early_stop_threshold)
+        or not 0 < early_stop_threshold <= 7
+    ):
+        raise ValueError("search.early_stop_threshold must be in (0, 7]")
     temperature = search["temperature"]
     if (
         type(temperature) not in {int, float}
