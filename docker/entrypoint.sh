@@ -8,20 +8,22 @@ HF_HOME="${HF_HOME:-/workspace/.hf_home}"
 VENV="${VENV:-$RUNTIME_ROOT/venv}"
 STATE_DIR=/workspace/.proof-pilot
 MODEL_ROOT=/workspace/models
-TARGET_MODEL="$MODEL_ROOT/opd-32b-deploy"
-DRAFT_MODEL="$MODEL_ROOT/dflash-32b-draft-v2test-phaseL"
+DEFAULT_TARGET_MODEL="$MODEL_ROOT/opd-32b-deploy"
+DEFAULT_DRAFT_MODEL="$MODEL_ROOT/dflash-32b-draft-v2test-phaseL"
+TARGET_MODEL=
+DRAFT_MODEL=
 MODEL_REPO="${MODEL_REPO:-fieldsmodelorg/Olmo-3.1-32B-Think-OPD-ProofPilot}"
 MODEL_REVISION="${MODEL_REVISION:-87707b8030800b1e531b78c9823cb80a63d66e5e}"
 RUNTIME_DATASET="${RUNTIME_DATASET:-threerabbits/proof-pilot-env}"
 RUNTIME_ARCHIVE="${RUNTIME_ARCHIVE:-/workspace/proof-pilot-env.zip}"
-CONFIG_SOURCE="${CONFIG:-$REPO/evaluation/configs/nemotron_cascade2.yaml}"
-ACTIVE_CONFIG="${ACTIVE_CONFIG:-$STATE_DIR/config.yaml}"
-SERVER_HOST="${SERVER_HOST:-0.0.0.0}"
-SERVER_PORT="${SERVER_PORT:-30000}"
+CONFIG_SOURCE="${CONFIG:-}"
+SERVER_HOST=
+SERVER_PORT=
+SERVER_URL=
 SERVER_LOG="${EVAL_SERVER_LOG:-/workspace/opd32b-eval.log}"
 SERVER_VALIDATION="${SERVER_VALIDATION:-$STATE_DIR/server-validation.json}"
 SERVER_STARTUP_TIMEOUT_SECONDS="${SERVER_STARTUP_TIMEOUT_SECONDS:-2700}"
-EXPECTED_GPU_COUNT="${EXPECTED_GPU_COUNT:-8}"
+EXPECTED_GPU_COUNT=
 REQUIRE_H200="${REQUIRE_H200:-1}"
 INPUT_CSV="${INPUT_CSV:-/workspace/test.csv}"
 OUTPUT_CSV="${OUTPUT_CSV:-/workspace/submission.csv}"
@@ -153,13 +155,49 @@ install_dependencies_and_patches() {
     bash "$REPO/sglang_patches/apply_patches.sh" "$VENV"
 }
 
-models_complete() {
-    [[ -f "$TARGET_MODEL/config.json" ]] \
-        && [[ -f "$TARGET_MODEL/model.safetensors.index.json" ]] \
-        && [[ "$(find "$TARGET_MODEL" -maxdepth 1 -name '*.safetensors' | wc -l)" -eq 17 ]] \
-        && [[ -f "$DRAFT_MODEL/config.json" ]] \
-        && [[ -f "$DRAFT_MODEL/model.safetensors.index.json" ]] \
-        && [[ "$(find "$DRAFT_MODEL" -maxdepth 1 -name '*.safetensors' | wc -l)" -eq 5 ]]
+require_config_file() {
+    [[ -n "$CONFIG_SOURCE" ]] || die "CONFIG is required and must point to config.yaml"
+    [[ -f "$CONFIG_SOURCE" ]] || die "configuration does not exist: $CONFIG_SOURCE"
+}
+
+load_runtime_config() {
+    local inspected
+    inspected="$("$VENV/bin/python" "$REPO/docker/inspect_config.py" "$CONFIG_SOURCE")" \
+        || die "configuration validation failed: $CONFIG_SOURCE"
+
+    SERVER_HOST="$(jq -er ".server_host | strings" <<<"$inspected")"
+    SERVER_PORT="$(jq -er ".server_port | numbers" <<<"$inspected")"
+    SERVER_URL="$(jq -er ".server_url | strings" <<<"$inspected")"
+    EXPECTED_GPU_COUNT="$(jq -er ".expected_gpu_count | numbers" <<<"$inspected")"
+    TARGET_MODEL="$(jq -er ".target_model | strings" <<<"$inspected")"
+    DRAFT_MODEL="$(jq -r '.draft_model // ""' <<<"$inspected")"
+    log "using authoritative config unchanged: $CONFIG_SOURCE"
+}
+
+model_complete() {
+    local path="$1"
+    local index="$1/model.safetensors.index.json"
+    local shard
+    local shard_list
+    local shards=()
+
+    [[ -d "$path" && -f "$path/config.json" ]] || return 1
+    if [[ -f "$index" ]]; then
+        shard_list="$(jq -er ".weight_map | values[]" "$index" | sort -u)" \
+            || return 1
+        mapfile -t shards <<<"$shard_list"
+        [[ "${#shards[@]}" -gt 0 ]] || return 1
+        for shard in "${shards[@]}"; do
+            [[ -f "$path/$shard" ]] || return 1
+        done
+        return 0
+    fi
+    [[ -n "$(find "$path" -maxdepth 1 -type f -name "*.safetensors" -print -quit)" ]]
+}
+
+uses_default_models() {
+    [[ "$TARGET_MODEL" == "$DEFAULT_TARGET_MODEL" ]] \
+        && { [[ -z "$DRAFT_MODEL" ]] || [[ "$DRAFT_MODEL" == "$DEFAULT_DRAFT_MODEL" ]]; }
 }
 
 ensure_models() {
@@ -169,40 +207,38 @@ ensure_models() {
         recorded_source="$(<"$STATE_DIR/model-revision")"
     fi
 
-    if ! models_complete || [[ "$recorded_source" != "$expected_source" ]]; then
-        mkdir -p "$MODEL_ROOT"
-        log "reconciling target and DFlash draft with $expected_source"
-        hf download "$MODEL_REPO" \
-            --revision "$MODEL_REVISION" \
-            --include 'opd-32b-deploy/*' \
-            --include 'dflash-32b-draft-v2test-phaseL/*' \
-            --local-dir "$MODEL_ROOT"
+    if uses_default_models; then
+        if ! model_complete "$TARGET_MODEL" \
+            || { [[ -n "$DRAFT_MODEL" ]] && ! model_complete "$DRAFT_MODEL"; } \
+            || [[ "$recorded_source" != "$expected_source" ]]; then
+            mkdir -p "$MODEL_ROOT"
+            log "reconciling default model assets with $expected_source"
+            hf download "$MODEL_REPO" \
+                --revision "$MODEL_REVISION" \
+                --include "opd-32b-deploy/*" \
+                --include "dflash-32b-draft-v2test-phaseL/*" \
+                --local-dir "$MODEL_ROOT"
+        fi
+        printf "%s\n" "$expected_source" > "$STATE_DIR/model-revision"
     fi
 
-    models_complete || die "target or DFlash draft download is incomplete"
-    printf '%s\n' "$expected_source" > "$STATE_DIR/model-revision"
-    log "using model assets from $expected_source"
-}
-
-materialize_config() {
-    [[ -f "$CONFIG_SOURCE" ]] || die "configuration does not exist: $CONFIG_SOURCE"
-    "$VENV/bin/python" "$REPO/docker/materialize_config.py" \
-        --source "$CONFIG_SOURCE" \
-        --output "$ACTIVE_CONFIG" \
-        --host "$SERVER_HOST" \
-        --port "$SERVER_PORT" \
-        --bf16-target "$TARGET_MODEL" \
-        --bf16-draft "$DRAFT_MODEL"
-    log "runtime configuration written to $ACTIVE_CONFIG"
+    model_complete "$TARGET_MODEL" \
+        || die "configured target model is incomplete: $TARGET_MODEL"
+    if [[ -n "$DRAFT_MODEL" ]]; then
+        model_complete "$DRAFT_MODEL" \
+            || die "configured draft model is incomplete: $DRAFT_MODEL"
+    fi
+    log "using configured target=$TARGET_MODEL draft=${DRAFT_MODEL:-disabled}"
 }
 
 prepare() {
+    require_config_file
     mkdir -p "$STATE_DIR" "$HF_HOME"
     ensure_runtime
     prepare_caches
     install_dependencies_and_patches
+    load_runtime_config
     ensure_models
-    materialize_config
 }
 
 start_server() {
@@ -210,7 +246,7 @@ start_server() {
     : > "$SERVER_LOG"
     log "starting production server on $SERVER_HOST:$SERVER_PORT"
     "$VENV/bin/python" "$REPO/evaluation/harness/launch_server.py" \
-        --config "$ACTIVE_CONFIG" \
+        --config "$CONFIG_SOURCE" \
         > >(tee -a "$SERVER_LOG") 2>&1 &
     SERVER_PID=$!
 }
@@ -218,7 +254,7 @@ start_server() {
 wait_for_server() {
     local deadline=$((SECONDS + SERVER_STARTUP_TIMEOUT_SECONDS))
     while (( SECONDS < deadline )); do
-        if curl -fsS "http://127.0.0.1:$SERVER_PORT/health" >/dev/null 2>&1; then
+        if curl -fsS "$SERVER_URL/health" >/dev/null 2>&1; then
             return
         fi
         kill -0 "$SERVER_PID" 2>/dev/null || {
@@ -233,8 +269,8 @@ wait_for_server() {
 validate_server() {
     log "validating live server and startup markers"
     "$VENV/bin/python" "$REPO/evaluation/harness/validate_server.py" \
-        --url "http://127.0.0.1:$SERVER_PORT" \
-        --config "$ACTIVE_CONFIG" \
+        --url "$SERVER_URL" \
+        --config "$CONFIG_SOURCE" \
         --output "$SERVER_VALIDATION" \
         --server-log "$SERVER_LOG"
     touch "$STATE_DIR/server-ready"
@@ -242,8 +278,9 @@ validate_server() {
 }
 
 run_server() {
-    validate_gpus
     prepare
+
+    validate_gpus
     trap stop_server TERM INT
     start_server
     wait_for_server
@@ -257,15 +294,15 @@ run_server() {
 
 run_submission() {
     [[ -f "$INPUT_CSV" ]] || die "input CSV does not exist: $INPUT_CSV"
-    validate_gpus
     prepare
+    validate_gpus
     trap stop_server TERM INT
     trap 'stop_server; cleanup_temp_paths' EXIT
     start_server
     wait_for_server
     validate_server
     log "running submission: input=$INPUT_CSV output=$OUTPUT_CSV"
-    CONFIG="$ACTIVE_CONFIG" ARTIFACTS_DIR="$ARTIFACTS_DIR" \
+    CONFIG="$CONFIG_SOURCE" ARTIFACTS_DIR="$ARTIFACTS_DIR" \
         bash "$REPO/run_submission.sh" "$INPUT_CSV" "$OUTPUT_CSV"
     log "submission complete: $OUTPUT_CSV"
 }
@@ -275,13 +312,14 @@ usage() {
 Usage: entrypoint.sh COMMAND [ARGS...]
 
 Commands:
-  serve       Bootstrap, validate 8x H200, and run the production SGLang server.
+  serve       Bootstrap, validate the configured GPU topology, and run the production SGLang server.
   submission  Bootstrap, run the server, and generate /workspace/submission.csv.
   bootstrap   Download and prepare the runtime and models without requiring GPUs.
-  validate    Validate an already running server against the materialized config.
+  validate    Validate an already running server against the supplied config.
   shell       Bootstrap and open a shell.
   help        Show this message.
 
+CONFIG must point to an existing YAML file for every command except help.
 Any other command is executed after bootstrap. Persistent runtime, model, cache,
 log, and result data live under /workspace.
 EOF

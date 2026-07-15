@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import copy
+import json
+import os
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -12,7 +15,6 @@ sys.path.insert(0, str(HARNESS))
 
 from eval_config import active_model, load_config  # noqa: E402
 from launch_server import attention_arguments, decode_graph_batches  # noqa: E402
-
 
 class NemotronConfigTests(unittest.TestCase):
     @classmethod
@@ -69,6 +71,61 @@ class NemotronConfigTests(unittest.TestCase):
                 self.assertEqual(model.mode, paths[0])
                 self.assertEqual(model.target.name, paths[1])
                 self.assertEqual(model.draft.name if model.draft else None, paths[2])
+
+    def test_docker_requires_explicit_config(self):
+        env = os.environ.copy()
+        env["REPO"] = str(REPO)
+        env.pop("CONFIG", None)
+        result = subprocess.run(
+            ["bash", "docker/entrypoint.sh", "bootstrap"],
+            cwd=REPO,
+            env=env,
+            capture_output=True,
+            text=True,
+        )
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("CONFIG is required", result.stderr)
+
+    def test_docker_inspector_preserves_config(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "config.yaml"
+            source = (
+                self.path.read_text()
+                .replace(
+                    "bf16_target: /workspace/models/opd-32b-deploy",
+                    "bf16_target: /workspace/models/custom-target",
+                )
+                .replace(
+                    "bf16_draft: /workspace/models/dflash-32b-draft-v2test-phaseL",
+                    "bf16_draft: /workspace/models/custom-draft",
+                )
+                .replace("host: 127.0.0.1", "host: 0.0.0.0")
+                .replace("port: 30000", "port: 31000", 1)
+                .replace("context_length: 262144", "context_length: 1048576")
+                .replace("kv_cache_dtype: auto", "kv_cache_dtype: fp8_e4m3")
+            )
+            path.write_text(source)
+            configured = load_config(path)
+            self.assertEqual(configured["server"]["context_length"], 1048576)
+            self.assertEqual(configured["model"]["kv_cache_dtype"], "fp8_e4m3")
+            output = subprocess.check_output(
+                [sys.executable, str(REPO / "docker/inspect_config.py"), str(path)],
+                cwd=REPO,
+                text=True,
+            )
+            self.assertEqual(path.read_text(), source)
+
+        inspected = json.loads(output)
+        self.assertEqual(inspected["server_host"], "0.0.0.0")
+        self.assertEqual(inspected["server_port"], 31000)
+        self.assertEqual(inspected["server_url"], "http://127.0.0.1:31000")
+        self.assertEqual(inspected["expected_gpu_count"], 8)
+        self.assertEqual(
+            inspected["target_model"], "/workspace/models/custom-target"
+        )
+        self.assertEqual(
+            inspected["draft_model"], "/workspace/models/custom-draft"
+        )
 
     def test_tp_width_is_not_artificially_capped(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -261,7 +318,6 @@ class NemotronConfigTests(unittest.TestCase):
                 path.write_text(self.path.read_text().replace(old, new))
                 with self.assertRaises(ValueError):
                     load_config(path)
-
 
 if __name__ == "__main__":
     unittest.main()

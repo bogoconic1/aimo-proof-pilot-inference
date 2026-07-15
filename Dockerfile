@@ -59,12 +59,15 @@ COPY . /opt/aimo-proof-pilot-inference
 RUN chmod 0755 docker/entrypoint.sh run_submission.sh serve_opd32b.sh
 
 VOLUME ["/workspace"]
-EXPOSE 30000
 STOPSIGNAL SIGTERM
 
 HEALTHCHECK --start-period=45m --interval=30s --timeout=10s --retries=5 \
-    CMD test -f /workspace/.proof-pilot/server-ready \
-        && curl -fsS http://127.0.0.1:30000/health >/dev/null \
+    CMD test -n "$CONFIG" \
+        && test -f /workspace/.proof-pilot/server-ready \
+        && URL=$(/workspace/pp/venv/bin/python \
+            /opt/aimo-proof-pilot-inference/docker/inspect_config.py "$CONFIG" \
+            | jq -er .server_url) \
+        && curl -fsS "$URL/health" >/dev/null \
         || exit 1
 
 ENTRYPOINT ["/usr/bin/tini", "--", "/opt/aimo-proof-pilot-inference/docker/entrypoint.sh"]

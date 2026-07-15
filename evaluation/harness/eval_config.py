@@ -88,10 +88,12 @@ def load_config(path: Path) -> dict[str, Any]:
     _positive_int(model["data_parallel_size"], "model.data_parallel_size")
     if type(model["quantized"]) is not bool or type(model["dflash"]) is not bool:
         raise ValueError("model.quantized and model.dflash must be booleans")
-    if model["kv_cache_dtype"] != "auto":
-        raise ValueError("model.kv_cache_dtype must be auto for BF16 target KV")
+    if not isinstance(model["kv_cache_dtype"], str) or not model["kv_cache_dtype"]:
+        raise ValueError("model.kv_cache_dtype must be a nonempty string")
 
     server = config["server"]
+    if not isinstance(server["host"], str) or not server["host"]:
+        raise ValueError("server.host must be a nonempty string")
     for key in (
         "page_size", "port", "context_length", "max_running_requests", "chunked_prefill_size",
         "stream_interval", "dflash_block_size",
@@ -112,8 +114,6 @@ def load_config(path: Path) -> dict[str, Any]:
             raise ValueError("FA3 requires server.page_size=1")
         if not server["deterministic_inference"]:
             raise ValueError("FA3 requires deterministic inference")
-    if server["context_length"] != 262144:
-        raise ValueError("server.context_length must equal the OPD checkpoint limit 262144")
     if not 0 < server["mem_fraction_static"] < 1:
         raise ValueError("server.mem_fraction_static must be between 0 and 1")
     if not 0 < server["swa_full_tokens_ratio"] <= 1:
@@ -180,14 +180,14 @@ def load_config(path: Path) -> dict[str, Any]:
     grader = config["grader"]
     for key in ("attempts_per_proof", "concurrency", "max_completion_tokens"):
         _positive_int(grader[key], f"grader.{key}")
-    if type(grader["zero_veto"]) is not bool or not grader["zero_veto"]:
-        raise ValueError("grader.zero_veto must be true")
-    if grader["reasoning"] not in {"high", "max"}:
-        raise ValueError("grader.reasoning must be high or max")
-    if grader["prompt_cache_mode"] != "implicit":
-        raise ValueError("grader.prompt_cache_mode must be implicit")
-    if grader["prompt_cache_ttl"] != "30m":
-        raise ValueError("grader.prompt_cache_ttl must be 30m")
+    if type(grader["zero_veto"]) is not bool:
+        raise ValueError("grader.zero_veto must be a boolean")
+    for key in (
+        "base_url", "model", "api_key_env", "reasoning",
+        "prompt_cache_mode", "prompt_cache_ttl",
+    ):
+        if not isinstance(grader[key], str) or not grader[key]:
+            raise ValueError(f"grader.{key} must be a nonempty string")
     for key in ("system_prompt_sha256", "user_prompt_sha256"):
         if len(grader[key]) != 64:
             raise ValueError(f"grader.{key} must be a SHA-256 hex digest")
