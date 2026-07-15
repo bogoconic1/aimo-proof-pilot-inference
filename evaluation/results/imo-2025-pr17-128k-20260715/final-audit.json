@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "submission_path": "/workspace/imo2025-pr17-128k-remaining5-20260715T042549Z/submission-all6.csv",
+  "submission_rows": 6,
+  "config_path": "/workspace/imo2025-pr17-128k-remaining5-20260715T042549Z/config.yaml",
+  "config_sha256": "02290de0f177396efc71a35e27488186248a065b20c08c9944fc42a56cc5d0c2",
+  "search": [
+    {
+      "problem_id": "1",
+      "selected_proof_id": "r03-p0023",
+      "internal_mean": 1.0,
+      "rounds_completed": 3,
+      "proof_chars": 8466
+    },
+    {
+      "problem_id": "2",
+      "selected_proof_id": "r02-p0003",
+      "internal_mean": 1.0,
+      "rounds_completed": 2,
+      "proof_chars": 9274
+    },
+    {
+      "problem_id": "3",
+      "selected_proof_id": "r04-p0003",
+      "internal_mean": 0.65625,
+      "rounds_completed": 4,
+      "proof_chars": 8575
+    },
+    {
+      "problem_id": "4",
+      "selected_proof_id": "r04-p0010",
+      "internal_mean": 1.0,
+      "rounds_completed": 4,
+      "proof_chars": 8699
+    },
+    {
+      "problem_id": "5",
+      "selected_proof_id": "r03-p0028",
+      "internal_mean": 1.0,
+      "rounds_completed": 3,
+      "proof_chars": 7259
+    },
+    {
+      "problem_id": "6",
+      "selected_proof_id": "r01-p0012",
+      "internal_mean": 1.0,
+      "rounds_completed": 1,
+      "proof_chars": 3344
+    }
+  ],
+  "grading": [
+    {
+      "problem_id": "1",
+      "attempts": 64,
+      "zero_count": 0,
+      "raw_mean": 6.109375,
+      "final_score": 6.109375,
+      "distribution": {
+        "3": 1,
+        "4": 15,
+        "5": 3,
+        "6": 2,
+        "7": 43
+      }
+    },
+    {
+      "problem_id": "2",
+      "attempts": 64,
+      "zero_count": 59,
+      "raw_mean": 0.15625,
+      "final_score": 0,
+      "distribution": {
+        "0": 59,
+        "2": 5
+      }
+    },
+    {
+      "problem_id": "3",
+      "attempts": 64,
+      "zero_count": 1,
+      "raw_mean": 1.34375,
+      "final_score": 0,
+      "distribution": {
+        "0": 1,
+        "1": 54,
+        "2": 5,
+        "5": 2,
+        "6": 2
+      }
+    },
+    {
+      "problem_id": "4",
+      "attempts": 64,
+      "zero_count": 0,
+      "raw_mean": 7.0,
+      "final_score": 7.0,
+      "distribution": {
+        "7": 64
+      }
+    },
+    {
+      "problem_id": "5",
+      "attempts": 64,
+      "zero_count": 0,
+      "raw_mean": 4.375,
+      "final_score": 4.375,
+      "distribution": {
+        "3": 26,
+        "5": 26,
+        "6": 12
+      }
+    },
+    {
+      "problem_id": "6",
+      "attempts": 64,
+      "zero_count": 0,
+      "raw_mean": 1.03125,
+      "final_score": 1.03125,
+      "distribution": {
+        "1": 62,
+        "2": 2
+      }
+    }
+  ],
+  "total_score": 18.515625,
+  "mean_score": 3.0859375,
+  "grading_failures": 0
+}

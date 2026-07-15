@@ -1,0 +1,82 @@
+{
+  "attempts_per_problem": 64,
+  "failures": 0,
+  "problems": [
+    {
+      "attempts": 64,
+      "distribution": {
+        "3": 1,
+        "4": 15,
+        "5": 3,
+        "6": 2,
+        "7": 43
+      },
+      "problem_id": "1",
+      "raw_mean": 6.109375,
+      "zero_count": 0,
+      "zero_veto_score": 6.109375
+    },
+    {
+      "attempts": 64,
+      "distribution": {
+        "0": 59,
+        "2": 5
+      },
+      "problem_id": "2",
+      "raw_mean": 0.15625,
+      "zero_count": 59,
+      "zero_veto_score": 0
+    },
+    {
+      "attempts": 64,
+      "distribution": {
+        "0": 1,
+        "1": 54,
+        "2": 5,
+        "5": 2,
+        "6": 2
+      },
+      "problem_id": "3",
+      "raw_mean": 1.34375,
+      "zero_count": 1,
+      "zero_veto_score": 0
+    },
+    {
+      "attempts": 64,
+      "distribution": {
+        "7": 64
+      },
+      "problem_id": "4",
+      "raw_mean": 7.0,
+      "zero_count": 0,
+      "zero_veto_score": 7.0
+    },
+    {
+      "attempts": 64,
+      "distribution": {
+        "3": 26,
+        "5": 26,
+        "6": 12
+      },
+      "problem_id": "5",
+      "raw_mean": 4.375,
+      "zero_count": 0,
+      "zero_veto_score": 4.375
+    },
+    {
+      "attempts": 64,
+      "distribution": {
+        "1": 62,
+        "2": 2
+      },
+      "problem_id": "6",
+      "raw_mean": 1.03125,
+      "zero_count": 0,
+      "zero_veto_score": 1.03125
+    }
+  ],
+  "raw_mean": 3.3359375,
+  "raw_total": 20.015625,
+  "zero_veto_mean": 3.0859375,
+  "zero_veto_total": 18.515625
+}
