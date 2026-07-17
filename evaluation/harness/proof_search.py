@@ -379,6 +379,10 @@ class ProblemSearch:
             if not parents:
                 raise RuntimeError(f"{self.problem_id} has no verified proof to refine")
             proof_index = 0
+            # Gold drops the prover self-evaluation from the refiner bundle
+            # (v2/pool_loop.py: with_self_eval=False, "unreliable ~92% self-score 1").
+            # Default matches gold; set refiner_sees_self_evaluation=true to include it.
+            refiner_self_eval = self.config.get("refiner_sees_self_evaluation", False)
             for parent in parents:
                 reviews = self._selected_reviews(parent, round_index)
                 if len(reviews) != self.config["analyses_per_refinement"]:
@@ -391,7 +395,7 @@ class ProblemSearch:
                         self.problem,
                         parent.proof_id,
                         parent.proof,
-                        parent.self_evaluation,
+                        parent.self_evaluation if refiner_self_eval else "",
                         review.score,
                         review.analysis,
                     )

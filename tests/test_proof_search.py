@@ -546,6 +546,24 @@ class ProofSearchTests(unittest.TestCase):
         # both still carry the proof itself
         self.assertIn("the proof", without_se[1]["content"])
 
+    def test_refiner_self_evaluation_dropped_by_default(self):
+        from proof_prompts import refinement_messages
+        # gold default: the prover self-eval TEXT must not reach the refiner, and
+        # the candidate bundle must not carry an empty <self_evaluation></...> pair.
+        # (refiner.txt itself names <self_evaluation> as the OUTPUT format, so the
+        # bare tag is always present -- assert on the audit text and the empty pair.)
+        dropped = refinement_messages("P", "P0", "the proof", "", 0.5, "the review")[1][
+            "content"
+        ]
+        self.assertNotIn("my self-audit", dropped)
+        self.assertNotIn("<self_evaluation>\n\n</self_evaluation>", dropped)
+        self.assertIn("the review", dropped)  # verifier review still present
+        # opt-in: the self-eval is included when supplied
+        kept = refinement_messages("P", "P0", "the proof", "my self-audit", 0.5, "the review")[
+            1
+        ]["content"]
+        self.assertIn("my self-audit", kept)
+
     def test_refinement_parent_selection_uses_the_cumulative_pool(self):
         async def run():
             with tempfile.TemporaryDirectory() as directory:

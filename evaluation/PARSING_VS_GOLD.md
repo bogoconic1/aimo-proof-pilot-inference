@@ -105,7 +105,7 @@ and admits it **without** a continuation. Rationale: the model emitted the full
 lost. This is *stricter-but-smarter* than gold, which rejects any `length` result
 outright. **Keep it** — it is an improvement, not an over-strictness.
 
-## Net
+## Net (parsing)
 
 Relaxing #1–#6 moves the parser to gold's proven, search-based admission
 behavior — the behavior the OPD model was tuned against — while retaining this
@@ -113,3 +113,31 @@ harness's genuine improvements (complete-XML-at-`length` reclassification,
 role-correct continuations, and the option of a min-length floor from #8). The
 one open policy question is #7 (whether to keep requiring a non-empty
 self_evaluation).
+
+## Prompt composition: where the self-evaluation is routed
+
+Separate from parsing, this is *which downstream prompts* receive the prover's
+`<self_evaluation>`. Gold and this harness diverge, and both are now knobs
+(`search.*`), defaulting to gold's routing.
+
+| Consumer | Gold Kaggle (`v2/pool_loop.py`) | This harness | Knob (default) |
+|---|---|---|---|
+| **Verifier** | **includes** it (`:177`, `render_verifier_prompt(..., cand.self_eval)`) | includes it | `verifier_sees_self_evaluation` (**true**) |
+| **Refiner** | **drops** it (`:196`, `with_self_eval=False`) | *did* include it; now drops it | `refiner_sees_self_evaluation` (**false**) |
+
+- **Verifier keeps it** because the verifier was **trained** on it
+  (`training/opd_v2 build_verify → render_verifier_prompt(..., proof.self_eval)`),
+  so it is in-distribution; and gold's inference feeds it too. It is the
+  self-eval *text* ("note fragile steps"), never the numeric self-score. Setting
+  the knob false blanks it — an off-distribution verifier prompt.
+- **Refiner drops it** because gold does, with an explicit reason in its code:
+  *"WITHOUT prover self-eval (unreliable ~92% self-score 1)."* The prover's
+  self-grade is "1" ~92% of the time, so it is noise for synthesis and only
+  inflates refiner context. When dropped, the `<self_evaluation>` element is
+  **omitted** from the candidate bundle (not sent empty), matching gold's
+  `build_refine_bundle`. Setting the knob true restores it.
+
+Note the refiner topology still differs from gold beyond self-eval: gold merges
+**up to 4 candidates with all their reviews**; this harness sends **one parent
+with one selected review**. That is a separate search-topology question, not a
+self-eval routing one.

@@ -49,6 +49,9 @@ search:
   # Feed the prover's self_evaluation into the verifier prompt (default true =
   # the trained input distribution; false blanks it, off-distribution).
   verifier_sees_self_evaluation: true
+  # Gold drops the prover self-eval from the refiner bundle (unreliable ~92%
+  # self-score 1); false = gold behavior (less context). true includes it.
+  refiner_sees_self_evaluation: false
   request_timeout_seconds: 86400
   concurrency: 96
   seed: 0

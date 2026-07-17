@@ -120,11 +120,12 @@ def refinement_messages(
         f'<verifier_review score="{review_score:g}">',
         review,
         "</verifier_review>",
-        "<self_evaluation>",
-        self_evaluation,
-        "</self_evaluation>",
-        "</candidate>",
     ]
+    # Omit the self-evaluation block entirely when empty (matches gold's
+    # build_refine_bundle, which drops it rather than sending an empty element).
+    if self_evaluation:
+        parts += ["<self_evaluation>", self_evaluation, "</self_evaluation>"]
+    parts.append("</candidate>")
     rendered = (
         template("refiner.txt")
         .replace("{problem}", problem)
