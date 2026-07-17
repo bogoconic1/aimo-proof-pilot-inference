@@ -433,10 +433,20 @@ class ProblemSearch:
 
     async def _verify_proof(self, proof: Proof) -> dict:
         stage = f"round-{proof.round_index:02d}/verify/{proof.proof_id}"
+        # The verifier was trained with the candidate's self-evaluation in its
+        # prompt (training/opd_v2 build_verify passes proof.self_eval), so the
+        # default feeds it. Setting verifier_sees_self_evaluation=false blanks it
+        # to test the anchoring hypothesis -- but that prompt shape is off the
+        # verifier's training distribution.
+        self_evaluation = (
+            proof.self_evaluation
+            if self.config.get("verifier_sees_self_evaluation", True)
+            else ""
+        )
         messages = verification_messages(
             self.problem,
             proof.proof,
-            proof.self_evaluation,
+            self_evaluation,
         )
         specs = [
             self._spec(f"{stage}/v{index:03d}", stage, messages)

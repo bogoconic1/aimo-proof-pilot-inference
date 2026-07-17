@@ -8,6 +8,7 @@ bc03a2c71a076990deaad3d712c6889682e12c69.  The same files occur in both
 from __future__ import annotations
 
 import hashlib
+import math
 import re
 from functools import lru_cache
 from pathlib import Path
@@ -17,18 +18,50 @@ PROMPT_SOURCE_COMMIT = "bc03a2c71a076990deaad3d712c6889682e12c69"
 SYSTEM_DELIMITER = "===SYSTEM==="
 USER_DELIMITER = "===USER==="
 
-_GENERATION = re.compile(
-    r"\s*<solution>(.*?)</solution>\s*"
-    r"<self_evaluation>(.*?)</self_evaluation>\s*"
-    r"<score>\s*(0(?:\.5)?|1)\s*</score>\s*",
-    re.DOTALL,
+# Lenient, search-based extraction matching ycchen's gold parser (proof_agent/
+# parser.py), not a strict whole-document fullmatch. See evaluation/PARSING_VS_GOLD.md
+# for the full rationale and the per-case decisions.
+_VALID_SCORES = (0.0, 0.5, 1.0)
+
+_SOLUTION_OPEN = re.compile(r"<solution>", re.IGNORECASE)
+# This model frequently omits </solution>; recover by stopping at the next section
+# boundary (matches gold's _lenient_solution).
+_SOLUTION_END = re.compile(
+    r"</solution>|</?self_evaluation>|<score>", re.IGNORECASE
 )
-_VERIFICATION = re.compile(
-    r"\s*<evaluation>(.*?)</evaluation>\s*"
-    r"<suggestions>(.*?)</suggestions>\s*"
-    r"<score>\s*(0(?:\.5)?|1)\s*</score>\s*",
-    re.DOTALL,
+_SELF_EVALUATION = re.compile(
+    r"<self_evaluation>(.*?)</self_evaluation>", re.IGNORECASE | re.DOTALL
 )
+_SCORE = re.compile(r"<score>(.*?)</score>", re.IGNORECASE | re.DOTALL)
+
+
+def _recover_solution(text: str) -> str:
+    """<solution> content, tolerating a missing </solution> and surrounding text."""
+    opened = _SOLUTION_OPEN.search(text or "")
+    if opened is None:
+        return ""
+    rest = text[opened.end():]
+    end = _SOLUTION_END.search(rest)
+    return (rest[: end.start()] if end else rest).strip()
+
+
+def _parse_score(text: str) -> float | None:
+    """<score> as a float snapped to {0, 0.5, 1}; None if absent or out of set.
+
+    Accepts any float spelling (1, 1.0, 0.5, .5, ...) instead of a fixed literal,
+    and compares with math.isclose rather than == so 1.0 == 1 and 0.5 are exact.
+    """
+    match = _SCORE.search(text or "")
+    if match is None:
+        return None
+    try:
+        value = float(match.group(1).strip())
+    except ValueError:
+        return None
+    for valid in _VALID_SCORES:
+        if math.isclose(value, valid, abs_tol=1e-9):
+            return valid
+    return None
 
 
 @lru_cache(maxsize=None)
@@ -101,22 +134,27 @@ def refinement_messages(
 
 
 def parse_generation(text: str) -> tuple[str, str, float]:
-    match = _GENERATION.fullmatch(text)
-    if match is None:
-        raise ValueError("generation does not match ycchen's XML contract")
-    proof, self_evaluation, score = match.groups()
-    proof = proof.strip()
-    self_evaluation = self_evaluation.strip()
-    if not proof or not self_evaluation:
-        raise ValueError("generation contains an empty required XML element")
-    return proof, self_evaluation, float(score)
+    """(proof, self_evaluation, score). Lenient like gold: a non-empty <solution>
+    (with missing-</solution> recovery) and a valid <score> are required; the
+    self_evaluation may be empty, and surrounding/inter-section text is tolerated.
+    """
+    proof = _recover_solution(text)
+    if not proof:
+        raise ValueError("generation has no <solution> content")
+    match = _SELF_EVALUATION.search(text or "")
+    self_evaluation = match.group(1).strip() if match else ""
+    score = _parse_score(text)
+    if score is None:
+        raise ValueError("generation has no valid <score> (0, 0.5, or 1)")
+    return proof, self_evaluation, score
 
 
 def parse_verification(text: str) -> tuple[str, float]:
-    match = _VERIFICATION.fullmatch(text)
-    if match is None:
-        raise ValueError("verification does not match ycchen's XML contract")
-    evaluation, suggestions, score = match.groups()
-    if not evaluation.strip() or not suggestions.strip():
-        raise ValueError("verification contains an empty required XML element")
-    return text.strip(), float(score)
+    """(full verifier text, score). Only a valid <score> is required; the
+    evaluation/suggestions body may be empty -- a perfect proof legitimately has
+    no suggestions -- matching gold, which counts any parseable score.
+    """
+    score = _parse_score(text)
+    if score is None:
+        raise ValueError("verification has no valid <score> (0, 0.5, or 1)")
+    return (text or "").strip(), score

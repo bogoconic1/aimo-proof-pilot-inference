@@ -29,7 +29,7 @@ SEARCH_KEYS = {
     "refinements_per_proof", "analyses_per_refinement", "max_rounds",
     "early_stop_threshold", "temperature", "top_p", "max_completion_tokens",
     "solution_continuation_tokens", "verifier_continuation_tokens",
-    "min_valid_verifications",
+    "min_valid_verifications", "verifier_sees_self_evaluation",
     "concurrency", "request_timeout_seconds", "seed",
 }
 
@@ -216,6 +216,8 @@ def load_config(path: Path) -> dict[str, Any]:
         raise ValueError("search.top_p must be a finite number in (0, 1]")
     if type(search["seed"]) is not int or search["seed"] < 0:
         raise ValueError("search.seed must be a non-negative integer")
+    if type(search["verifier_sees_self_evaluation"]) is not bool:
+        raise ValueError("search.verifier_sees_self_evaluation must be a boolean")
 
     return config
 

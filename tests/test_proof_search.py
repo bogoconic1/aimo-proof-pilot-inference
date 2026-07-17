@@ -497,6 +497,55 @@ class ProofSearchTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             parse_verification("<evaluation>Evaluation only.</evaluation>")
 
+    def test_lenient_parsing_matches_gold_behavior(self):
+        body = "x" * 40
+        # score written as a float ("1.0"/"0.0") must be accepted, not discarded
+        _, _, s = parse_generation(
+            f"<solution>{body}</solution><self_evaluation>e</self_evaluation><score>1.0</score>"
+        )
+        self.assertEqual(s, 1.0)
+        # empty self_evaluation is allowed (gold does not require it)
+        proof, se, s = parse_generation(
+            f"<solution>{body}</solution><self_evaluation></self_evaluation><score>0.5</score>"
+        )
+        self.assertEqual((proof, se, s), (body, "", 0.5))
+        # missing </solution> is recovered up to the next section (gold's model quirk)
+        proof, _, _ = parse_generation(
+            f"<solution>{body}<self_evaluation>e</self_evaluation><score>1</score>"
+        )
+        self.assertEqual(proof, body)
+        # surrounding text (preamble + trailing) is tolerated
+        proof, _, s = parse_generation(
+            f"Here is my proof:\n<solution>{body}</solution>"
+            "<self_evaluation>e</self_evaluation><score>1</score>\nDone."
+        )
+        self.assertEqual((proof, s), (body, 1.0))
+        # tag case is ignored
+        _, _, s = parse_generation(
+            f"<SOLUTION>{body}</SOLUTION><Self_Evaluation>e</Self_Evaluation><Score>0</Score>"
+        )
+        self.assertEqual(s, 0.0)
+        # a verification with EMPTY suggestions (perfect proof) still counts
+        text, s = parse_verification(
+            "<evaluation>Fully rigorous.</evaluation><suggestions></suggestions><score>1.0</score>"
+        )
+        self.assertEqual(s, 1.0)
+        # an out-of-set score (0.7) is not a valid grade
+        with self.assertRaises(ValueError):
+            parse_generation(
+                f"<solution>{body}</solution><self_evaluation>e</self_evaluation><score>0.7</score>"
+            )
+
+    def test_verifier_self_evaluation_knob(self):
+        from proof_prompts import verification_messages
+        with_se = verification_messages("P", "the proof", "my self-audit")
+        self.assertIn("my self-audit", with_se[1]["content"])
+        # blanked: the self-eval text must not leak into the verifier prompt
+        without_se = verification_messages("P", "the proof", "")
+        self.assertNotIn("my self-audit", without_se[1]["content"])
+        # both still carry the proof itself
+        self.assertIn("the proof", without_se[1]["content"])
+
     def test_refinement_parent_selection_uses_the_cumulative_pool(self):
         async def run():
             with tempfile.TemporaryDirectory() as directory:
@@ -952,7 +1001,7 @@ class ProofSearchTests(unittest.TestCase):
                 self.assertEqual(
                     invalid["verification_disposition"], "skipped_invalid_xml"
                 )
-                self.assertIn("does not match", invalid["xml_error"])
+                self.assertIn("no valid <score>", invalid["xml_error"])
                 self.assertEqual(len(search.proofs["r01-p0000"].verifications), 1)
                 self.assertEqual(
                     summary["verification_stats"]["by_proof"]["r01-p0000"][
