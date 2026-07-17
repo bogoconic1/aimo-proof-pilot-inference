@@ -60,6 +60,11 @@ search:
   # gold TRAINING included it, so false is a deliberate train/inference choice
   # gold validated. true restores it (more context, off gold's inference standard).
   refiner_sees_self_evaluation: false
+  # Parser leniency (gold search-based extraction). true = recover missing
+  # </solution>, tolerate surrounding text, ignore tag case, allow empty
+  # self-eval/suggestions. false = Geremie's strict whole-document XML.
+  # (The float-score and empty-suggestions fixes apply in both.)
+  lenient_parsing: true
   request_timeout_seconds: 86400
   concurrency: 96
   seed: 0

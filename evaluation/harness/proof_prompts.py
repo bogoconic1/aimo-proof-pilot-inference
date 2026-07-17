@@ -34,6 +34,22 @@ _SELF_EVALUATION = re.compile(
 )
 _SCORE = re.compile(r"<score>(.*?)</score>", re.IGNORECASE | re.DOTALL)
 
+# Strict whole-document contract (Geremie's original), reachable via
+# lenient_parsing=false. The score group stays permissive because accepting
+# "1.0"/"0.0" is a blatant bug fix applied in both modes.
+_STRICT_GENERATION = re.compile(
+    r"\s*<solution>(.*?)</solution>\s*"
+    r"<self_evaluation>(.*?)</self_evaluation>\s*"
+    r"<score>(.*?)</score>\s*",
+    re.DOTALL,
+)
+_STRICT_VERIFICATION = re.compile(
+    r"\s*<evaluation>(.*?)</evaluation>\s*"
+    r"<suggestions>(.*?)</suggestions>\s*"
+    r"<score>(.*?)</score>\s*",
+    re.DOTALL,
+)
+
 
 def _recover_solution(text: str) -> str:
     """<solution> content, tolerating a missing </solution> and surrounding text."""
@@ -45,23 +61,25 @@ def _recover_solution(text: str) -> str:
     return (rest[: end.start()] if end else rest).strip()
 
 
-def _parse_score(text: str) -> float | None:
-    """<score> as a float snapped to {0, 0.5, 1}; None if absent or out of set.
+def _snap_score(raw: str | None) -> float | None:
+    """A score string snapped to {0, 0.5, 1}; None if not a value in that set.
 
-    Accepts any float spelling (1, 1.0, 0.5, .5, ...) instead of a fixed literal,
-    and compares with math.isclose rather than == so 1.0 == 1 and 0.5 are exact.
+    Accepts any float spelling (1, 1.0, 0.5, .5, ...) and compares with
+    math.isclose rather than == so 1.0 == 1 and 0.5 are exact.
     """
-    match = _SCORE.search(text or "")
-    if match is None:
-        return None
     try:
-        value = float(match.group(1).strip())
+        value = float((raw or "").strip())
     except ValueError:
         return None
     for valid in _VALID_SCORES:
         if math.isclose(value, valid, abs_tol=1e-9):
             return valid
     return None
+
+
+def _parse_score(text: str) -> float | None:
+    match = _SCORE.search(text or "")
+    return _snap_score(match.group(1)) if match else None
 
 
 @lru_cache(maxsize=None)
@@ -136,28 +154,55 @@ def refinement_messages(
     return _messages(rendered)
 
 
-def parse_generation(text: str) -> tuple[str, str, float]:
-    """(proof, self_evaluation, score). Lenient like gold: a non-empty <solution>
-    (with missing-</solution> recovery) and a valid <score> are required; the
-    self_evaluation may be empty, and surrounding/inter-section text is tolerated.
+def parse_generation(text: str, lenient: bool = True) -> tuple[str, str, float]:
+    """(proof, self_evaluation, score).
+
+    lenient (default, gold): a non-empty <solution> (with missing-</solution>
+    recovery) and a valid <score> are required; self_evaluation may be empty and
+    surrounding/inter-section text is tolerated.
+    strict (lenient=false, Geremie's original): the whole document must match
+    <solution><self_evaluation><score> in order, case-sensitively, with a
+    non-empty self_evaluation. The score is still float-tolerant in both modes.
     """
-    proof = _recover_solution(text)
-    if not proof:
-        raise ValueError("generation has no <solution> content")
-    match = _SELF_EVALUATION.search(text or "")
-    self_evaluation = match.group(1).strip() if match else ""
-    score = _parse_score(text)
+    if lenient:
+        proof = _recover_solution(text)
+        if not proof:
+            raise ValueError("generation has no <solution> content")
+        match = _SELF_EVALUATION.search(text or "")
+        self_evaluation = match.group(1).strip() if match else ""
+        score = _parse_score(text)
+    else:
+        match = _STRICT_GENERATION.fullmatch(text or "")
+        if match is None:
+            raise ValueError("generation does not match the strict XML contract")
+        proof, self_evaluation = match.group(1).strip(), match.group(2).strip()
+        if not proof or not self_evaluation:
+            raise ValueError("generation has an empty required XML element")
+        score = _snap_score(match.group(3))
     if score is None:
         raise ValueError("generation has no valid <score> (0, 0.5, or 1)")
     return proof, self_evaluation, score
 
 
-def parse_verification(text: str) -> tuple[str, float]:
-    """(full verifier text, score). Only a valid <score> is required; the
-    evaluation/suggestions body may be empty -- a perfect proof legitimately has
-    no suggestions -- matching gold, which counts any parseable score.
+def parse_verification(text: str, lenient: bool = True) -> tuple[str, float]:
+    """(full verifier text, score).
+
+    lenient (default, gold): only a valid <score> is required; the
+    evaluation/suggestions body may be empty (a perfect proof has no
+    suggestions), matching gold, which counts any parseable score.
+    strict (lenient=false): the whole document must match
+    <evaluation><suggestions><score> with non-empty evaluation and suggestions.
+    The empty-suggestions acceptance is a bug fix and stays on only in lenient.
     """
-    score = _parse_score(text)
+    if lenient:
+        score = _parse_score(text)
+    else:
+        match = _STRICT_VERIFICATION.fullmatch(text or "")
+        if match is None:
+            raise ValueError("verification does not match the strict XML contract")
+        if not match.group(1).strip() or not match.group(2).strip():
+            raise ValueError("verification has an empty required XML element")
+        score = _snap_score(match.group(3))
     if score is None:
         raise ValueError("verification has no valid <score> (0, 0.5, or 1)")
     return (text or "").strip(), score

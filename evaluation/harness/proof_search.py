@@ -135,6 +135,7 @@ class CallStore:
         temperature: float,
         top_p: float,
         spec: CallSpec,
+        lenient: bool = True,
     ) -> dict:
         existing = self.records.get(spec.sample_id)
         if existing is not None:
@@ -167,7 +168,7 @@ class CallStore:
                 xml_error = None
                 if parser is not None:
                     try:
-                        parser(content)
+                        parser(content, lenient=lenient)
                     except ValueError as error:
                         xml_error = str(error)
                     else:
@@ -195,7 +196,7 @@ class CallStore:
                         )
                     content = response["message"].get("content") or ""
                     try:
-                        parser(content)
+                        parser(content, lenient=lenient)
                     except ValueError as error:
                         xml_valid = False
                         xml_error = str(error)
@@ -299,6 +300,7 @@ class ProblemSearch:
             self.config["temperature"],
             self.config["top_p"],
             spec,
+            lenient=self.config.get("lenient_parsing", True),
         )
 
     def _rank_key(self, proof: Proof) -> tuple[float, int, float, int]:
@@ -462,7 +464,8 @@ class ProblemSearch:
             return None
         try:
             proof_text, self_evaluation, self_score = parse_generation(
-                record["content"]
+                record["content"],
+                lenient=self.config.get("lenient_parsing", True),
             )
         except ValueError:
             return None
@@ -508,7 +511,10 @@ class ProblemSearch:
             if record["verification_disposition"] != "accepted":
                 invalid_sample_ids.append(spec.sample_id)
                 continue
-            analysis, score = parse_verification(record["content"])
+            analysis, score = parse_verification(
+                record["content"],
+                lenient=self.config.get("lenient_parsing", True),
+            )
             verifications.append(
                 Verification(
                     sample_id=spec.sample_id,

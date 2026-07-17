@@ -546,6 +546,28 @@ class ProofSearchTests(unittest.TestCase):
                 f"<solution>{body}</solution><self_evaluation>e</self_evaluation><score>0.7</score>"
             )
 
+    def test_lenient_parsing_knob_toggles_strictness(self):
+        body = "x" * 40
+        # a well-formed doc parses in both modes; float score works in both
+        clean = f"<solution>{body}</solution><self_evaluation>e</self_evaluation><score>1.0</score>"
+        self.assertEqual(parse_generation(clean, lenient=True)[2], 1.0)
+        self.assertEqual(parse_generation(clean, lenient=False)[2], 1.0)
+        # missing </solution>: recovered when lenient, rejected when strict
+        missing_close = f"<solution>{body}<self_evaluation>e</self_evaluation><score>1</score>"
+        self.assertEqual(parse_generation(missing_close, lenient=True)[0], body)
+        with self.assertRaises(ValueError):
+            parse_generation(missing_close, lenient=False)
+        # trailing text: tolerated when lenient, rejected when strict
+        trailing = clean + "\nI am confident."
+        self.assertEqual(parse_generation(trailing, lenient=True)[2], 1.0)
+        with self.assertRaises(ValueError):
+            parse_generation(trailing, lenient=False)
+        # empty verifier suggestions: fine when lenient, rejected when strict
+        v = "<evaluation>ok</evaluation><suggestions></suggestions><score>1</score>"
+        self.assertEqual(parse_verification(v, lenient=True)[1], 1.0)
+        with self.assertRaises(ValueError):
+            parse_verification(v, lenient=False)
+
     def test_verifier_self_evaluation_knob(self):
         from proof_prompts import verification_messages
         with_se = verification_messages("P", "the proof", "my self-audit")

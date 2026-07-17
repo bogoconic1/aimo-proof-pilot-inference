@@ -45,6 +45,12 @@ this repo.
 Cases 1–6 are all directions where this repo is **stricter than gold** and the
 decision is to relax toward gold. Case 8 is the one place this repo is *looser*.
 
+The leniency (cases 3–6, plus IGNORECASE and empty self-eval/suggestions) is
+gated by **`search.lenient_parsing`** (default `true` = gold). Set it `false` to
+restore upstream's strict whole-document `fullmatch` (case-sensitive, all
+elements required, non-empty self-eval/suggestions). The float-score fix (case 2)
+applies in **both** modes — it is a bug fix, not a leniency policy.
+
 ## The score is XML `<score>`, not `\boxed{}`
 
 The `<score>` grade (0 / 0.5 / 1, proof quality) is **not** the same as
