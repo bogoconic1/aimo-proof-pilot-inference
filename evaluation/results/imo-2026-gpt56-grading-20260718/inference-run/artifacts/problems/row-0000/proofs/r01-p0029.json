@@ -1,0 +1,92 @@
+{
+  "proof_id": "r01-p0029",
+  "round_index": 1,
+  "parent_id": null,
+  "proof": "We prove both parts.\n\nLet the initial numbers be $a_1,a_2,\\dots,a_n$ with $n=2026$ and $a_i>1$. For a prime $p$, write $v_p(a)$ for the exponent of $p$ in the prime factorisation of $a$.\n\n---\n\n### (a) Termination\n\nConsider the product $P$ of all numbers on the board. Initially $P = \\prod_{i=1}^n a_i$ is a positive integer $>1$.  \n\nIn a move, choose $m,n>1$ and let $d=\\gcd(m,n)$. Replace them by $d$ and $\\operatorname{lcm}(m,n)/d = mn/d^2$.  \nThe product of these two new numbers is $d\\cdot (mn/d^2)=mn/d$. Hence the total product $P$ changes to $P/d$.  \nThus $P$ never increases, and it strictly decreases whenever $d>1$ (because $d\\ge 2$).  \n\nTherefore the number of moves with $d>1$ is bounded by the number of times $P$ can be divided by an integer $\\ge2$, i.e. finite.  \n\nNow consider moves with $d=1$. Then $m$ and $n$ are coprime, so the new numbers are $1$ and $mn$. Hence two numbers $>1$ are replaced by one number $>1$ and one $1$; the count of numbers $>1$ decreases by exactly $1$. Initially there are $2026$ numbers $>1$, so there can be at most $2025$ such moves.  \n\nConsequently the whole process can contain only finitely many moves, so it terminates.  \n\nAt termination there is no pair of numbers $>1$; hence at most one number $>1$ remains. We will show that exactly one number $>1$ must remain, because the invariant in part (b) will prove that the final number $M$ is $>1$.\n\n---\n\n### (b) Independence of the final $M$\n\nFor a prime $p$ let $S_p$ be the multiset of exponents of $p$ in the numbers currently on the board (with $v_p(1)=0$). Define  \n\n\\[\nG_p = \\gcd(S_p).\n\\]\n\nWe claim that $G_p$ is invariant during the process.  \n\nTake a move that replaces two numbers with exponents $x$ and $y$ (for this prime) by $\\min(x,y)$ and $|x-y|$.  \nLet $d = \\gcd(S_p)$ before the move. Since $d$ divides both $x$ and $y$, it also divides $\\min(x,y)$ and $|x-y|$, so $d$ divides every number in the new multiset; hence $d$ is a common divisor of the new multiset.  \n\nConversely, let $e$ be a common divisor of the new multiset. Then $e$ divides $\\min(x,y)$ and $|x-y|$. Because $x$ and $y$ are linear combinations of $\\min(x,y)$ and $|x-y|$ (indeed $x = \\min(x,y) + \\varepsilon\\cdot |x-y|$ with $\\varepsilon=\\pm1$), $e$ also divides $x$ and $y$. Moreover $e$ divides all the other numbers because they are unchanged. Hence $e$ divides every number of the original multiset, so $e$ divides $d$. Therefore $\\gcd$ of the new multiset equals $d$. Thus $G_p$ is unchanged.  \n\nInitially the multiset consists of the $2026$ numbers $a_1,\\dots,a_n$. Hence  \n\n\\[\nG_p = \\gcd\\bigl(v_p(a_1),\\dots,v_p(a_n)\\bigr) =: g_p .\n\\]\n\nNow the process ends with exactly one number $M>1$ and the remaining $2025$ numbers equal to $1$. For this final configuration the multiset $S_p$ contains $v_p(M)$ and $2025$ zeros. The greatest common divisor of this multiset is $v_p(M)$ (since $\\gcd(v_p(M),0,\\dots,0)=v_p(M)$). Therefore $v_p(M)=G_p = g_p$.  \n\nConsequently  \n\n\\[\nM = \\prod_{p} p^{g_p},\n\\]\n\nwhich depends only on the initial numbers and not on the choices made during the process.  \n\nSince each $g_p$ is a positive integer for at least one prime (otherwise all $a_i$ would be $1$, contradicting $a_i>1$), we have $M>1$, so the final board indeed contains exactly one integer $M>1$. This also proves that the process cannot terminate with all numbers equal to $1$, because the invariant would then force $M=1$, contradicting $g_p>0$ for some $p$.\n\nThus both statements are proved.",
+  "self_evaluation": "The proof is rigorous. The termination argument uses the product and the count of numbers >1; both are finite and strictly monotonic in their respective cases. The invariant for each prime is proven by a simple linear combination argument. The final conclusion follows directly. All steps are justified. No gaps remain.",
+  "self_score": 1.0,
+  "generation_sample_id": "round-01/generate/r01-p0029",
+  "verifications": [
+    {
+      "sample_id": "round-01/verify/r01-p0029/v000",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts. Termination is shown by considering the product (strictly decreasing when gcd>1) and the count of numbers >1 (decreasing by 1 when gcd=1). The invariant for each prime, based on exponents, is well-defined and preserved through moves, establishing that the final number M depends only on the initial numbers. The argument that the process ends with exactly one M>1 is sound, using the invariant to rule out all ones. All steps are justified; there are no logical gaps or errors.\n</evaluation>\n<suggestions>\nNo significant issues; the proof is clear and rigorous.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0029/v001",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. The termination argument uses the product and the count of numbers >1 to bound the number of moves. The invariant for each prime is clearly proven. The final conclusion follows logically. All steps are justified.\n</evaluation>\n<suggestions>\nNo suggestions; the proof is complete.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0029/v002",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts. The termination argument uses the product of all numbers (strictly decreasing when d>1) and the count of numbers >1 (strictly decreasing when d=1), both of which are finite, so the process terminates. The invariant for each prime exponent is correctly established: the gcd of the exponent multiset is unchanged. The final configuration is shown to have exactly one number M>1, and the invariant yields M as the product over primes of the initial gcds, proving independence. The reasoning is sound, and the minor imprecision in the linear combination statement (claiming x = min + ε·|x-y| with ε=±1) does not undermine the overall correctness, as the conclusion that e divides x and y still holds.\n</evaluation>\n<suggestions>\nThe linear combination argument in the invariant proof could be made more precise by noting that x and y are either min or min+|x-y|, so e dividing min and |x-y| implies e divides both x and y. Otherwise, the proof is well-structured and complete.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0029/v003",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. It properly proves termination by bounding the number of moves with gcd>1 via the product and the number of moves with gcd=1 via the count of numbers greater than 1. The invariant for each prime exponent is correctly established, and it is used to show that the final number M is independent of the choices. The reasoning that the process must end with exactly one M>1 (using the invariant) is logically sound. All steps are justified and no gaps or hidden assumptions remain.\n</evaluation>\n<suggestions>\nThe proof is already clear and complete. One minor improvement could be to explicitly note that the product P is a positive integer and that each move with d>1 reduces P by at least a factor of 2, giving a finite bound. The invariant argument is well-structured.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0029/v004",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe candidate's solution is correct and rigorous. It properly demonstrates termination by considering the product (which decreases when gcd > 1) and the count of numbers > 1 (which decreases when gcd = 1). The invariant for each prime (gcd of exponents) is correctly proven and used to show that the final number M is uniquely determined and greater than 1, which also implies that exactly one number > 1 remains at termination. All steps are justified, and there are no fatal errors or hidden assumptions.\n</evaluation>\n<suggestions>\nThe proof is already clear, but the logical flow could be slightly improved by explicitly noting that the invariant in part (b) also completes the proof of part (a) (showing that the final number is > 1, hence exactly one > 1 remains). This is already implied, but a more explicit connection would make the argument even more streamlined.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0029/v005",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts. Termination is argued using the product and the count of numbers >1, both of which are monotonic. The invariant for each prime exponent is proven, showing that the final number M is uniquely determined by the initial numbers. The reasoning is rigorous and all claims are justified. The minor issue of assuming the final configuration has exactly one >1 before proving it is resolved by the later invariant, so overall the solution is correct.\n</evaluation>\n<suggestions>\nThe proof could be slightly refined by explicitly stating in part (a) that the process terminates with at most one number >1, and then using the invariant from part (b) to show that number must be >1, thereby establishing exactly one. The current presentation is acceptable.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0029/v006",
+      "score": 0.5,
+      "analysis": "<evaluation>\nThe solution correctly proves termination using the product and count arguments. The invariant for each prime is correctly identified and shown to be invariant. The conclusion that the final M is uniquely determined follows. However, there is a minor oversight in the invariant proof regarding primes that never appear (all exponents zero). The argument that the gcd is invariant uses divisibility by zero, which is not fully justified. This can be fixed by noting that for such primes, the exponents remain zero and the gcd is zero, so the invariant holds trivially. Overall the reasoning is sound.\n</evaluation>\n<suggestions>\nExplicitly mention that for primes not dividing any initial number, the exponent is always zero, so the invariant holds trivially. Alternatively, restrict the invariant to primes that appear in at least one initial number and treat the zero case separately.\n</suggestions>\n<score>0.5</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0029/v007",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. Part (a) shows termination and that at most one number >1 remains; part (b) proves the invariant and that the final number M is determined solely by the initial numbers, which also implies M>1, completing the proof of (a). All steps are justified, and there are no logical gaps or errors.\n</evaluation>\n<suggestions>\nThe solution could be slightly improved by proving part (b) first or by more explicitly stating that the invariant forces the final number to be >1, but the current presentation is acceptable.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0029/v008",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is rigorous and correct. The termination argument uses the product of all numbers to bound moves with d>1 and the count of numbers >1 to bound moves with d=1, both of which are finite. The invariant for each prime, based on the gcd of the exponents, is properly proven and shows that the final number M is uniquely determined by the initial numbers. The reasoning that the process must end with exactly one integer >1 is sound. All claims are justified, and there are no gaps or errors.\n</evaluation>\n<suggestions>\nThe solution could be slightly more precise in the product argument (e.g., explicitly stating that each move with d>1 reduces P by a factor of at least 2, so the number of such moves is bounded by log₂(P)), but this does not affect correctness.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0029/v009",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts. The termination argument uses the product of all numbers and the count of numbers greater than 1 to show finiteness. The invariant for each prime exponent is properly established and used to determine the final number M. All steps are logically sound and justified. There are no fatal errors or omissions.\n</evaluation>\n<suggestions>\nThe proof is rigorous. A minor clarification: when discussing the invariant, explicitly note that the gcd of a multiset containing zeros is the gcd of the positive numbers, and that the case of all zeros (all ones) is handled by the contradiction argument. Otherwise, the solution is complete.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0029/v010",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. The termination argument uses the product of all numbers (which decreases by a factor ≥2 when gcd>1) and the count of numbers >1 (which decreases by 1 when gcd=1); both are finite, so the process terminates. The invariant for each prime is correctly proven by examining the exponents and showing that the gcd of the multiset of exponents is unchanged. From this invariant, the final number M is determined by the initial numbers, proving part (b) and also that exactly one integer >1 remains (since M>1). All steps are justified, and no gaps or errors are present.\n</evaluation>\n<suggestions>\nNo suggestions; the proof is complete.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0029/v011",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. The termination argument uses two monotonic quantities (product of all numbers and count of numbers >1) to bound the number of moves, establishing finiteness. The invariant for each prime (gcd of exponents) is properly proven, and its invariance is used to show that the final number M is uniquely determined by the initial multiset. All steps are justified, and no gaps or errors are present.\n</evaluation>\n<suggestions>\nNo suggestions needed; the proof is already thorough.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0029/v012",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts. Termination is argued using a product invariant that strictly decreases when gcd>1, and a count of numbers >1 that decreases when gcd=1; both bounds are finite. The invariant for each prime exponent is proven rigorously via linear combinations, showing that the gcd of exponents is preserved. The final configuration is shown to contain exactly one number >1, and its value is uniquely determined by the initial multiset. All steps are logically sound and clearly justified.\n</evaluation>\n<suggestions>\nThe solution is complete and rigorous. Minor clarifications could be added, e.g., explicitly stating that the product P is an integer and that the number of moves with d>1 is at most log_2(P), but this is not necessary for correctness.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0029/v013",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts. The termination argument uses a monotonic product and a count of numbers greater than 1, both finite, showing the process terminates. The invariant for each prime exponent is proven rigorously, establishing that the final number M is uniquely determined by the initial numbers. All steps are justified, and no gaps or errors are present.\n</evaluation>\n<suggestions>\nNone needed; the proof is complete and rigorous.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0029/v014",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts. The termination argument uses the product to bound moves with d>1 and the count of numbers >1 to bound moves with d=1, establishing finiteness. The invariant for each prime exponent is correctly shown to be preserved, leading to the independence of the final number M. The final conclusion that M>1 follows from the initial conditions. All steps are logically sound and justified.\n</evaluation>\n<suggestions>\nThe proof is rigorous. No major suggestions; minor clarifications could include explicitly stating that the product cannot become 0 and that the bound on moves with d>1 is at most log_2(initial product), but these are already implicit.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0029/v015",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts. The termination argument uses a product invariant (strictly decreasing when gcd>1) and a count of numbers >1 (decreasing by one when gcd=1), establishing finiteness. The independence proof uses a prime‑wise invariant (the gcd of exponents) and shows it is preserved; applying it to the final configuration yields the unique final number M, which depends only on the initial numbers. All steps are justified and no gaps remain.\n</evaluation>\n<suggestions>\nNone needed.\n</suggestions>\n<score>1</score>"
+    }
+  ],
+  "mean_score": 0.96875
+}

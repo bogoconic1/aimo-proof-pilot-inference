@@ -1,0 +1,92 @@
+{
+  "proof_id": "r01-p0017",
+  "round_index": 1,
+  "parent_id": null,
+  "proof": "Let the multiset of numbers on the board be \\(A\\) (initially \\(|A|=2026\\) and every element \\(>1\\)).  \nFor a move we pick two distinct numbers \\(m,n>1\\) and replace them by  \n\\(g=\\gcd(m,n)\\) and \\(\\ell = \\operatorname{lcm}(m,n)/g = \\frac{mn}{g^2}\\).  \nThe total number of numbers remains \\(2026\\).\n\n---\n\n### (a) Termination\n\nLet \\(k\\) be the number of integers \\(>1\\) on the board, and let \\(P\\) be the product of all those integers.  \n(If \\(k=0\\) we would have no numbers \\(>1\\); this never occurs because we start with \\(k=2026\\) and the process cannot create a state with no number \\(>1\\) – see below.)\n\nConsider a move.  We distinguish three cases.\n\n* **Case 1: \\(\\gcd(m,n)=1\\).**  \n  Then \\(g=1\\) and \\(\\ell = mn\\).  The two numbers \\(m,n\\) are replaced by \\(1\\) and \\(mn\\).  \n  Hence \\(k\\) decreases by \\(1\\) (two numbers \\(>1\\) become one number \\(>1\\) and one \\(1\\)), and  \n  \\(P\\) remains unchanged (the product of the numbers \\(>1\\) changes from \\(mn\\) to \\(mn\\)).\n\n* **Case 2: \\(\\gcd(m,n)=g>1\\) and both \\(g\\) and \\(\\ell\\) are \\(>1\\).**  \n  Then the two numbers are replaced by two numbers \\(>1\\).  Hence \\(k\\) stays the same, and  \n  \\(P\\) changes from \\(mn\\) to \\(g\\ell = \\frac{mn}{g}\\).  Because \\(g>1\\), \\(P\\) strictly decreases.\n\n* **Case 3: \\(\\gcd(m,n)=g>1\\) and \\(\\ell=1\\).**  \n  Then \\(g>1\\) and \\(\\ell=1\\).  The two numbers become \\(g\\) and \\(1\\).  Hence \\(k\\) decreases by \\(1\\) (one number \\(>1\\) remains), and  \n  \\(P\\) changes from \\(mn\\) to \\(g = \\frac{mn}{g}\\).  Since \\(g>1\\), \\(P\\) strictly decreases.\n\nThus in every move either \\(k\\) decreases by \\(1\\) or \\(k\\) stays the same and \\(P\\) strictly decreases.  \nTherefore the pair \\((k,P)\\) is strictly decreasing in the lexicographic order with \\(k\\) as the primary key.\n\nThe integer \\(k\\) is bounded between \\(0\\) and \\(2026\\); the integer \\(P\\) is a positive integer that can only decrease when \\(k\\) is constant.  Consequently there can be only finitely many moves, so the process terminates.\n\nAt termination no two numbers \\(>1\\) exist, i.e. \\(k\\le 1\\).  Could \\(k=0\\)?  If \\(k=0\\) all numbers would be \\(1\\), but the only way to obtain a \\(1\\) is by a move (and each move creates at most one \\(1\\)), and initially all numbers are \\(>1\\); moreover, when only one number \\(>1\\) remains no move is possible because a move requires two numbers \\(>1\\).  Hence the process cannot reach a state with \\(k=0\\).  Therefore at termination we have exactly one integer \\(>1\\); call it \\(M\\).  The remaining \\(2025\\) numbers are \\(1\\)’s.  This completes the proof of (a).\n\n---\n\n### (b) Independence of the final value\n\nFor a prime \\(p\\) and a positive integer \\(x\\) denote by \\(v_p(x)\\) the exponent of \\(p\\) in the prime factorisation of \\(x\\) (with \\(v_p(x)=0\\) if \\(p\\nmid x\\)).  \n\nLet the initial numbers be \\(a_1,\\dots,a_{2026}\\).  For each prime \\(p\\) define  \n\\[\nd_p = \\gcd\\bigl(v_p(a_1), v_p(a_2),\\dots, v_p(a_{2026})\\bigr).\n\\]\n(If all \\(v_p(a_i)=0\\) we set \\(d_p=0\\).)\n\n**Invariant.**  For any move, the multiset of exponents for a fixed prime \\(p\\) has the same greatest common divisor.\n\n*Proof.*  Suppose we replace two numbers with exponents \\(a\\) and \\(b\\) by \\(\\min(a,b)\\) and \\(|a-b|\\).  Let \\(G\\) be the gcd of the exponents before the move.  Since \\(G\\mid a\\) and \\(G\\mid b\\), we have \\(G\\mid\\min(a,b)\\) and \\(G\\mid|a-b|\\); thus \\(G\\) divides every exponent after the move.  Conversely, let \\(G'\\) be the gcd after the move.  Then \\(G'\\mid\\min(a,b)\\) and \\(G'\\mid|a-b|\\).  If \\(a\\ge b\\) then \\(a = \\min(a,b) + |a-b|\\), so \\(G'\\mid a\\); also \\(b = \\min(a,b)\\), so \\(G'\\mid b\\).  Hence \\(G'\\) divides the original two exponents, therefore \\(G'\\mid G\\).  Thus \\(G'=G\\).  ∎\n\nConsequently, throughout the whole process the gcd of the exponents for each prime \\(p\\) is always \\(d_p\\).\n\nAt the final state there is exactly one number \\(>1\\), say \\(M\\), and all other numbers are \\(1\\)’s.  For a given prime \\(p\\) the exponents on the board are \\(v_p(M)\\) (from \\(M\\)) and zeros (from the \\(1\\)’s).  The gcd of this multiset is \\(\\gcd(v_p(M),0,\\dots,0)=v_p(M)\\).  By the invariant we must have \\(v_p(M)=d_p\\).  Therefore  \n\\[\nM = \\prod_{p} p^{\\,d_p},\n\\]\nwhich depends only on the initial multiset and not on the choices made during the process.  This proves (b). ∎",
+  "self_evaluation": "All steps are rigorously justified.  The potential function (k,P) is clearly defined and shown to strictly decrease in every move, ensuring termination.  The argument that k cannot become 0 is sound.  The invariant on prime exponents is proved correctly, and the final value M is uniquely determined.  No gaps or numerical evidence are used.",
+  "self_score": 1.0,
+  "generation_sample_id": "round-01/generate/r01-p0017",
+  "verifications": [
+    {
+      "sample_id": "round-01/verify/r01-p0017/v000",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts (a) and (b).  \nPart (a) uses a potential function (k, P) where k is the number of integers >1 and P is the product of those integers. The analysis of the three possible cases shows that in every move either k decreases or k stays the same and P strictly decreases, guaranteeing termination in finitely many steps. The argument that the process cannot end with k=0 (only one >1 remains) is sound, and the conclusion that exactly one integer M>1 remains is justified.  \nPart (b) introduces an invariant on prime exponents: the gcd of the exponents for each prime is preserved under any move. The proof that the gcd of the two numbers' exponents is unchanged is correctly argued, and this extends to the whole multiset. At the final state, the invariant forces v_p(M) to equal the initial gcd of exponents, so M = ∏ p^{d_p}, which depends only on the initial multiset and not on the choices made.  \nAll steps are rigorous and no hidden assumptions or gaps are present.\n</evaluation>\n<suggestions>\nNone.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0017/v001",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. Part (a) correctly defines a potential function (k,P) that strictly decreases lexicographically, ensuring termination. The argument that at termination exactly one integer >1 remains is sound. Part (b) correctly identifies an invariant on the exponents for each prime, proves it, and deduces that the final value M is uniquely determined by the initial multiset. All claims are justified, and no logical gaps or errors are present.\n</evaluation>\n<suggestions>\nNo major issues; the proof is complete. Optionally, the argument that k cannot become 0 could be made slightly more explicit, but it is already valid.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0017/v002",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe candidate solution correctly proves both parts (a) and (b).  The potential function (k, P) is well-defined and shown to strictly decrease in lexicographic order, guaranteeing termination.  The argument that at termination exactly one integer >1 remains is sound, with the reasoning that k cannot become 0 because a move from k=1 to k=0 would require two numbers >1.  The invariant on prime exponents is correctly established, and the final value M is uniquely determined as the product over primes of p^{d_p}, where d_p is the initial gcd of exponents.  All nontrivial claims are justified, and there are no fatal errors or hidden assumptions.\n</evaluation>\n<suggestions>\nThe proof of (a) could be slightly strengthened by explicitly noting that k cannot decrease by more than 1 per move, and that the last move would have to reduce k from 1 to 0, which is impossible.  The bound on P could be made more explicit by noting that P is always ≤ initial product, but the argument is already clear.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0017/v003",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is complete and rigorous. Part (a) correctly defines a potential function (k,P) and shows it strictly decreases lexicographically, guaranteeing termination. The reasoning that the process ends with exactly one integer >1 is sound. Part (b) establishes an invariant on the gcd of prime exponents, which uniquely determines the final number M, independent of the sequence of moves. All steps are justified.\n</evaluation>\n<suggestions>\nNo major issues; the proof is clear and correct. Minor clarification: the argument that k cannot become 0 could be slightly expanded to explicitly note that a move reducing k from 1 to 0 would require two numbers >1, which is impossible when only one >1 exists. However, the given reasoning is sufficient.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0017/v004",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. Part (a) uses a lexicographic potential function (k, P) that strictly decreases in every move, guaranteeing termination. The argument that the process cannot reach a state with no numbers >1 (k=0) is sound, so termination occurs with exactly one integer >1. Part (b) correctly identifies the invariant of the gcd of exponents for each prime, proves its invariance, and deduces that the final M is uniquely determined by the initial multiset. All claims are justified, and no gaps or errors are present.\n</evaluation>\n<suggestions>\nNo major suggestions; the proof is complete and well-structured. Minor clarifications could include explicitly noting that the product P is always a positive integer and that the lexicographic ordering is well-defined, but these are already implied.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0017/v005",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. The termination argument using the potential function (k,P) is valid, and the reasoning that the process ends with exactly one integer >1 is sound. The invariant for prime exponents is correctly proved and used to show the final value M is independent of choices. No errors or omissions.\n</evaluation>\n<suggestions>\nNo suggestions needed; the proof is complete.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0017/v006",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe candidate solution correctly proves both parts. The termination argument uses a well-defined potential function (k,P) that strictly decreases in each move, ensuring finite termination. The argument that the process ends with exactly one integer >1 is rigorous. The independence of the final value is established by an invariant on the gcd of exponents for each prime, which is shown to be preserved, and the final M is uniquely determined. All steps are logically sound and justified; there are no hidden assumptions or errors.\n</evaluation>\n<suggestions>\nNo suggestions; the proof is complete and rigorous.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0017/v007",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts. Part (a) uses a lexicographic potential function (k, P) that strictly decreases in every move, ensuring termination. It also correctly argues that the process must end with exactly one integer >1, because a state with zero numbers >1 is unreachable. Part (b) defines the gcd of exponents for each prime as an invariant, proves its invariance via the Euclidean algorithm on exponents, and deduces the unique final value M. All claims are justified, and no gaps or errors are present.\n</evaluation>\n<suggestions>\nNo suggestions needed; the proof is rigorous and complete.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0017/v008",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly addresses both parts of the problem. The termination argument uses a lexicographic potential function (k, P) that strictly decreases in every move, guaranteeing finite termination. The reasoning that exactly one integer >1 remains at termination is sound, as k cannot drop to 0 because no move is possible when only one number >1 exists. The independence of the final value M is proven by the invariant that the greatest common divisor of the exponents for each prime is preserved throughout the process; this yields the unique product representation of M. All steps are logically justified, and no gaps or errors are present.\n</evaluation>\n<suggestions>\nThe proof is already rigorous. A minor improvement could be to explicitly note that the number of numbers >1 cannot increase, but this is already clear from the case analysis. No essential changes are needed.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0017/v009",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is completely correct and rigorous. All steps are justified: the lexicographic potential function for termination is correctly defined and shown to strictly decrease; the argument that the process cannot end with zero numbers >1 is sound; the prime exponent invariant is correctly proved and used to determine the final M uniquely. No gaps or errors.\n</evaluation>\n<suggestions>\nNone needed; the proof is thorough.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0017/v010",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts of the problem. Part (a) uses a lexicographic potential function (number of numbers >1, product of those numbers) and shows it strictly decreases in every move, guaranteeing termination. The argument that the process cannot reach a state with zero numbers >1 is sound. Part (b) introduces an invariant on the exponents of each prime, proves it is preserved under the move, and deduces that the final M is uniquely determined by the initial multiset. All steps are logically justified and no gaps or errors are present.\n</evaluation>\n<suggestions>\nNo significant issues; the reasoning is clear and rigorous. Minor improvements could be made in the termination argument by explicitly noting that k cannot become 0 because a move that reduces k requires two numbers >1 and leaves at least one >1, but the current reasoning is sufficient.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0017/v011",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts. For (a), it defines a potential function (k,P) that strictly decreases in each move, ensuring termination, and argues that at termination exactly one integer >1 remains. For (b), it uses an invariant on prime exponents to show that the final M is uniquely determined. All claims are justified, and no gaps or errors are present.\n</evaluation>\n<suggestions>\nNone.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0017/v012",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts. The termination argument uses a well-defined potential function (k, P) that strictly decreases in each move, guaranteeing finiteness, and correctly handles the possibility of k = 0. The independence of the final value is established via an invariant on the exponents of each prime, which is rigorously shown to be preserved. The final value M is uniquely determined by the initial multiset. All steps are logically sound and justified.\n</evaluation>\n<suggestions>\nNone needed.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0017/v013",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. Part (a) uses a well-defined potential function (k, P) that strictly decreases in every move, guaranteeing termination; the argument that the final state has exactly one integer >1 is sound. Part (b) correctly identifies the invariant on prime exponent gcds and shows it is preserved; the final value M is uniquely determined by the initial numbers. All steps are justified, and no gaps or errors are present.\n</evaluation>\n<suggestions>\nNo significant issues; the proof is clear and complete.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0017/v014",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe candidate solution correctly proves both parts. Part (a) uses a lexicographic potential function (k,P) that strictly decreases in each move, establishing termination, and argues that at termination exactly one integer >1 remains. Part (b) defines an invariant on the gcd of prime exponents and shows that it remains unchanged, leading to the unique final M. All steps are logically sound and justified. No errors or omissions.\n</evaluation>\n<suggestions>\nNo improvements needed; the proof is complete and rigorous.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0017/v015",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. Part (a) correctly defines a potential function (k, P) and shows that each move strictly decreases it, ensuring termination. The argument that the final state has exactly one integer >1 is sound. Part (b) introduces an invariant on prime exponents, proves it correctly, and deduces that the final number M is uniquely determined by the initial multiset. All steps are logically justified and no gaps or errors are present.\n</evaluation>\n<suggestions>\nThe argument that the process cannot reach k=0 could be slightly clarified by noting that each move reduces k by at most 1 and when k=1 no move is possible, so k cannot become 0. This is already implicit, but a brief expansion would make it fully explicit.\n</suggestions>\n<score>1</score>"
+    }
+  ],
+  "mean_score": 1.0
+}

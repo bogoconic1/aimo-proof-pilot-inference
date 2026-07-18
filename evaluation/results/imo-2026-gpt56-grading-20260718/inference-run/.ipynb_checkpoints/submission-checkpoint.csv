@@ -1,0 +1,58 @@
+id,proof
+0,"Let the multiset of numbers on the board be \(A\) (initially \(|A|=2026\) and every element \(>1\)).  
+For a move we pick two distinct numbers \(m,n>1\) and replace them by  
+\(g=\gcd(m,n)\) and \(\ell = \operatorname{lcm}(m,n)/g = \frac{mn}{g^2}\).  
+The total number of numbers remains \(2026\).
+
+---
+
+### (a) Termination
+
+Let \(k\) be the number of integers \(>1\) on the board, and let \(P\) be the product of all those integers.  
+(If \(k=0\) we would have no numbers \(>1\); this never occurs because we start with \(k=2026\) and the process cannot create a state with no number \(>1\) – see below.)
+
+Consider a move.  We distinguish three cases.
+
+* **Case 1: \(\gcd(m,n)=1\).**  
+  Then \(g=1\) and \(\ell = mn\).  The two numbers \(m,n\) are replaced by \(1\) and \(mn\).  
+  Hence \(k\) decreases by \(1\) (two numbers \(>1\) become one number \(>1\) and one \(1\)), and  
+  \(P\) remains unchanged (the product of the numbers \(>1\) changes from \(mn\) to \(mn\)).
+
+* **Case 2: \(\gcd(m,n)=g>1\) and both \(g\) and \(\ell\) are \(>1\).**  
+  Then the two numbers are replaced by two numbers \(>1\).  Hence \(k\) stays the same, and  
+  \(P\) changes from \(mn\) to \(g\ell = \frac{mn}{g}\).  Because \(g>1\), \(P\) strictly decreases.
+
+* **Case 3: \(\gcd(m,n)=g>1\) and \(\ell=1\).**  
+  Then \(g>1\) and \(\ell=1\).  The two numbers become \(g\) and \(1\).  Hence \(k\) decreases by \(1\) (one number \(>1\) remains), and  
+  \(P\) changes from \(mn\) to \(g = \frac{mn}{g}\).  Since \(g>1\), \(P\) strictly decreases.
+
+Thus in every move either \(k\) decreases by \(1\) or \(k\) stays the same and \(P\) strictly decreases.  
+Therefore the pair \((k,P)\) is strictly decreasing in the lexicographic order with \(k\) as the primary key.
+
+The integer \(k\) is bounded between \(0\) and \(2026\); the integer \(P\) is a positive integer that can only decrease when \(k\) is constant.  Consequently there can be only finitely many moves, so the process terminates.
+
+At termination no two numbers \(>1\) exist, i.e. \(k\le 1\).  Could \(k=0\)?  If \(k=0\) all numbers would be \(1\), but the only way to obtain a \(1\) is by a move (and each move creates at most one \(1\)), and initially all numbers are \(>1\); moreover, when only one number \(>1\) remains no move is possible because a move requires two numbers \(>1\).  Hence the process cannot reach a state with \(k=0\).  Therefore at termination we have exactly one integer \(>1\); call it \(M\).  The remaining \(2025\) numbers are \(1\)’s.  This completes the proof of (a).
+
+---
+
+### (b) Independence of the final value
+
+For a prime \(p\) and a positive integer \(x\) denote by \(v_p(x)\) the exponent of \(p\) in the prime factorisation of \(x\) (with \(v_p(x)=0\) if \(p\nmid x\)).  
+
+Let the initial numbers be \(a_1,\dots,a_{2026}\).  For each prime \(p\) define  
+\[
+d_p = \gcd\bigl(v_p(a_1), v_p(a_2),\dots, v_p(a_{2026})\bigr).
+\]
+(If all \(v_p(a_i)=0\) we set \(d_p=0\).)
+
+**Invariant.**  For any move, the multiset of exponents for a fixed prime \(p\) has the same greatest common divisor.
+
+*Proof.*  Suppose we replace two numbers with exponents \(a\) and \(b\) by \(\min(a,b)\) and \(|a-b|\).  Let \(G\) be the gcd of the exponents before the move.  Since \(G\mid a\) and \(G\mid b\), we have \(G\mid\min(a,b)\) and \(G\mid|a-b|\); thus \(G\) divides every exponent after the move.  Conversely, let \(G'\) be the gcd after the move.  Then \(G'\mid\min(a,b)\) and \(G'\mid|a-b|\).  If \(a\ge b\) then \(a = \min(a,b) + |a-b|\), so \(G'\mid a\); also \(b = \min(a,b)\), so \(G'\mid b\).  Hence \(G'\) divides the original two exponents, therefore \(G'\mid G\).  Thus \(G'=G\).  ∎
+
+Consequently, throughout the whole process the gcd of the exponents for each prime \(p\) is always \(d_p\).
+
+At the final state there is exactly one number \(>1\), say \(M\), and all other numbers are \(1\)’s.  For a given prime \(p\) the exponents on the board are \(v_p(M)\) (from \(M\)) and zeros (from the \(1\)’s).  The gcd of this multiset is \(\gcd(v_p(M),0,\dots,0)=v_p(M)\).  By the invariant we must have \(v_p(M)=d_p\).  Therefore  
+\[
+M = \prod_{p} p^{\,d_p},
+\]
+which depends only on the initial multiset and not on the choices made during the process.  This proves (b). ∎"

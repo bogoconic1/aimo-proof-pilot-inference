@@ -1,0 +1,92 @@
+{
+  "proof_id": "r01-p0023",
+  "round_index": 1,
+  "parent_id": null,
+  "proof": "We prove both parts.\n\nLet the numbers on the board be positive integers greater than 1 (not necessarily distinct).  \nFor a positive integer \\(x\\) denote by \\(\\Omega(x)\\) the total number of prime factors counted with multiplicity (so \\(\\Omega(1)=0\\)).  \nLet \\(T=\\sum_{x\\text{ on board}}\\Omega(x)\\) and let \\(A\\) be the number of integers \\(>1\\) on the board.\n\n---\n### (a) Termination and exactly one integer \\(>1\\)\n\nConsider a move: choose \\(m,n>1\\), let \\(g=\\gcd(m,n)\\) and \\(\\ell=\\operatorname{lcm}(m,n)\\). Replace \\(m,n\\) by \\(g\\) and \\(\\ell/g\\).\n\n**Change of \\(T\\).**  \nSince \\(\\ell=mn/g\\), we have \\(\\Omega(\\ell)=\\Omega(m)+\\Omega(n)-\\Omega(g)\\). Then  \n\\[\n\\Omega(g)+\\Omega(\\ell/g)=\\Omega(g)+\\bigl(\\Omega(\\ell)-\\Omega(g)\\bigr)=\\Omega(\\ell)=\\Omega(m)+\\Omega(n)-\\Omega(g).\n\\]  \nThus \\(\\Delta T=-\\Omega(g)\\). Hence if \\(g>1\\) then \\(T\\) decreases by at least \\(1\\); if \\(g=1\\) then \\(T\\) is unchanged.\n\n**Change of \\(A\\).**  \nThe two new numbers are \\(g\\) and \\(\\ell/g\\). Because \\(m,n>1\\) we always have at least one of them \\(>1\\).  \n- If \\(g=1\\) or \\(m=n\\) then exactly one of the two new numbers is \\(>1\\) (in the first case \\(\\ell/g=\\ell>1\\), in the second case \\(g=m>1\\) and \\(\\ell/g=1\\)). Then \\(A\\) decreases by \\(1\\).  \n- If \\(g>1\\) and \\(m\\neq n\\) then both \\(g\\) and \\(\\ell/g\\) are \\(>1\\); consequently \\(A\\) stays the same.\n\n**A decreasing potential.**  \nConsider \\(S=T+A\\). In a move:\n- if \\(g=1\\): \\(\\Delta T=0\\), \\(\\Delta A=-1\\) ⇒ \\(\\Delta S=-1\\);\n- if \\(g>1\\) and \\(m\\neq n\\): \\(\\Delta T=-\\Omega(g)\\le -1\\), \\(\\Delta A=0\\) ⇒ \\(\\Delta S\\le -1\\);\n- if \\(m=n\\): then \\(g=m>1\\), \\(\\Delta T=-\\Omega(m)\\le -1\\), \\(\\Delta A=-1\\) ⇒ \\(\\Delta S\\le -2\\).\n\nThus in every move \\(S\\) decreases by at least \\(1\\). The initial value \\(S\\) is at least \\(2026+2026=4052\\) (each initial number has \\(\\Omega\\ge1\\)). Since \\(S\\) is a non‑negative integer, the process cannot continue indefinitely; it must terminate after finitely many moves.\n\nWhen the process stops, no two numbers \\(>1\\) exist, so \\(A\\le1\\). Moreover, every move produces at least one number \\(>1\\); hence \\(A\\) never becomes \\(0\\). Therefore at termination we have \\(A=1\\), i.e. exactly one integer \\(>1\\) remains. This completes the proof of (a).\n\n---\n### (b) Independence of the final number \\(M\\)\n\nFor each prime \\(p\\) consider the exponent of \\(p\\) in a number \\(x\\) (denoted \\(e_p(x)\\); \\(e_p(1)=0\\)).  \nDefine \\(d_p\\) as the greatest common divisor of all exponents of \\(p\\) among the numbers on the board (with the convention \\(\\gcd(0,e)=e\\)).  \nWe show that \\(d_p\\) is invariant under the operation.\n\nTake a move with \\(m,n\\) and let \\(a=e_p(m)\\), \\(b=e_p(n)\\). After the move the exponents become  \n\\[\na'=\\min(a,b),\\qquad b'=|a-b|.\n\\]  \nLet \\(d=d_p\\) before the move. Since \\(d\\) divides \\(a\\) and \\(b\\), it divides \\(a'\\) and \\(b'\\); therefore \\(d\\) divides every exponent after the move, so \\(d\\) divides the new gcd \\(d_p'\\).  \nConversely, let \\(d'=d_p'\\) after the move. Then \\(d'\\) divides \\(a'\\) and \\(b'\\). Because \\(a=a'+b'\\) (if \\(a\\ge b\\)) or \\(a=a'\\) (if \\(a<b\\)), and similarly for \\(b\\), we see that \\(d'\\) divides \\(a\\) and \\(b\\). Hence \\(d'\\) also divides all other exponents, so \\(d'\\) divides the old gcd \\(d\\). Thus \\(d'=d\\). Therefore \\(d_p\\) is invariant throughout the process.\n\nAt the end, exactly one number \\(M>1\\) exists and all others are \\(1\\). For each prime \\(p\\) the exponent of \\(p\\) in \\(M\\) is the gcd of the exponents of \\(p\\) in the final configuration (because the other numbers contribute exponent \\(0\\)). By the invariance this exponent equals the initial \\(d_p\\). Consequently  \n\\[\nM=\\prod_{p}p^{\\,d_p},\n\\]  \nwhich is uniquely determined by the initial multiset of numbers. Hence the value of \\(M\\) does not depend on the choices made during the process. ∎",
+  "self_evaluation": "The proof is rigorous: the potential \\(T+A\\) strictly decreases, guaranteeing finite termination; the invariant for each prime’s exponents shows the final number is determined solely by the initial data. All steps are justified, and no gaps remain.",
+  "self_score": 1.0,
+  "generation_sample_id": "round-01/generate/r01-p0023",
+  "verifications": [
+    {
+      "sample_id": "round-01/verify/r01-p0023/v000",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe proof is rigorous and correctly addresses both parts. The potential function \\(S = T + A\\) strictly decreases each move, guaranteeing termination. The analysis of the change in \\(T\\) and \\(A\\) is accurate and covers all cases. The invariant \\(d_p\\) for each prime is properly defined and shown to be preserved, establishing that the final number \\(M\\) is uniquely determined by the initial multiset. No logical gaps, hidden assumptions, or errors are present.\n</evaluation>\n<suggestions>\nNo suggestions needed; the proof is complete and clear.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0023/v001",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe proof is rigorous and correctly addresses both parts of the problem. The potential function \\(S = T + A\\) strictly decreases with each move, guaranteeing finite termination, and the case analysis confirms that exactly one integer \\(>1\\) remains at termination. The invariant \\(d_p\\) for each prime is properly defined and shown to be invariant, from which the final value \\(M\\) is uniquely determined. All steps are justified, and there are no gaps or hidden assumptions.\n</evaluation>\n<suggestions>\nNo significant issues; the solution is clear and complete.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0023/v002",
+      "score": 0.5,
+      "analysis": "<evaluation>\nThe proof is largely correct, but there is a minor error in the analysis of the change in A for the case m=n. The claim that exactly one of the two new numbers is >1 when m=n is false; both new numbers are >1. However, this does not affect the overall conclusion that S decreases by at least 1 each move, because the correct analysis for m=n gives ΔA=0 and still ΔS≤-1. The rest of the proof is sound, and part (b) is correctly justified. The error is a minor oversight, not a fatal gap.\n</evaluation>\n<suggestions>\nCorrect the analysis of A for the case m=n: when m=n, both new numbers are >1, so A does not decrease. This does not invalidate the proof, but it should be fixed for clarity.\n</suggestions>\n<score>0.5</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0023/v003",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe candidate solution correctly proves both parts. The potential function \\(S = T + A\\) strictly decreases in each move, ensuring termination after finitely many moves, and the analysis shows that at termination exactly one integer \\(>1\\) remains. The invariant for each prime's exponent is properly defined and shown to be unchanged, which yields that the final number \\(M\\) is uniquely determined by the initial multiset. All steps are logically sound and fully justified. No errors or gaps are present.\n</evaluation>\n<suggestions>\nThe proof is complete and rigorous; no refinements are necessary.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0023/v004",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. The potential argument in part (a) properly shows finite termination with exactly one integer >1. The invariant in part (b) correctly identifies the final number M as the product of primes raised to the gcd of the initial exponents, independent of choices. All claims are justified, and there are no gaps or errors.\n</evaluation>\n<suggestions>\nNo suggestions needed; the proof is complete.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0023/v005",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts. Part (a) uses a potential function S = T + A that strictly decreases each move, guaranteeing termination. The analysis of changes in T and A is accurate, and it is shown that exactly one integer >1 remains. Part (b) defines the invariant d_p as the gcd of exponents of each prime p, proves its invariance under the operation, and concludes that the final number M is uniquely determined by the initial multiset. All steps are justified, and no gaps or errors are present.\n</evaluation>\n<suggestions>\nThe proof is complete and rigorous; no suggestions are needed.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0023/v006",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is completely correct and rigorous. Part (a) defines a potential function \\(S = T + A\\) that strictly decreases with each move, ensuring finite termination; it also shows that exactly one integer \\(>1\\) remains at termination. Part (b) defines for each prime \\(p\\) the invariant \\(d_p\\) as the gcd of the exponents of \\(p\\) and proves it is unchanged by the operation; then the final number \\(M\\) must be \\(\\prod p^{d_p}\\), which is uniquely determined by the initial multiset. All claims are justified, and there are no gaps or errors.\n</evaluation>\n<suggestions>\nNo suggestions; the proof is correct and well-structured.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0023/v007",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is completely correct and rigorous. The potential \\(S = T + A\\) strictly decreases in every move, guaranteeing termination after finitely many steps. The analysis of how the number of integers >1 changes is accurate, and the argument that exactly one such integer remains at termination is sound. For part (b), the invariant \\(d_p\\) (the gcd of the exponents of each prime across all numbers) is correctly shown to be preserved under the operation, and the final number \\(M\\) is uniquely determined as \\(\\prod p^{d_p}\\) from the initial multiset, establishing independence of the choices.\n</evaluation>\n<suggestions>\nNo suggestions needed; the proof is already clear and complete.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0023/v008",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. The proof of termination uses a potential function (T+A) that strictly decreases with every move, guaranteeing finite termination. The proof of independence uses an invariant (gcd of exponents for each prime) that is preserved under the operation, showing that the final number M is uniquely determined by the initial multiset. All steps are justified, and no gaps or errors are present.\n</evaluation>\n<suggestions>\nNo suggestions needed; the proof is complete.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0023/v009",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe candidate solution correctly proves both parts. Part (a) uses a potential function \\(S = T + A\\) that strictly decreases each move, guaranteeing termination. The analysis of the changes in \\(T\\) and \\(A\\) covers all cases, and the argument that termination leaves exactly one integer \\(>1\\) is sound. Part (b) defines an invariant for each prime's exponent gcd, verifies its invariance under the operation, and deduces that the final number \\(M\\) is uniquely determined by the initial multiset. All steps are justified, and there are no gaps or errors.\n</evaluation>\n<suggestions>\nNo suggestions; the proof is complete and rigorous.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0023/v010",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is completely correct and rigorous. The potential argument for termination is sound, and the invariant for each prime exponent proves independence of the final number. All steps are justified.\n</evaluation>\n<suggestions>\nNo major issues; the proof is clear and complete. Minor clarifications could be added but are not necessary.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0023/v011",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts. Part (a) uses a potential function T+A that strictly decreases each move, guaranteeing termination. The analysis of the change in T and A covers all cases and correctly shows that at termination exactly one integer >1 remains. Part (b) defines an invariant d_p for each prime (the gcd of exponents) and shows it remains unchanged under the operation, and then uses this to conclude that the final number M is uniquely determined by the initial multiset. All claims are justified, no gaps or errors.\n</evaluation>\n<suggestions>\nThe proof is complete and rigorous; no suggestions for improvement.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0023/v012",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. The potential function \\(S = T + A\\) strictly decreases with each move, guaranteeing termination. The analysis of changes in \\(T\\) and \\(A\\) is accurate, covering all cases. The invariant for each prime's exponent is correctly shown to be invariant, establishing independence of the final number \\(M\\). All steps are justified, and no gaps remain.\n</evaluation>\n<suggestions>\nNone needed.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0023/v013",
+      "score": 0.5,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts, but contains a minor error in the analysis of how the number of integers >1 (A) changes during a move. The claim that when m=n, \"exactly one of the two new numbers is >1\" is false; in that case both new numbers are >1, so A does not decrease. The subsequent calculation of ΔA for m=n is therefore incorrect (it should be 0 instead of -1). However, this error does not affect the overall argument because the potential S = T+A still decreases by at least 1 in every case (ΔS ≤ -1). The rest of the proof is sound: the termination argument using S is valid, and the invariant for prime exponents in part (b) is correctly established and shows the final number is independent of choices. The mistake is minor and can be corrected without changing the reasoning.\n</evaluation>\n<suggestions>\nCorrect the classification of A change: For m=n, both new numbers are >1, so A remains unchanged. The potential S still decreases because ΔT = -Ω(m) ≤ -1. The rest of the proof is fine.\n</suggestions>\n<score>0.5</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0023/v014",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts. The potential \\(S = T + A\\) strictly decreases, guaranteeing finite termination with exactly one integer >1. The invariant for each prime exponent shows the final number \\(M\\) is uniquely determined by the initial multiset, independent of moves. All steps are justified, no errors or omissions.\n</evaluation>\n<suggestions>\nNone.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0023/v015",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts. The potential function \\(S = T + A\\) strictly decreases in every move, ensuring termination after finitely many moves; the analysis of cases for \\(g=\\gcd(m,n)\\) is exhaustive and the argument that \\(A\\) never becomes zero is sound. The invariant for each prime exponent is rigorously shown, and the final number \\(M\\) is uniquely determined as \\(\\prod p^{d_p}\\), independent of choices. All steps are justified, and there are no gaps or errors.\n</evaluation>\n<suggestions>\nNo significant issues. The solution is complete and rigorous.\n</suggestions>\n<score>1</score>"
+    }
+  ],
+  "mean_score": 0.9375
+}

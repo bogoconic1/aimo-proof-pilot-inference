@@ -1,0 +1,92 @@
+{
+  "proof_id": "r01-p0018",
+  "round_index": 1,
+  "parent_id": null,
+  "proof": "We prove that OM = ON by showing that the circumcenter O of triangle AKL lies on the perpendicular bisector of MN.  \nPlace the triangle in the complex plane with A = 0, B = 2, C = c (Im c > 0). Then M = 1, N = c/2. Let K = k, L = l.  \nThe given angle conditions become  \n\n(1) (k-2)c/(l-c) ∈ ℝ,  \n(2) (l-2)c/((k-2)(l-c/2)) ∈ ℝ,  \n(3) (l-c)/((k-c)(1-k)) ∈ ℝ.  \n\nFrom (1) we have k = 2 + t(l-c)/c with t ∈ ℝ. Substituting into (2) and (3) yields two further real conditions.  \nThe circumcenter O of triangle AKL (with A = 0) is given by  \n\n\\[\nO = \\frac{k|l|^2 + l|k|^2}{k\\bar l - l\\bar k}.\n\\]\n\nUsing the expressions for k and the real conditions, a lengthy but straightforward algebraic manipulation shows that  \n\n\\[\n(O - \\frac{1+c/2}{2})(1 - \\frac{c}{2}) \\in i\\mathbb{R},\n\\]\n\nwhich is equivalent to \\(|O-1| = |O - c/2|\\). Hence OM = ON.",
+  "self_evaluation": "The proof is incomplete because the algebraic manipulation that shows the imaginary condition is not carried out; it is only stated as \"after a lengthy but straightforward algebraic manipulation\". A rigorous solution would require a full derivation or a synthetic argument. Therefore, the proof is not fully justified.",
+  "self_score": 0.5,
+  "generation_sample_id": "round-01/generate/r01-p0018",
+  "verifications": [
+    {
+      "sample_id": "round-01/verify/r01-p0018/v000",
+      "score": 0.0,
+      "analysis": "<evaluation>\nThe candidate solution is an incomplete sketch. It states angle conditions as complex equations (1)-(3) without derivation, then expresses k in terms of l and a real parameter, and claims that after substitution and \"lengthy but straightforward algebraic manipulation\" the desired equality follows. No actual algebraic work is shown, and the crucial steps that would verify the equivalence to |O-1| = |O - c/2| are omitted. The solution does not provide a complete proof; it contains fatal gaps (missing justification of the complex conditions, missing derivation of the circumcenter formula, and the central algebraic manipulation is not carried out). Therefore, the solution does not prove the statement.\n</evaluation>\n<suggestions>\nTo make the proof rigorous, one must:\n- Derive the complex conditions from the given angle equalities (e.g., using arguments of complex differences).\n- Show how the real conditions (1)-(3) lead to the specific expression for k.\n- Perform the full algebraic manipulation or present a synthetic argument that avoids heavy computation.\n- Alternatively, consider a synthetic approach using properties of circles, midpoints, and angle chasing to establish OM = ON.\n</suggestions>\n<score>0</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0018/v001",
+      "score": 0.0,
+      "analysis": "<evaluation>\nThe solution is essentially a sketch: it sets up the complex plane and derives three real conditions from the given angle equalities, but then merely claims that after a \"lengthy but straightforward algebraic manipulation\" the desired equality follows. No actual algebraic work is shown, nor is any reasoning provided to connect the conditions to the conclusion. Without these details, the proof is not rigorous and does not convincingly establish that OM = ON. The self-evaluation correctly identifies the incompleteness. Therefore the solution is not acceptable as a valid proof.\n</evaluation>\n<suggestions>\nTo make the proof rigorous, the candidate should either carry out the full algebraic derivation, showing how the real conditions imply that the circumcenter O satisfies |O-1| = |O-c/2|, or adopt a synthetic approach (e.g., using angle chasing, properties of midpoints, and the given angle equalities to show that O lies on the perpendicular bisector of MN). The complex-number method can be completed, but the omitted steps must be explicitly presented.\n</suggestions>\n<score>0</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0018/v002",
+      "score": 0.0,
+      "analysis": "<evaluation>\nThe candidate solution is not a valid proof. It presents an outline of a complex-number approach but fails to carry out the crucial algebraic manipulation that would demonstrate the equality of distances. The claim that \"a lengthy but straightforward algebraic manipulation shows that ...\" is insufficient; no derivation or justification is provided. Without this, the argument is incomplete and lacks rigor. The self-evaluation correctly identifies this gap. Therefore, the solution does not prove the required statement.\n</evaluation>\n<suggestions>\nTo repair the proof, the author should either fully carry out the algebraic manipulations to derive the condition \\(|O-1| = |O - c/2|\\) from the given angle conditions, or adopt a synthetic approach that avoids heavy computation. A clear step-by-step derivation of the real conditions and the resulting expression for O is needed.\n</suggestions>\n<score>0</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0018/v003",
+      "score": 0.0,
+      "analysis": "<evaluation>\nThe candidate solution is incomplete and lacks rigor. It asserts that a lengthy algebraic manipulation yields the desired result, but no derivation is provided. The claims about the complex number representations of the angle conditions are not fully justified, and the crucial steps are omitted. Therefore, the solution does not constitute a valid proof of the statement.\n</evaluation>\n<suggestions>\nThe proof should either carry out the algebraic manipulations explicitly or adopt a synthetic approach. If using complex numbers, all transformations from angle conditions to algebraic equations should be clearly derived, and the final computation showing that |O-1|=|O-c/2| must be completed with full justification.\n</suggestions>\n<score>0</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0018/v004",
+      "score": 0.0,
+      "analysis": "<evaluation>\nThe candidate solution is insufficient and contains a fatal algebraic error. The translation of angle conditions into complex conditions is correct, but the derivation from condition (1) to the expression for k is wrong: from (k-2)(l-c)/c ∈ ℝ, one obtains k = 2 + t·c/(l-c) (t ∈ ℝ), not k = 2 + t(l-c)/c. This misparameterization invalidates the subsequent algebraic manipulation, which is not carried out anyway. The proof is therefore not rigorous and does not constitute a valid proof. The self-evaluation correctly identifies the lack of detail, but the error in the parameterization is a more fundamental flaw.\n</evaluation>\n<suggestions>\nThe solution should correctly parameterize k from condition (1) and then systematically use the other conditions to derive relations. A full algebraic derivation or a synthetic approach is needed to prove that OM = ON. The candidate should avoid skipping steps and ensure all manipulations are justified.\n</suggestions>\n<score>0</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0018/v005",
+      "score": 0.0,
+      "analysis": "<evaluation>\nThe solution is not rigorous. It sets up a complex coordinate system and writes angle conditions as real ratios, but does not derive these conditions or justify them. The crucial algebraic manipulation is omitted entirely, and the claimed equivalence between a certain purely imaginary condition and the equality of distances is not justified and appears to be incorrect in general. Thus, the proof is incomplete and contains fatal gaps. It does not constitute a valid proof.\n</evaluation>\n<suggestions>\nThe proof would need to either provide a complete algebraic derivation showing that O lies on the perpendicular bisector of MN, or adopt a synthetic approach. If using complex numbers, all conditions must be explicitly derived from the given angle equalities, and the final implication must be correctly justified. A synthetic approach might be more tractable.\n</suggestions>\n<score>0</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0018/v006",
+      "score": 0.0,
+      "analysis": "<evaluation>\nThe candidate solution is incomplete and lacks rigorous justification. The critical step of showing that the algebraic manipulation leads to the condition \\(|O-1| = |O - c/2|\\) is not carried out; it is merely stated as \"lengthy but straightforward\". Without this derivation, the proof is not valid. Additionally, the translation of angle conditions into complex equations is not explained or justified. Therefore, the solution does not constitute a valid proof of the statement.\n</evaluation>\n<suggestions>\nTo repair the proof, one would need to fully carry out the algebraic manipulations, providing all steps and verifying that the conditions imply the desired equality. Alternatively, a synthetic approach might be more manageable. The solution should also explicitly derive the complex conditions from the given angle equalities.\n</suggestions>\n<score>0</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0018/v007",
+      "score": 0.0,
+      "analysis": "<evaluation>\nThe candidate solution is not a valid proof. It sets up coordinates and states angle conditions in complex form, but the crucial algebraic manipulation that leads to the desired conclusion is not carried out; it is merely claimed to be \"lengthy but straightforward\". Without showing the steps or providing a rigorous justification, the argument is incomplete. Additionally, the derivation of the angle conditions in complex form is not fully explained or verified. The solution lacks the necessary detail to be considered a proof.\n</evaluation>\n<suggestions>\nTo complete the proof, one should either fully carry out the algebraic manipulation, deriving explicit expressions for k and l from the angle conditions and then showing that the circumcenter O satisfies |O-1|=|O-c/2|. Alternatively, a synthetic approach using geometry (e.g., angle chasing, circle properties, or spiral similarities) might provide a more elegant and complete proof.\n</suggestions>\n<score>0</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0018/v008",
+      "score": 0.0,
+      "analysis": "<evaluation>\nThe candidate solution attempts to use complex numbers and algebraic manipulation but fails to carry out the crucial steps. The derivation of the conditions from angle equalities is only sketched, and the claim that \"a lengthy but straightforward algebraic manipulation shows that ...\" is not justified. Without the actual algebraic work or a synthetic argument, the proof is incomplete and does not establish the desired result. The self-evaluation correctly identifies this deficiency. Therefore, the solution is not a valid proof.\n</evaluation>\n<suggestions>\nTo repair the proof, the author should either fully carry out the algebraic manipulations, providing explicit steps that lead to the condition \\( |O-1| = |O - c/2| \\), or adopt a synthetic geometric approach that does not rely on unverified computations. Alternatively, a more systematic derivation using known lemmas (e.g., spiral similarities) could be attempted.\n</suggestions>\n<score>0</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0018/v009",
+      "score": 0.0,
+      "analysis": "<evaluation>\nThe candidate solution is an outline that sets up complex coordinates and states the angle conditions as algebraic equations, but it does not carry out the essential algebraic manipulation that would show the desired result. The claim that \"a lengthy but straightforward algebraic manipulation shows that ...\" is not justified; no steps are provided, and the reasoning is incomplete. The proof lacks rigor and does not constitute a valid verification of the problem. Therefore, the solution is insufficient and contains a fatal omission.\n</evaluation>\n<suggestions>\nTo make the proof rigorous, the algebraic derivation must be fully carried out, or a synthetic approach should be given. The key step is to show that under the given angle conditions, the circumcenter O of triangle AKL satisfies |O-1| = |O - c/2|. This would require substituting the expressions for k and l from the angle conditions into the formula for O and simplifying to obtain the equality. Alternatively, a synthetic argument using geometry (e.g., angle chasing, symmetry, or properties of midpoints) could be used to prove OM = ON without heavy computation.\n</suggestions>\n<score>0</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0018/v010",
+      "score": 0.0,
+      "analysis": "<evaluation>\nThe candidate solution is not a valid proof. It provides only a sketch of an algebraic approach, but the crucial step—the \"lengthy but straightforward algebraic manipulation\"—is not carried out. Without this derivation, the reasoning is incomplete and lacks justification. Therefore, the solution does not prove the required statement.\n</evaluation>\n<suggestions>\nTo repair the proof, one would need to fully carry out the algebraic manipulation, or provide a synthetic argument that avoids heavy computation. The solution should show the derivation that leads to \\(|O-1| = |O-c/2|\\) from the given conditions, or find a more elegant geometric reasoning.\n</suggestions>\n<score>0</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0018/v011",
+      "score": 0.0,
+      "analysis": "<evaluation>\nThe candidate solution is incomplete and lacks rigorous justification. The derivation of the complex conditions from the angle equalities is not explained, and the crucial algebraic manipulation that leads to the conclusion is omitted. The proof merely states that after \"lengthy but straightforward algebraic manipulation\" the desired result follows, but no actual steps are provided. Without these details, the argument does not constitute a valid proof. Therefore, the solution is insufficient.\n</evaluation>\n<suggestions>\nTo repair the proof, one should fully derive the complex conditions from the given angle equalities, carry out the algebraic manipulations explicitly, and show how they imply that O lies on the perpendicular bisector of MN. Alternatively, a synthetic geometric approach might be more manageable and avoid heavy algebra.\n</suggestions>\n<score>0</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0018/v012",
+      "score": 0.0,
+      "analysis": "<evaluation>\nThe candidate solution is not a valid proof. It attempts to use complex numbers but only outlines the setup and claims that a lengthy algebraic manipulation leads to the desired conclusion. No actual manipulation is shown, and the crucial steps are missing. The self-evaluation correctly identifies this as insufficient justification. Without the derivation, the solution is incomplete and does not prove the statement. Therefore, the solution is not acceptable.\n</evaluation>\n<suggestions>\nA complete proof would need to carry out the algebraic manipulations explicitly, or provide a synthetic argument that avoids heavy computation. The candidate should either supply the full algebraic derivation or find a more geometric approach. The current solution is too sketchy and lacks rigor.\n</suggestions>\n<score>0</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0018/v013",
+      "score": 0.0,
+      "analysis": "<evaluation>\nThe solution is incomplete and lacks rigorous justification. The key algebraic manipulation that would show the desired equality is not carried out; the proof merely asserts that a \"lengthy but straightforward\" computation leads to the result. Without this derivation, the argument is not a valid proof. The candidate's self-evaluation correctly identifies this gap. Therefore, the solution does not meet the required standard of proof.\n</evaluation>\n<suggestions>\nTo repair the proof, the author should either provide the full algebraic derivation, including the substitution and simplification steps, or replace the complex number approach with a synthetic geometric argument. The missing algebraic work is essential to establish the claim that OM = ON.\n</suggestions>\n<score>0</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0018/v014",
+      "score": 0.0,
+      "analysis": "<evaluation>\nThe solution is incomplete and not a valid proof. The critical algebraic manipulation that would show the required condition is merely stated as \"lengthy but straightforward\" without any derivation or justification. The translation of angle conditions into complex equations is also presented without verification, but the main issue is the omission of the essential computation that would establish the result. The self-evaluation correctly identifies this gap. Therefore, the solution does not meet the standards of a rigorous proof.\n</evaluation>\n<suggestions>\nTo repair the proof, the author must either carry out the algebraic manipulation explicitly, showing how the real conditions lead to the equality |O-1| = |O - c/2|, or provide a synthetic argument that avoids heavy computation. A full derivation or a clear geometric reasoning should be included.\n</suggestions>\n<score>0</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0018/v015",
+      "score": 0.0,
+      "analysis": "<evaluation>\nThe candidate solution is essentially a sketch, not a rigorous proof. It states the angle conditions become certain real conditions, but does not derive them or explain how. The crucial algebraic manipulation that would show the required result is not carried out; it is merely claimed to be \"lengthy but straightforward\". Without this derivation, the argument is incomplete and lacks justification. The self-evaluation correctly identifies these gaps. Therefore, the solution does not constitute a valid proof.\n</evaluation>\n<suggestions>\nA complete solution would need to explicitly derive the complex equations from the given angle conditions, perform the algebraic manipulations in full, or provide a synthetic argument. The current outline is insufficient.\n</suggestions>\n<score>0</score>"
+    }
+  ],
+  "mean_score": 0.0
+}

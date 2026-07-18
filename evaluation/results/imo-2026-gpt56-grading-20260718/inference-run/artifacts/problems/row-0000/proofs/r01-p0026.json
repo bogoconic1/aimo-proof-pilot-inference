@@ -1,0 +1,92 @@
+{
+  "proof_id": "r01-p0026",
+  "round_index": 1,
+  "parent_id": null,
+  "proof": "Let \\(S\\) be the multiset of integers on the board. Initially \\(|S| = 2026\\) and every element is \\(>1\\).\n\nFor a move we choose two distinct numbers \\(m,n>1\\) and replace them by\n\\[\ng = \\gcd(m,n),\\qquad h = \\frac{\\operatorname{lcm}(m,n)}{g}.\n\\]\nNote that \\(h = \\frac{mn}{g^2}\\) is an integer.  \n\nWe denote by \\(P\\) the product of all numbers on the board and by \\(N\\) the number of elements of \\(S\\) that are \\(>1\\).  \n\n**Part (a). Termination.**  \n\nConsider a move with \\(\\gcd(m,n)=g\\).  \nThe product of the two new numbers is \\(g\\cdot\\frac{mn}{g^2} = \\frac{mn}{g}\\).  \nHence the product of the whole board becomes \\(\\frac{P}{g}\\).  \n- If \\(g>1\\) then \\(P\\) strictly decreases.  \n- If \\(g=1\\) then \\(P\\) remains unchanged.  \n\nNow analyse \\(N\\):  \n- If \\(g=1\\) then the new numbers are \\(1\\) and \\(mn>1\\); thus \\(N\\) decreases by \\(1\\).  \n- If \\(g>1\\) and \\(m=n\\) then \\(h=1\\) and again \\(N\\) decreases by \\(1\\).  \n- If \\(g>1\\) and \\(m\\neq n\\) then both \\(g\\) and \\(h\\) are \\(>1\\); therefore \\(N\\) does not change.  \n\nThus every move either strictly decreases \\(P\\) (when \\(g>1\\)) or strictly decreases \\(N\\) (when a \\(1\\) is produced).  \n\\(P\\) is a positive integer and \\(N\\) is a non‑negative integer bounded above by \\(2026\\); consequently only finitely many moves can occur. Hence the process terminates after a finite number of moves.  \n\nWe now prove that at termination exactly one number \\(M>1\\) remains.  \nSuppose the process terminates with \\(N=0\\) (all numbers are \\(1\\)).  \nTo reach \\(N=0\\) we would have needed to perform a move that reduces \\(N\\) from \\(1\\) to \\(0\\).  \nBut such a move would require two numbers \\(>1\\) at the moment, which is impossible when \\(N=1\\).  \nTherefore \\(N\\) cannot become \\(0\\).  \nIf \\(N>1\\) at termination, there are at least two numbers \\(>1\\) and a move is still possible, contradicting termination.  \nHence at termination \\(N=1\\): exactly one integer \\(M>1\\) is on the board.  \n\n**Part (b). Independence of \\(M\\).**  \n\nFor each prime \\(p\\) consider the multiset of exponents of \\(p\\) in the numbers of \\(S\\).  \nInitially let the exponents be \\(e_{p,1},\\dots,e_{p,2026}\\) (non‑negative integers, at least one positive for each number \\(>1\\)).  \nWhen we replace \\(m,n\\) by \\(g\\) and \\(h\\), the exponent of \\(p\\) in \\(m\\) is \\(a\\), in \\(n\\) is \\(b\\); then the new exponents are \\(\\min(a,b)\\) and \\(|a-b|\\).  \nThus for every prime \\(p\\) the operation acts on the multiset of exponents by replacing a pair \\((a,b)\\) with \\((\\min(a,b),|a-b|)\\).  \n\n**Claim.** For a fixed prime \\(p\\), the greatest common divisor of all exponents in the multiset is invariant.  \n\n*Proof.* Let \\(d\\) be the gcd of the exponents before the move. Since \\(d\\mid a\\) and \\(d\\mid b\\), we have \\(d\\mid\\min(a,b)\\) and \\(d\\mid|a-b|\\); therefore \\(d\\) divides every exponent after the move.  \nConversely, let \\(d'\\) be the gcd of the exponents after the move. Then \\(d'\\mid\\min(a,b)\\) and \\(d'\\mid|a-b|\\). Because \\(a = \\min(a,b)+|a-b|\\) (or \\(b = \\min(a,b)+|a-b|\\) when \\(b\\ge a\\)), \\(d'\\) divides \\(a\\) and \\(b\\). Hence \\(d'\\) divides all original exponents, so \\(d'\\mid d\\). Therefore \\(d = d'\\). ∎  \n\nDenote by \\(g_p\\) the initial gcd of the exponents of \\(p\\) (if all exponents are \\(0\\) then \\(g_p=0\\)). By the claim, throughout the process the gcd of the exponents of \\(p\\) always equals \\(g_p\\).  \n\nWhen the process stops, there is exactly one number \\(M>1\\); all other numbers are \\(1\\). For prime \\(p\\), the exponent of \\(p\\) in \\(M\\) is some integer \\(e_p\\) (possibly \\(0\\)), and the exponents of all other numbers are \\(0\\). The gcd of the multiset \\(\\{e_p,0,\\dots,0\\}\\) is \\(e_p\\) (because \\(\\gcd(e_p,0)=e_p\\)). Hence \\(e_p = g_p\\).  \n\nThus  \n\\[\nM = \\prod_{p} p^{g_p},\n\\]  \nwhich is determined solely by the initial numbers and does not depend on the particular sequence of moves.  \n\n∎",
+  "self_evaluation": "The proof is rigorous. The termination argument uses the product \\(P\\) and the count \\(N\\) of numbers \\(>1\\) to show finiteness; the impossibility of ending with \\(N=0\\) is justified because a move that would reduce \\(N\\) from \\(1\\) to \\(0\\) would require two numbers \\(>1\\). The invariance of the gcd of exponents for each prime is correctly proved, and the final expression for \\(M\\) follows directly. All steps are fully justified; there are no gaps or hidden assumptions.",
+  "self_score": 1.0,
+  "generation_sample_id": "round-01/generate/r01-p0026",
+  "verifications": [
+    {
+      "sample_id": "round-01/verify/r01-p0026/v000",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. The termination argument uses the product of all numbers and the count of numbers >1 to bound the number of moves, correctly shows that termination implies exactly one number >1 remains. The invariance of the gcd of exponents for each prime is properly proven, leading to the conclusion that the final number M is independent of the sequence of moves. All claims are justified and no gaps or errors are present.\n</evaluation>\n<suggestions>\nNone needed.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0026/v001",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. The termination argument correctly uses the product and count of numbers >1 to show finiteness, and the reasoning that the process ends with exactly one number >1 is sound. The invariant for each prime (gcd of exponents) is properly proved, and the final expression for M follows directly, establishing independence of choices. All steps are justified; there are no gaps or errors.\n</evaluation>\n<suggestions>\nNo significant suggestions; the proof is clear and complete.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0026/v002",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. The termination argument using product and count of numbers >1 is sound, and the proof that exactly one M>1 remains at termination is valid. The invariance of the gcd of exponents for each prime is correctly established, and the final expression for M is derived, showing independence of choices.\n</evaluation>\n<suggestions>\nNo suggestions; the solution is complete and clear.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0026/v003",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is rigorous and correct. The termination argument is clear, using the product and the count of numbers >1 to show finiteness, and then showing that at termination exactly one number >1 remains. The invariance of the gcd of exponents for each prime is properly proved, leading to the conclusion that the final M is determined by the initial numbers and is independent of the choices. All steps are justified; there are no gaps or errors.\n</evaluation>\n<suggestions>\nNo suggestions needed; the proof is complete and well-structured.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0026/v004",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is completely correct and rigorous. Part (a) correctly uses the product and count of numbers >1 to prove termination and that exactly one number >1 remains. Part (b) correctly invokes the invariance of the gcd of exponents for each prime and derives that M is independent of the sequence of moves. All claims are justified, no hidden assumptions or gaps.\n</evaluation>\n<suggestions>\nNo suggestions needed; the proof is solid.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0026/v005",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe candidate solution is completely correct and rigorous. The termination argument uses a pair of invariants (product P and count N) to bound the number of moves, and correctly deduces that exactly one integer >1 remains at termination. The independence proof uses the invariance of the gcd of prime exponents, which is properly justified. All steps are logically sound and no gaps or errors are present.\n</evaluation>\n<suggestions>\nNo suggestions needed; the proof is already well-structured and complete.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0026/v006",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is completely correct and rigorous. Part (a) uses a well-chosen measure (product and count of numbers >1) to prove termination, and then argues that at termination exactly one number >1 remains. Part (b) uses the invariant of the gcd of exponents for each prime, proving that the final number M is uniquely determined by the initial multiset. All steps are justified; no gaps or hidden assumptions.\n</evaluation>\n<suggestions>\nNo suggestions needed; the proof is already clear and complete.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0026/v007",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts of the problem. Part (a) establishes termination by using the product \\(P\\) and the count \\(N\\) of numbers greater than 1, showing that every move strictly decreases either \\(P\\) or \\(N\\), and then argues that the only possible termination state is exactly one integer \\(M>1\\) on the board. Part (b) introduces the invariant of the greatest common divisor of the exponents for each prime, shows it is preserved under the operation, and deduces that the final \\(M\\) is uniquely determined by the initial numbers. All claims are justified, and no gaps or errors are present.\n</evaluation>\n<suggestions>\nNo suggestions needed; the proof is rigorous and complete.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0026/v008",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts. The termination argument uses the product \\(P\\) and the count \\(N\\) of numbers \\(>1\\) to show finiteness, and the impossibility of ending with \\(N=0\\) is justified. The invariance of the gcd of exponents for each prime is proved correctly, and the final expression for \\(M\\) follows. All steps are logically sound and well justified. There are no fatal errors.\n</evaluation>\n<suggestions>\nThe handling of the case where all exponents of a prime are zero (i.e., the prime does not appear in any number) could be clarified by stating that the gcd of a set of zeros is taken as \\(0\\) by convention, or by noting that if the prime never appears initially, it never appears later. This minor clarification does not affect the overall correctness.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0026/v009",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts of the problem. For part (a), the termination argument uses the product of all numbers and the count of numbers greater than 1 to show that the process must end after finitely many moves, and then it argues that at termination exactly one number greater than 1 remains. The reasoning is rigorous and covers all cases. For part (b), the invariance of the greatest common divisor of the exponents for each prime under the given operation is proved, and this yields the uniqueness of the final number \\(M\\). All steps are fully justified, and no gaps or hidden assumptions are present.\n</evaluation>\n<suggestions>\nNo improvements are needed; the proof is complete and rigorous.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0026/v010",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe candidate solution correctly proves both parts. The termination argument using product and count of numbers >1 is sound, and the argument that exactly one number >1 remains at termination is justified. The invariance of the gcd of exponents for each prime is properly proved, leading to the conclusion that M is uniquely determined. No errors or gaps are present.\n</evaluation>\n<suggestions>\nNo suggestions needed.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0026/v011",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. The termination argument uses the product and count of numbers >1 to bound the number of moves, and the impossibility of ending with no numbers >1 is justified. The invariance of the gcd of exponents for each prime is correctly proved, and the final expression for M is derived, showing independence of choices. All steps are logically sound and well-justified.\n</evaluation>\n<suggestions>\nNo improvements needed; the proof is complete and clear.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0026/v012",
+      "score": 1.0,
+      "analysis": "<evaluation>The solution is fully correct and rigorous. The termination argument uses the product and count of numbers >1 to show finiteness, and the impossibility of ending with N=0 is correctly justified. The invariant of the gcd of exponents for each prime is properly proved, and the final expression for M follows directly. All steps are logically sound and well-justified.</evaluation>\n<suggestions>None needed.</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0026/v013",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. The termination argument uses the product of all numbers and the count of numbers greater than 1 to show that only finitely many moves are possible, and then correctly argues that the process must end with exactly one number greater than 1. The invariance of the gcd of exponents for each prime is properly proven, and the final expression for M is derived, showing that it is independent of the sequence of moves. All steps are justified, and there are no gaps or errors.\n</evaluation>\n<suggestions>\nNo suggestions needed.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0026/v014",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe candidate solution correctly proves both parts. Part (a) uses the product \\(P\\) and the count \\(N\\) of numbers greater than 1 to show termination, and then argues that at termination exactly one number \\(M>1\\) remains. The reasoning is sound and covers all cases. Part (b) invariantly shows that for each prime \\(p\\) the gcd of the exponents is preserved, and from that deduces that the final number \\(M\\) is the product over all primes of \\(p\\) raised to the initial gcd of exponents, which is independent of the moves. All claims are justified, and there are no gaps or hidden assumptions. The solution is rigorous and complete.\n</evaluation>\n<suggestions>\nThe proof is already correct and no suggestions are needed. Minor improvements could include explicitly stating that the pair \\((P,N)\\) decreases lexicographically, but the current argument is sufficient.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0026/v015",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. The termination argument using the product \\(P\\) and the count \\(N\\) of numbers greater than 1 is sound, and the reasoning that termination must leave exactly one number \\(M>1\\) is properly justified. The invariance of the greatest common divisor of the exponents for each prime is correctly proved, and the final expression for \\(M\\) follows directly from that invariance, establishing independence of the choices. All steps are fully justified, and no gaps or errors are present.\n</evaluation>\n<suggestions>\nNo suggestions needed; the proof is complete and clear.\n</suggestions>\n<score>1</score>"
+    }
+  ],
+  "mean_score": 1.0
+}
