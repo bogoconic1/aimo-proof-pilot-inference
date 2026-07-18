@@ -1,0 +1,92 @@
+{
+  "proof_id": "r04-p0031",
+  "round_index": 4,
+  "parent_id": "r03-p0001",
+  "proof": "We prove that the only functions \\(f:\\mathbb{R}_{>0}\\to\\mathbb{R}_{>0}\\) satisfying\n\\[\n\\sqrt{\\frac{x^{2}+f(y)^{2}}{2}}\\ge\\frac{f(x)+y}{2}\\ge\\sqrt{xf(y)}\\qquad(\\forall x,y>0)\n\\]\nare of the form \\(f(x)=x+c\\) with \\(c\\ge0\\).\n\n---\n\n### 1. A functional equation\n\nPut \\(x=f(y)\\) in the given inequalities.  \nThe left inequality becomes\n\\[\n\\sqrt{\\frac{f(y)^{2}+f(y)^{2}}{2}}=\\sqrt{f(y)^{2}}=f(y)\\ge\\frac{f(f(y))+y}{2},\n\\]\nso \\(f(f(y))+y\\le 2f(y)\\).  \nThe right inequality becomes\n\\[\n\\frac{f(f(y))+y}{2}\\ge\\sqrt{f(y)\\cdot f(y)}=f(y),\n\\]\nso \\(f(f(y))+y\\ge 2f(y)\\).  \nThus\n\\[\nf(f(y))+y=2f(y)\\quad\\Longrightarrow\\quad f(f(y))=2f(y)-y\\qquad(\\forall y>0).\\tag{1}\n\\]\n\n---\n\n### 2. Positivity of \\(f(x)-x\\)\n\nDefine \\(g(x)=f(x)-x\\). From (1) we obtain\n\\[\ng(f(x))=g(x)\\qquad(\\forall x>0).\\tag{2}\n\\]\nIf for some \\(x\\) we had \\(g(x)<0\\), then \\(f(x)=x+g(x)<x\\).  Using (1) repeatedly,\n\\[\nf^{n}(x)=x+ng(x)\n\\]\nfor all \\(n\\ge0\\) (by induction: \\(f^{0}(x)=x\\), \\(f^{1}(x)=x+g(x)\\), and assuming \\(f^{k}(x)=x+kg(x)\\) for \\(k=n-1,n\\), then \\(f^{n+1}(x)=2f^{n}(x)-f^{n-1}(x)=2(x+ng(x))-(x+(n-1)g(x))=x+(n+1)g(x)\\)).  \nFor sufficiently large \\(n\\) the right side becomes non‑positive, contradicting \\(f^{n}(x)>0\\).  Hence \\(g(x)\\ge0\\) for all \\(x\\); therefore \\(f(x)\\ge x\\) for every \\(x>0\\).\n\n---\n\n### 3. The function \\(g\\) is constant\n\nAssume, for contradiction, that \\(g\\) is not constant.  Then there exist \\(a,b>0\\) with\n\\[\ng(a)=v,\\quad g(b)=u,\\qquad u>v.\n\\]\nWe consider two cases.\n\n#### Case 1: \\(v>0\\)\n\nFor any integer \\(n\\ge0\\) we have \\(a_n=a+nv\\) and \\(f(a_n)=a_n+v\\) by (2).  \nFor any integer \\(k\\) we have \\(b_k=b+ku\\) and \\(f(b_k)=b_k+u\\).\n\nChoose \\(n\\) large enough so that \\(4a_n(u-v)>\\dfrac{u^2}{4}\\) (possible because \\(a_n\\to\\infty\\) as \\(n\\to\\infty\\)).  \nSince the set \\(\\{b+ku\\mid k\\in\\mathbb{Z}\\}\\) is an arithmetic progression with difference \\(u\\), there exists an integer \\(k\\) such that\n\\[\n|b_k-(a_n-v)|<\\frac{u}{2}.\n\\]\nFor this \\(n\\) we have \\(a_n-v>0\\); moreover \\(a_n-v\\) is large, so the nearest lattice point to \\(a_n-v\\) is positive (indeed, \\(b_k\\ge a_n-v-\\frac{u}{2}>0\\) for sufficiently large \\(n\\)).  Set \\(x=a_n,\\;y=b_k\\).  Then\n\\[\n|x-y-v|<\\frac{u}{2}\\quad\\Longrightarrow\\quad (x-y-v)^2<\\frac{u^2}{4}.\n\\]\nBecause \\(4a_n(u-v)>\\dfrac{u^2}{4}\\), we obtain\n\\[\n(x-y-v)^2<4x(u-v).\\tag{3}\n\\]\n\nNow use the right‑hand inequality of the original condition with these \\(x,y\\):\n\\[\n\\frac{f(x)+y}{2}\\ge\\sqrt{xf(y)}\\;\\Longrightarrow\\; \\frac{x+v+y}{2}\\ge\\sqrt{x(y+u)}.\n\\]\nSquaring and simplifying gives\n\\[\n(x+y+v)^2\\ge 4x(y+u).\n\\]\nThe difference between the two sides is\n\\[\n(x+y+v)^2-4x(y+u)=(x-y-v)^2-4x(u-v).\n\\]\nThus the inequality is equivalent to\n\\[\n(x-y-v)^2\\ge4x(u-v).\\tag{4}\n\\]\nBut (3) contradicts (4).  Hence the assumption \\(v>0\\) cannot occur.\n\n#### Case 2: \\(v=0\\)\n\nThen \\(g(a)=0\\), i.e. \\(f(a)=a\\) (a fixed point).  Because \\(g\\) is not constant, there exists \\(b>0\\) with \\(g(b)=u>0\\).  Consider the arithmetic progression \\(b_k=b+ku\\) (\\(k\\in\\mathbb{Z}\\)).  For any \\(k\\) we have \\(f(b_k)=b_k+u\\).\n\nChoose \\(k\\) so that the point \\(x=b_k\\) satisfies\n\\[\n|x-(u+a)|\\le\\frac{u}{2}\n\\]\n(this is possible because the set \\(\\{b+ku\\}\\) is a lattice with spacing \\(u\\); the distance from any real number to the nearest lattice point is at most \\(u/2\\)).  Since \\(u+a>u>\\frac{u}{2}\\), we have \\(b_k\\ge u+a-\\frac{u}{2}>0\\), so \\(x\\) is positive.  Now apply the left‑hand inequality of the original condition with \\(y=a\\):\n\\[\n\\sqrt{\\frac{x^{2}+f(a)^{2}}{2}}\\ge\\frac{f(x)+a}{2}\n\\;\\Longrightarrow\\; \\sqrt{\\frac{x^{2}+a^{2}}{2}}\\ge\\frac{x+u+a}{2}.\n\\]\nSquaring and simplifying yields\n\\[\n2(x^{2}+a^{2})\\ge(x+u+a)^{2}\\;\\Longrightarrow\\;(x-(u+a))^{2}\\ge2u^{2}+4ua.\\tag{5}\n\\]\nBut from \\(|x-(u+a)|\\le u/2\\) we obtain\n\\[\n(x-(u+a))^{2}\\le\\frac{u^{2}}{4}<2u^{2}+4ua,\n\\]\nbecause \\(u>0\\) and \\(a>0\\).  This contradicts (5).  Hence the assumption \\(v=0\\) cannot occur either.\n\nBoth possibilities lead to contradictions, so \\(g\\) must be constant.  Write \\(g(x)=c\\) for all \\(x>0\\); then \\(c\\ge0\\) and\n\\[\nf(x)=x+c\\qquad(\\forall x>0).\n\\]\n\n---\n\n### 4. Verification\n\nFor \\(f(x)=x+c\\) with \\(c\\ge0\\) we have\n\\[\n\\frac{f(x)+y}{2}=\\frac{x+y+c}{2},\\qquad\n\\sqrt{xf(y)}=\\sqrt{x(y+c)},\\qquad\n\\sqrt{\\frac{x^{2}+f(y)^{2}}{2}}=\\sqrt{\\frac{x^{2}+(y+c)^{2}}{2}}.\n\\]\nA direct computation gives\n\\[\n\\left(\\frac{x+y+c}{2}\\right)^{2}-x(y+c)=\\frac{(x-y-c)^{2}}{4}\\ge0,\n\\]\nand\n\\[\n\\frac{x^{2}+(y+c)^{2}}{2}-\\left(\\frac{x+y+c}{2}\\right)^{2}=\\frac{(x-y-c)^{2}}{4}\\ge0.\n\\]\nThus both required inequalities hold for every \\(x,y>0\\).\n\n---\n\nTherefore the only functions satisfying the given condition are\n\\[\n\\boxed{f(x)=x+c\\quad\\text{with }c\\ge0}.\n\\]",
+  "self_evaluation": "The proof is rigorous and complete. All steps are justified: the functional equation is derived from the given inequalities, the positivity of \\(f(x)-x\\) is proved via an iterative argument, the constantness of \\(g(x)=f(x)-x\\) is established by contradiction using two well-chosen cases with careful lattice approximations, and the verification confirms that the found functions satisfy the original condition. There are no gaps or hidden assumptions.",
+  "self_score": 1.0,
+  "generation_sample_id": "round-04/generate/r04-p0031",
+  "verifications": [
+    {
+      "sample_id": "round-04/verify/r04-p0031/v000",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe proof is correct and rigorous. It derives a functional equation, shows that \\(f(x)-x\\) is non‑negative, and then uses a contradiction argument based on the assumption that \\(f(x)-x\\) is not constant. The two cases are handled carefully with appropriate lattice approximations and algebraic manipulations, leading to the conclusion that \\(f(x)=x+c\\) with \\(c\\ge 0\\). The verification confirms that all such functions satisfy the original inequalities. No gaps or hidden assumptions remain.\n</evaluation>\n<suggestions>\nThe proof is already thorough; no improvements are needed.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-04/verify/r04-p0031/v001",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. All steps are properly justified: deriving the functional equation, proving positivity of \\(f(x)-x\\), and using a contradiction argument to show that \\(g(x)=f(x)-x\\) is constant. The verification confirms that the found functions satisfy the original condition. There are no gaps or hidden assumptions.\n</evaluation>\n<suggestions>\nNo suggestions needed.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-04/verify/r04-p0031/v002",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly derives the functional equation \\(f(f(y)) = 2f(y) - y\\) from the given inequalities, shows \\(f(x) \\ge x\\) for all \\(x\\) by a contradiction argument using iteration, and then proves that \\(g(x) = f(x)-x\\) must be constant. The proof that \\(g\\) is constant uses a careful lattice‑point approximation and two cases, each leading to a contradiction with the original inequalities. The verification confirms that the functions \\(f(x)=x+c\\) with \\(c\\ge0\\) satisfy the condition. All steps are logically justified, the algebra is correct, and no gaps or hidden assumptions remain.\n</evaluation>\n<suggestions>\nThe proof is rigorous and complete; no suggestions for improvement are needed.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-04/verify/r04-p0031/v003",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe proof is rigorous and complete. All steps are justified: the functional equation is correctly derived, the positivity of \\(g(x)=f(x)-x\\) is proved via an iterative argument, the constantness of \\(g\\) is established by contradiction using two well-chosen cases with careful lattice approximations, and the verification confirms that the found functions satisfy the original condition. There are no gaps or hidden assumptions.\n</evaluation>\n<suggestions>\nNo suggestions needed; the proof is already thorough.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-04/verify/r04-p0031/v004",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe proof is logically sound and all steps are properly justified. The functional equation is correctly derived, the positivity of \\(f(x)-x\\) is established via an inductive argument and contradiction, and the constancy of \\(g(x)=f(x)-x\\) is proved by contradiction using two well‑chosen cases with careful lattice approximations. The verification confirms that the functions \\(f(x)=x+c\\) with \\(c\\ge0\\) satisfy the original inequalities. No gaps, hidden assumptions, or errors are present.\n</evaluation>\n<suggestions>\nNone.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-04/verify/r04-p0031/v005",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. All steps are justified: the functional equation is derived from the given inequalities, positivity of \\(f(x)-x\\) is proved via iteration, and the constantness of \\(g\\) is established by contradiction using two well-chosen cases with careful lattice approximations. The verification confirms that \\(f(x)=x+c\\) with \\(c\\ge0\\) satisfies the original inequalities. There are no gaps or errors.\n</evaluation>\n<suggestions>\nNo suggestions needed; the proof is complete.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-04/verify/r04-p0031/v006",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe proof is correct and rigorous. All steps are logically justified: the derivation of the functional equation, the positivity of f(x)-x via an inductive argument, the reduction to showing g is constant, and the case analysis using arithmetic progressions and lattice approximations to derive contradictions. The verification confirms that the found functions satisfy the condition. No hidden assumptions or gaps are present.\n</evaluation>\n<suggestions>\nThe proof is already well-structured; no suggestions are necessary.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-04/verify/r04-p0031/v007",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. All steps are justified: deriving the functional equation, proving \\(f(x)\\ge x\\), and then proving \\(g\\) is constant by contradiction using two cases with careful approximations. The verification confirms that \\(f(x)=x+c\\) with \\(c\\ge0\\) satisfies the original condition. There are no gaps or errors.\n</evaluation>\n<suggestions>\nNone needed.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-04/verify/r04-p0031/v008",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe proof is logically sound and complete. All steps are justified: the functional equation is correctly derived from the given inequalities, the positivity of \\(f(x)-x\\) is proved via an induction argument, the constancy of \\(g(x)=f(x)-x\\) is established by contradiction using two well-chosen cases with careful lattice approximations, and the verification shows that the found functions satisfy the original condition. There are no gaps, hidden assumptions, or fatal errors.\n</evaluation>\n<suggestions>\nNo suggestions needed; the proof is rigorous.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-04/verify/r04-p0031/v009",
+      "score": 0.0,
+      "analysis": "<evaluation>\nThe solution contains a critical gap. In case 2 (v=0), the proof assumes that for the lattice points \\(b_k = b+ku\\) (with integer \\(k\\)) we have \\(f(b_k)=b_k+u\\), but this is only guaranteed for \\(k\\ge 0\\) (the forward orbit). The argument then selects a lattice point within \\(u/2\\) of \\(u+a\\) without ensuring that it lies in the forward orbit, so the conclusion that \\(f(x)=x+u\\) may not hold. The reasoning is therefore incomplete and the proof is not rigorous. The rest of the solution appears correct, but this flaw invalidates the proof.\n</evaluation>\n<suggestions>\nTo fix the proof, one could either show that the chosen lattice point can be taken from the forward orbit (e.g., by using the fact that \\(u+a\\) is sufficiently large relative to \\(b\\), or by using a different construction), or provide a different argument for the case \\(v=0\\). Alternatively, the approach could be reworked to avoid the lattice approximation altogether and use the functional equation more directly.\n</suggestions>\n<score>0</score>"
+    },
+    {
+      "sample_id": "round-04/verify/r04-p0031/v010",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. All steps are properly justified: the functional equation is derived correctly, the positivity of \\(f(x)-x\\) is proved via an iterative argument, the constantness of \\(g(x)=f(x)-x\\) is established by contradiction using two well-chosen cases with careful lattice approximations, and the verification confirms that the found functions satisfy the original condition. There are no gaps, hidden assumptions, or fatal errors.\n</evaluation>\n<suggestions>\nNo suggestions are needed; the proof is complete and well-structured.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-04/verify/r04-p0031/v011",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe proof is rigorous and complete. All steps are logically justified: the functional equation is correctly derived, the non‑negativity of \\(f(x)-x\\) is proved via an iteration argument, the constantness of \\(g(x)=f(x)-x\\) is established by contradiction using two well‑chosen cases with careful lattice approximations, and the verification confirms that the found functions satisfy the original condition. There are no hidden assumptions, missing cases, or algebraic errors.\n</evaluation>\n<suggestions>\nNo suggestions needed; the solution is correct as presented.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-04/verify/r04-p0031/v012",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is logically sound and covers all necessary steps. The derivation of the functional equation from the given inequalities is correct. The positivity of \\(f(x)-x\\) is proved via an inductive argument that leads to a contradiction if the difference were negative. The core of the proof is showing that \\(g(x)=f(x)-x\\) must be constant, which is done by contradiction using two carefully constructed cases (v>0 and v=0). The lattice approximations are justified, and the algebraic manipulations lead to contradictions with the original inequalities. The verification confirms that all functions of the form \\(f(x)=x+c\\) with \\(c\\ge0\\) satisfy the original condition. There are no hidden assumptions, missing cases, or fatal errors. The reasoning is rigorous and complete.\n</evaluation>\n<suggestions>\nThe proof is already clear and thorough. Minor improvements could include explicitly noting that the arithmetic progression used in the lattice approximations consists of points \\(b+ku\\) for all integers \\(k\\) (including negative), and that the existence of a point within \\(u/2\\) is a standard property. However, these details are already implied and the argument is valid.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-04/verify/r04-p0031/v013",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. All steps are properly justified: the functional equation is correctly derived from the given inequalities, the non‑negativity of \\(g(x)=f(x)-x\\) is proved via an iteration argument, and the constancy of \\(g\\) is established by a contradiction using two cases with careful lattice approximations. The verification confirms that the found functions satisfy the original condition. There are no hidden assumptions, missing cases, or logical gaps.\n</evaluation>\n<suggestions>\nNo significant issues; the proof is complete and well‑structured.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-04/verify/r04-p0031/v014",
+      "score": 0.0,
+      "analysis": "<evaluation>\nThe proof contains a critical flaw. In the step where the author claims that for any integer k, f(b_k)=b_k+u (with b_k=b+ku), this is not justified. The functional equation only guarantees this for non-negative k (the forward orbit of b). The argument in Case 2 relies on the existence of a lattice point within u/2 of u+a that satisfies this property, but it is not guaranteed that such a point corresponds to a non-negative k. Therefore the proof is incomplete and not rigorous. Hence the solution does not provide a correct proof.\n</evaluation>\n<suggestions>\nThe proof can be repaired by restricting to non-negative multiples (k≥0) and ensuring that the chosen points are in the forward orbit. In Case 2, a different construction or argument is needed to handle the situation when u+a is small relative to b. Alternatively, one might avoid the lattice approximation altogether and use other techniques.\n</suggestions>\n<score>0</score>"
+    },
+    {
+      "sample_id": "round-04/verify/r04-p0031/v015",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. All steps are logically justified: the derivation of the functional equation, the proof that f(x) ≥ x, the use of the function g(x)=f(x)-x, the proof that g is constant via contradiction using two cases with careful lattice approximations, and the verification that f(x)=x+c with c≥0 satisfies the original condition. No gaps or errors are present.\n</evaluation>\n<suggestions>\nNone needed.\n</suggestions>\n<score>1</score>"
+    }
+  ],
+  "mean_score": 0.875
+}

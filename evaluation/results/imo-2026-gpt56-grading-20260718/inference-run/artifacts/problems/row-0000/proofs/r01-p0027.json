@@ -1,0 +1,92 @@
+{
+  "proof_id": "r01-p0027",
+  "round_index": 1,
+  "parent_id": null,
+  "proof": "Let the numbers on the board be \\(a_1,\\dots,a_n\\) with \\(n=2026\\). For each integer \\(k>1\\) denote by \\(\\Omega(k)\\) the total number of prime factors counted with multiplicity (i.e. \\(\\Omega(k)=\\sum_p v_p(k)\\)). For a prime \\(p\\) and an integer \\(x\\) let \\(v_p(x)\\) be the exponent of \\(p\\) in the prime factorisation of \\(x\\) (with \\(v_p(1)=0\\)).\n\nConsider a move: choose two numbers \\(m,n>1\\) and replace them by \\(d=\\gcd(m,n)\\) and \\(l=\\operatorname{lcm}(m,n)/d = \\frac{mn}{d^2}\\). Write \\(m=d a\\), \\(n=d b\\) with \\(\\gcd(a,b)=1\\). Then \\(l=ab\\).\n\nFor a fixed prime \\(p\\) let \\(v_p(m)=a_p\\), \\(v_p(n)=b_p\\). Then\n\\[\nv_p(d)=\\min(a_p,b_p),\\qquad v_p(l)=|a_p-b_p|.\n\\]\n\nDefine for each prime \\(p\\) the quantity\n\\[\ng_p = \\gcd\\bigl\\{v_p(a_1),\\dots,v_p(a_n)\\bigr\\},\n\\]\nwith the convention that the gcd of a set containing only zeros is \\(0\\). We claim that \\(g_p\\) is invariant under the moves. Indeed, for the two numbers \\(m,n\\) we have\n\\[\n\\gcd(\\min(a_p,b_p),\\,|a_p-b_p|)=\\gcd(a_p,b_p),\n\\]\nand the other numbers are unchanged, therefore the gcd of the whole multiset does not change. Hence each \\(g_p\\) remains constant throughout the process.\n\nNow we prove part (a). Let \\(t\\) be the number of integers on the board that are larger than \\(1\\) (the rest are \\(1\\)). A move always replaces two numbers \\(>1\\) by two numbers; if both new numbers are \\(>1\\) then \\(t\\) does not change, otherwise \\(t\\) decreases by \\(1\\). Hence \\(t\\) is non‑increasing.\n\nLet \\(\\Phi = t + \\sum_{i=1}^n \\Omega(a_i)\\) be a potential function. We show that every move strictly decreases \\(\\Phi\\).\n\nConsider a move on \\(m,n>1\\) and let \\(d=\\gcd(m,n)\\). The total number of prime factors changes as follows: for each prime \\(p\\) the sum of exponents changes from \\(a_p+b_p\\) to \\(\\min(a_p,b_p)+|a_p-b_p| = \\max(a_p,b_p)\\). Hence the total \\(\\Omega\\) decreases by \\(\\sum_p \\min(a_p,b_p) = \\Omega(d)\\).\n\nNow examine the possible cases:\n\n* If \\(d=1\\) then \\(m\\neq n\\) and one of the new numbers is \\(1\\), so \\(t\\) decreases by \\(1\\) while \\(\\Omega\\) stays the same. Thus \\(\\Phi\\) decreases by \\(1\\).\n\n* If \\(d>1\\) and \\(m\\neq n\\) then both new numbers are \\(>1\\), so \\(t\\) is unchanged, while \\(\\Omega\\) decreases by \\(\\Omega(d)\\ge 1\\). Hence \\(\\Phi\\) decreases by at least \\(1\\).\n\n* If \\(d>1\\) and \\(m=n\\) then \\(l=1\\), so \\(t\\) decreases by \\(1\\) and \\(\\Omega\\) decreases by \\(\\Omega(d)\\ge 1\\); therefore \\(\\Phi\\) decreases by at least \\(2\\).\n\nIn every case \\(\\Phi\\) drops by a positive integer. Since \\(\\Phi\\) is a non‑negative integer, the process cannot continue indefinitely; it must terminate after a finite number of moves.\n\nAt termination no move is possible, which means there is at most one integer \\(>1\\) on the board. Suppose, for contradiction, that there are no integers \\(>1\\) (i.e. all numbers are \\(1\\)). Then for any prime \\(p\\) the set of exponents consists only of zeros, so the invariant \\(g_p\\) would be \\(0\\). However, initially there is at least one number \\(>1\\); let \\(p\\) be a prime dividing that number. Then the initial set of exponents for \\(p\\) contains a positive integer, so \\(g_p\\ge 1\\). The invariance of \\(g_p\\) forces \\(g_p\\) to stay positive, contradicting the fact that at the end it would be \\(0\\). Therefore it is impossible that all numbers become \\(1\\). Consequently at the moment the process stops there is exactly one integer \\(>1\\). Call this integer \\(M\\).\n\nNow we prove part (b). At the final configuration the only number larger than \\(1\\) is \\(M\\); all other numbers are \\(1\\). Hence for each prime \\(p\\),\n\\[\n\\gcd\\bigl\\{v_p(M),0,\\dots,0\\bigr\\}=v_p(M).\n\\]\nBut by the invariance of the \\(g_p\\) we have\n\\[\nv_p(M) = g_p = \\gcd\\bigl\\{v_p(a_1),\\dots,v_p(a_n)\\bigr\\},\n\\]\nwhere the \\(a_i\\) are the initial numbers. Therefore\n\\[\nM = \\prod_p p^{\\,g_p}.\n\\]\nThe value on the right‑hand side depends only on the initial multiset and not on the sequence of moves. Thus the final integer \\(M\\) is independent of all choices made during the process. ∎",
+  "self_evaluation": "The proof is complete and rigorous. The invariant of the gcd of exponents for each prime is correctly justified. The potential function \\(\\Phi\\) is shown to strictly decrease in every move, guaranteeing termination. The impossibility of all numbers becoming 1 follows from the invariant and the initial positivity of some \\(g_p\\). The final value \\(M\\) is uniquely determined by the initial exponents, establishing independence. All steps are logically sound and no gaps remain.",
+  "self_score": 1.0,
+  "generation_sample_id": "round-01/generate/r01-p0027",
+  "verifications": [
+    {
+      "sample_id": "round-01/verify/r01-p0027/v000",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe candidate solution correctly proves both parts of the problem. The invariant for the gcd of exponents for each prime is properly justified, and the potential function argument is sound and shows termination. The argument that the final state must have exactly one integer greater than 1 is rigorous, and the independence of M is correctly derived from the invariant. All claims are justified, and there are no logical gaps or errors.\n</evaluation>\n<suggestions>\nNo significant suggestions; the proof is already well-structured and complete.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0027/v001",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts of the problem. It introduces an invariant (gcd of exponents for each prime) and a potential function (t + ΣΩ) that strictly decreases with each move, guaranteeing termination. The argument that exactly one integer >1 remains is sound, relying on the invariant to rule out all numbers becoming 1. The final value M is expressed in terms of the initial exponents via the invariant, establishing independence. All steps are logically justified; no gaps or errors are present.\n</evaluation>\n<suggestions>\nNo improvements necessary; the proof is rigorous and complete.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0027/v002",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. The invariant of the gcd of exponents for each prime is properly justified, and the potential function argument shows that the process must terminate after finitely many moves. The proof that at termination there is exactly one integer greater than 1 uses the invariant to rule out the possibility of all ones. The independence of the final value M from the sequence of moves is correctly deduced from the invariant. All steps are logically sound and no gaps or errors remain.\n</evaluation>\n<suggestions>\nNone.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0027/v003",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is completely correct and rigorous. The invariant of gcd of exponents is properly justified, the potential function is well-defined and shown to strictly decrease, guaranteeing termination. The impossibility of all numbers becoming 1 is derived from the invariant. The final value M is uniquely determined by the initial numbers, establishing independence. All steps are logically sound and justified.\n</evaluation>\n<suggestions>\nNone; the proof is clear and complete.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0027/v004",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe candidate solution correctly proves both parts of the problem. The invariant \\(g_p = \\gcd\\) of the exponents of each prime is justified and shown to be invariant under moves. The potential function \\(\\Phi = t + \\sum \\Omega(a_i)\\) is defined and shown to strictly decrease in every move, guaranteeing termination. The argument that at termination there must be exactly one integer \\(>1\\) follows from the invariant and the impossibility of all numbers becoming \\(1\\). The final value \\(M\\) is expressed as \\(\\prod p^{g_p}\\), which depends only on the initial multiset, establishing independence from the choices. All claims are properly justified, no gaps or errors are present.\n</evaluation>\n<suggestions>\nNo suggestions; the proof is complete and rigorous.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0027/v005",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. It defines appropriate invariants (gcd of exponents) and a potential function that strictly decreases each move, guaranteeing termination. The argument that at termination exactly one integer >1 remains is correctly justified using the invariant. The final integer M is expressed in terms of initial exponents, proving independence of choices. All cases are considered, and no gaps or errors are present.\n</evaluation>\n<suggestions>\nNone.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0027/v006",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. It defines an invariant for each prime (the gcd of the exponents) and a potential function (t + sum of Ω) that strictly decreases each move, guaranteeing termination. It then shows that at termination there must be exactly one integer >1 because the invariant prevents all numbers from becoming 1, and if there were two or more >1 a move would still be possible. Finally, it identifies the final integer M as the product over primes of p raised to the invariant gcd of the initial exponents, which is independent of the sequence of moves. All steps are logically sound and no gaps remain.\n</evaluation>\n<suggestions>\nThe proof is complete; no significant suggestions.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0027/v007",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is completely correct and rigorous. The invariant for each prime is properly justified, the potential function is correctly defined and shown to strictly decrease in every move, guaranteeing termination. The argument that the process cannot end with all ones follows from the invariant, so exactly one integer >1 remains. The final value M is then uniquely determined by the initial multiset, establishing independence. All claims are supported by clear reasoning.\n</evaluation>\n<suggestions>\nNo suggestions needed; the proof is already rigorous and complete.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0027/v008",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. The invariant for each prime exponent is properly justified, the potential function is correctly defined and shown to strictly decrease in every move, guaranteeing termination. The argument that exactly one integer >1 remains at the end is sound, and the independence of the final value M follows from the invariance. All steps are logically sound and no gaps or errors are present.\n</evaluation>\n<suggestions>\nNo improvements necessary; the proof is complete.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0027/v009",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. The invariant (gcd of exponents for each prime) is properly justified and used to establish both termination and independence. The potential function argument is sound and shows that the process must terminate, and the final configuration is shown to contain exactly one integer greater than 1. Part (b) correctly deduces that the final integer is uniquely determined by the initial multiset, independent of the sequence of moves. All steps are logically valid and no gaps or hidden assumptions remain.\n</evaluation>\n<suggestions>\nThe proof is complete and no suggestions are needed. The reasoning is clear and well-structured.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0027/v010",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is completely correct and rigorous. The invariant of the gcd of exponents for each prime is correctly justified, the potential function strictly decreases, ensuring termination. The argument that the process cannot end with all 1's is sound. The final value M is correctly shown to be independent of choices via the invariant.\n</evaluation>\n<suggestions>\nNone needed.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0027/v011",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is rigorous and correct. The invariant for each prime's exponent gcd is properly justified. The potential function argument guarantees termination in finitely many moves. The impossibility of all numbers becoming 1 follows from the invariant and initial positivity. The final value M is derived from the invariant and shown to be independent of the move choices. All steps are logically sound and no gaps remain.\n</evaluation>\n<suggestions>\nNo major suggestions; the proof is complete. One minor note: the case d>1 and m≠n could be more explicitly justified that l>1, but it's clear. The potential function could be simplified, but it's fine.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0027/v012",
+      "score": 1.0,
+      "analysis": "<evaluation>The solution is correct and rigorous. All claims are justified, the invariant is properly established, the potential function argument ensures termination, and the final value M is shown to be independent of choices. There are no gaps or errors.</evaluation>\n<suggestions>None needed; the proof is complete and clear.</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0027/v013",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. The invariant is properly justified, the potential function is correctly defined and shown to strictly decrease, guaranteeing termination. The argument that the final state has exactly one integer >1 is sound, and the independence of M follows from the invariant. All steps are logically sound and no gaps remain.\n</evaluation>\n<suggestions>\nNo significant suggestions; the proof is well-structured.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0027/v014",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. The invariant for each prime (gcd of exponents) is properly justified. The potential function argument clearly shows that the process terminates after finitely many moves. The proof that at termination exactly one integer >1 remains is sound, using the invariant to exclude the possibility that all become 1. The final value M is then shown to be uniquely determined by the initial numbers, establishing independence. All steps are logically justified and no gaps remain.\n</evaluation>\n<suggestions>\nNo suggestions; the proof is complete and rigorous.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0027/v015",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. It defines an invariant for each prime (the gcd of the exponents) and a potential function that strictly decreases with each move, guaranteeing termination. The argument that exactly one number >1 remains at termination is sound, and the independence of the final number M is correctly derived from the invariant. All steps are properly justified and no fatal errors or omissions are present.\n</evaluation>\n<suggestions>\nThe proof is already clear and complete. Minor clarifications could include a more detailed explanation of why the gcd of the whole set is invariant (e.g., using the property that gcd(a,b) = gcd(a, b-a) and noting that the gcd of the unchanged numbers commutes), but this is not necessary.\n</suggestions>\n<score>1</score>"
+    }
+  ],
+  "mean_score": 1.0
+}

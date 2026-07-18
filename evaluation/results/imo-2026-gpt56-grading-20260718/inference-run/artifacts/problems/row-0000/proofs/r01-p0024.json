@@ -1,0 +1,92 @@
+{
+  "proof_id": "r01-p0024",
+  "round_index": 1,
+  "parent_id": null,
+  "proof": "We prove both parts.\n\nLet the numbers on the board be positive integers. For any integer \\(x>1\\), let \\(\\nu_p(x)\\) denote the exponent of prime \\(p\\) in the factorization of \\(x\\) (with \\(\\nu_p(1)=0\\)). For a multiset of numbers, we consider the multiset of exponents for each prime.\n\n**Part (a).** Define the following two quantities:\n- \\(S = \\sum_{p} \\sum_{x} \\nu_p(x)\\), the total sum of all exponents over all primes and all numbers.\n- \\(k =\\) the number of integers on the board that are \\(>1\\).\n\nInitially \\(S\\) is finite and \\(k=2026\\). We show that each move either decreases \\(S\\) or decreases \\(k\\) (or both), and that the process cannot continue indefinitely. Moreover, when no move is possible, we must have \\(k=1\\) (and not \\(0\\)).\n\nConsider a move on two numbers \\(m,n>1\\). Write their exponents for a fixed prime \\(p\\) as \\(a=\\nu_p(m)\\) and \\(b=\\nu_p(n)\\). The two new numbers are \\(g=\\gcd(m,n)\\) and \\(h=\\operatorname{lcm}(m,n)/\\gcd(m,n)\\). The exponents of \\(g\\) and \\(h\\) are \\(\\min(a,b)\\) and \\(|a-b|\\) respectively. Hence for this prime, the contribution to \\(S\\) changes from \\(a+b\\) to \\(\\min(a,b)+|a-b| = \\max(a,b)\\). Thus the total change for this prime is \\(-(a+b)-\\max(a,b)=-\\min(a,b)\\). Summing over all primes, \\(S\\) changes by \\(-\\sum_{p}\\min(\\nu_p(m),\\nu_p(n))\\).\n\nIf \\(m\\) and \\(n\\) share a common prime factor, then for at least one \\(p\\) we have \\(\\min(\\nu_p(m),\\nu_p(n))>0\\), so \\(S\\) strictly decreases. If \\(\\gcd(m,n)=1\\), then for every prime \\(p\\) at most one of \\(\\nu_p(m),\\nu_p(n)\\) is positive, so \\(\\min=0\\) for all \\(p\\) and \\(S\\) remains unchanged. In the latter case, the move replaces two numbers \\(>1\\) with \\(\\gcd=1\\) and \\(h=\\operatorname{lcm}(m,n)\\) (which is \\(mn\\) because they are coprime). Hence exactly one of the two new numbers is \\(>1\\) (namely \\(h\\)), so \\(k\\) decreases by \\(1\\).\n\nThus each move either reduces \\(S\\) (when \\(\\gcd(m,n)>1\\)) or reduces \\(k\\) (when \\(\\gcd(m,n)=1\\)). The quantities \\(S\\) and \\(k\\) are non‑negative integers and never increase. Since \\(S\\) cannot decrease indefinitely and \\(k\\) cannot decrease indefinitely, the process must stop after finitely many moves.\n\nWhen the process stops, there are no two integers \\(>1\\) on the board, i.e., \\(k\\le1\\). We claim \\(k=1\\) cannot be \\(0\\). Suppose for contradiction that at the moment the process stops we have \\(k=0\\), i.e., all numbers are \\(1\\). Then the last move must have been performed on two numbers \\(m,n>1\\) that produced two \\(1\\)’s. But the new numbers are \\(\\gcd(m,n)\\) and \\(\\operatorname{lcm}(m,n)/\\gcd(m,n)\\). For both to be \\(1\\), we would need \\(\\gcd(m,n)=1\\) and \\(\\operatorname{lcm}(m,n)=1\\), which forces \\(m=n=1\\), contradicting \\(m,n>1\\). Hence \\(k\\) cannot be \\(0\\). Therefore \\(k=1\\) at termination, and exactly one integer \\(M>1\\) remains.\n\n**Part (b).** For each prime \\(p\\) define\n\\[\ng_p = \\gcd\\{\\,\\nu_p(x) : x\\text{ is a number on the board initially}\\,\\}.\n\\]\nWe prove that \\(g_p\\) is invariant under the moves.\n\nConsider any move on \\(m,n>1\\). Let \\(a=\\nu_p(m)\\), \\(b=\\nu_p(n)\\). After the move the two numbers become \\(g=\\gcd(m,n)\\) (exponent \\(\\min(a,b)\\)) and \\(h=\\operatorname{lcm}(m,n)/\\gcd(m,n)\\) (exponent \\(|a-b|\\)). Since \\(\\gcd(a,b)=\\gcd(\\min(a,b),|a-b|)\\), the greatest common divisor of the set of all exponents of \\(p\\) in the whole multiset does not change. Consequently, throughout the whole process the number\n\\[\nG_p = \\gcd\\{\\,\\nu_p(x) : x\\text{ is a number on the board at any moment}\\,\\}\n\\]\nremains equal to \\(g_p\\).\n\nWhen the process terminates we have exactly one number \\(M>1\\) and all other numbers are \\(1\\). For each prime \\(p\\), the exponent of \\(M\\) is \\(\\nu_p(M)\\). All other numbers have exponent \\(0\\). Therefore\n\\[\nG_p = \\gcd(\\nu_p(M),0,0,\\dots) = \\nu_p(M).\n\\]\nHence \\(\\nu_p(M)=g_p\\) for every prime \\(p\\). It follows that\n\\[\nM = \\prod_{p} p^{g_p},\n\\]\nwhich depends only on the initial multiset of numbers and not on the particular choices made during the process. Thus the value of \\(M\\) is independent of all choices. ∎",
+  "self_evaluation": "The proof is rigorous. The termination argument uses a well‑founded potential (S,k) and the impossibility of ending with zero >1 is justified. The invariance of gcd of exponents is proven and yields the final M uniquely. All steps are logically sound and no gaps remain.",
+  "self_score": 1.0,
+  "generation_sample_id": "round-01/generate/r01-p0024",
+  "verifications": [
+    {
+      "sample_id": "round-01/verify/r01-p0024/v000",
+      "score": 0.5,
+      "analysis": "<evaluation>\nThe solution correctly addresses both parts of the problem. The core ideas—using exponent sums and gcd invariants—are sound, and the arguments for termination and invariance are essentially correct. However, there is a minor algebraic slip in the derivation of the change in \\(S\\): the written expression \\(-(a+b)-\\max(a,b)=-\\min(a,b)\\) is incorrect (the correct change is \\(\\max-(a+b)=-\\min\\)). This does not undermine the overall logic, but it is an error in the presentation. The rest of the proof is rigorous and complete.\n</evaluation>\n<suggestions>\nCorrect the derivation: the change for a prime is \\(\\max(a,b)-(a+b)=-\\min(a,b)\\), not \\(-(a+b)-\\max(a,b)\\). Otherwise, the reasoning is clear and no major gaps remain.\n</suggestions>\n<score>0.5</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0024/v001",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts. The termination argument uses a well-defined potential function (S,k) that strictly decreases on each move, ensuring finiteness. The impossibility of ending with all ones is justified. The invariance of the gcd of exponents per prime is properly shown, leading to a unique final number M. All steps are logically sound and well-justified. There are no gaps or errors.\n</evaluation>\n<suggestions>\nNo significant issues; the proof is rigorous and complete. A minor expansion on the invariance argument could be added for clarity, but it is already sufficient.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0024/v002",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts. The termination argument uses a well-defined potential (S, k) and shows that each move reduces S or k, so the process must terminate. The impossibility of ending with zero >1 is justified. The invariance of the gcd of exponents for each prime is proven, and the final M is uniquely determined. All steps are logically sound and no gaps remain.\n</evaluation>\n<suggestions>\nNo significant issues; the proof is rigorous and complete.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0024/v003",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts. The termination argument using the potential (S,k) is valid, and the impossibility of ending with no >1 numbers is justified. The invariant for the exponent gcds is correctly established and yields the independence of the final M. All steps are logically sound and well-justified. No gaps or errors.\n</evaluation>\n<suggestions>\nNo suggestions needed; the proof is complete and rigorous.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0024/v004",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. Part (a) provides a clear termination argument using the sum of exponents \\(S\\) and the count \\(k\\) of numbers greater than 1, showing that each move decreases at least one of these quantities, so the process must stop. It then proves that the final state cannot have \\(k=0\\) because that would require a move producing two 1’s, which is impossible, so exactly one integer \\(M>1\\) remains. Part (b) defines the invariant \\(g_p\\) as the gcd of the exponents of prime \\(p\\) in the initial numbers and shows that this invariant is preserved under moves because \\(\\gcd(a,b)=\\gcd(\\min(a,b),|a-b|)\\). At termination, the invariant gives \\(\\nu_p(M)=g_p\\) for every prime \\(p\\), so \\(M\\) is uniquely determined by the initial multiset, independent of the choices made. All steps are logically sound and no gaps remain.\n</evaluation>\n<suggestions>\nThe proof is already clear and complete. One might add a brief note that the sum \\(S\\) is finite because each number has only finitely many prime factors and the number of numbers is finite, but this is implicit. The termination argument could be slightly strengthened by noting that \\(S+k\\) decreases by at least 1 each move, but the given reasoning is sufficient.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0024/v005",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts. The termination argument using the potential (S,k) is valid, and the impossibility of ending with no >1 numbers is correctly justified. The invariance of the gcd of exponents is properly argued, leading to the independence of the final M. All steps are logically sound and rigorous.\n</evaluation>\n<suggestions>\nNo suggestions needed; the proof is complete and clear.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0024/v006",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts. The termination argument using the quantities \\(S\\) (sum of exponents) and \\(k\\) (number of integers >1) is valid; each move strictly reduces at least one of them, and the process cannot continue indefinitely because both are non‑negative integers. The impossibility of ending with \\(k=0\\) is properly justified. The invariance of the gcd of the exponents for each prime is correctly established using the property \\(\\gcd(a,b)=\\gcd(\\min(a,b),|a-b|)\\), and from this the final value \\(M\\) is uniquely determined. All steps are logically sound, and no gaps remain.\n</evaluation>\n<suggestions>\nNo suggestions; the proof is rigorous and complete.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0024/v007",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. Part (a) uses a well‑founded potential (sum of exponents \\(S\\) and number of integers \\(>1\\) \\(k\\)) to prove termination; the argument that the process cannot end with zero integers \\(>1\\) is properly justified. Part (b) proves that the greatest common divisor of the exponents of each prime is invariant under the moves, which then determines the final integer \\(M\\) uniquely. All claims are justified, no hidden assumptions or gaps remain.\n</evaluation>\n<suggestions>\nNo significant improvements are needed; the proof is already clear and complete.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0024/v008",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe candidate solution correctly proves both parts. Part (a) uses a potential function (S and k) to show termination, and then argues that at termination exactly one integer >1 remains. Part (b) uses an invariant on the gcd of exponents of each prime to show that the final number M is uniquely determined. All steps are logically sound and justified. There are no fatal errors, missing cases, or hidden assumptions.\n</evaluation>\n<suggestions>\nThe proof is already rigorous; no suggestions for improvement.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0024/v009",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts. The termination argument using the potential (S,k) is valid, and the impossibility of ending with zero >1 is justified. The invariance of the gcd of exponents for each prime is correctly shown, leading to the uniqueness of the final integer M. All claims are properly justified, and there are no gaps or errors.\n</evaluation>\n<suggestions>\nNo suggestions needed; the proof is complete.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0024/v010",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts of the problem. The termination argument uses a well‑founded potential (S, k) and shows that each move strictly decreases at least one of them, guaranteeing termination. The proof that exactly one integer >1 remains at termination is sound, and the impossibility of ending with zero >1 is justified. For part (b), the invariance of the greatest common divisor of exponents for each prime is correctly established, and the final value of M is shown to depend only on the initial multiset. The only inaccuracy is the claim that when gcd(m,n)>1 both new numbers are >1 (this fails when m=n), but this statement is not essential for the proof; the argument relies solely on the decrease of S in that case. Therefore the reasoning is essentially correct and complete.\n</evaluation>\n<suggestions>\nThe statement about both new numbers being >1 when gcd(m,n)>1 could be clarified: it holds when m≠n, but when m=n the move produces one >1 and one 1. This does not affect the overall proof.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0024/v011",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe candidate solution is correct and rigorous. Part (a) uses a potential function (S, k) to show termination and argues that k cannot be 0 at termination, so exactly one integer >1 remains. Part (b) proves that the gcd of exponents for each prime is invariant under the moves, which determines the final M uniquely. All claims are properly justified, and no gaps or errors are present.\n</evaluation>\n<suggestions>\nNo improvements needed; the proof is complete and well-structured.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0024/v012",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts. Part (a) uses a potential function (total exponent sum S and count k of numbers >1) and shows each move decreases S or k, guaranteeing termination. It also argues that termination cannot result in k=0, so exactly one integer >1 remains. Part (b) defines the invariant g_p as the gcd of the exponents for each prime, shows it is preserved under moves, and uses the final configuration to deduce that the final integer M is uniquely determined by the initial exponents. All steps are logically sound, and there are no gaps or hidden assumptions.\n</evaluation>\n<suggestions>\nNo suggestions needed; the proof is complete and rigorous.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0024/v013",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe proof is correct and rigorous. Part (a) uses a potential function (sum of exponents \\(S\\) and count \\(k\\) of numbers \\(>1\\)) that strictly decreases or decreases at each move, ensuring termination. The impossibility of ending with \\(k=0\\) is properly justified. Part (b) shows that the gcd of exponents of each prime is invariant, and at termination this forces the unique final number \\(M\\) to be the product of primes raised to those gcds, independent of choices. All steps are logically sound and no gaps remain.\n</evaluation>\n<suggestions>\nMinor typo in the expression for the change of \\(S\\) (should be \\(\\max(a,b)-(a+b)=-\\min(a,b)\\)) but does not affect correctness. The termination argument could be slightly more explicit about the bound, but it is sufficient.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0024/v014",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe candidate solution is correct and rigorous. The termination argument using the potential (S, k) is sound, and the impossibility of ending with no numbers >1 is properly justified. The invariance of the gcd of exponents for each prime is correctly argued, leading to the uniqueness of the final number M. All steps are logically sound and cover both parts of the problem.\n</evaluation>\n<suggestions>\nNo significant gaps; the proof is complete.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0024/v015",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts. The termination argument using the sum of exponents S and the count k is sound, and the impossibility of ending with zero >1 numbers is justified. The invariance of the gcd of exponents is properly argued, leading to the unique final M. All claims are justified, and no fatal errors or omissions are present.\n</evaluation>\n<suggestions>\nNo significant suggestions; the proof is rigorous and clear.\n</suggestions>\n<score>1</score>"
+    }
+  ],
+  "mean_score": 0.96875
+}

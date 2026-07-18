@@ -1,0 +1,92 @@
+{
+  "proof_id": "r01-p0031",
+  "round_index": 1,
+  "parent_id": null,
+  "proof": "We will prove both parts.\n\nLet the numbers on the board be denoted by positive integers. Initially there are 2026 numbers, each >1.\n\n**Notation.** For a state, let \\(P\\) be the product of all numbers on the board, and let \\(N\\) be the number of numbers greater than 1.\n\n**Proof of (a).** We show that the process must terminate after finitely many moves and that when it stops there is exactly one number >1.\n\nAt each move we choose two numbers \\(m,n>1\\) and replace them by\n\\[\ng = \\gcd(m,n),\\qquad h = \\frac{\\operatorname{lcm}(m,n)}{g} = \\frac{mn}{g^2}.\n\\]\n\nThe product changes as\n\\[\nP' = P\\cdot\\frac{g\\cdot h}{mn} = P\\cdot\\frac{g\\cdot (mn/g^2)}{mn} = \\frac{P}{g}.\n\\]\nHence \\(P' \\le P\\), with equality only if \\(g=1\\).\n\nThe number of numbers >1 changes as follows:\n- If \\(g=1\\) then \\(h=mn>1\\) and we replace two >1 numbers by one >1 (and one 1), so \\(N' = N-1\\).\n- If \\(g>1\\) and \\(h=1\\) then we replace two >1 numbers by one >1 (and one 1), so again \\(N' = N-1\\).\n- If \\(g>1\\) and \\(h>1\\) then we replace two >1 numbers by two >1 numbers, so \\(N' = N\\).\n\nThus \\(N' \\le N\\), and \\(N' = N\\) exactly when \\(g>1\\) and \\(h>1\\).\n\nConsider the sum \\(S = P + N\\). We show that \\(S\\) strictly decreases at every move.\n\n- If \\(g=1\\) then \\(P' = P\\) and \\(N' = N-1\\), so \\(S' = P + N - 1 = S-1\\).\n- If \\(g>1\\) then \\(P' = P/g \\le P/2 < P\\) and \\(N' \\le N\\), therefore \\(S' \\le P/2 + N < P + N = S\\).\n\nSince \\(S\\) is a positive integer, it cannot decrease forever; consequently the process must terminate after a finite number of moves.\n\nWhen the process stops, no move is possible, so there are not two numbers >1. Hence \\(N \\le 1\\).\n\nWe now prove that \\(N\\) cannot be \\(0\\). Suppose to the contrary that at the end all numbers are \\(1\\). Then the product \\(P = 1\\).\n\nConsider any prime \\(p\\). For each number on the board let \\(e_i(p)\\) be the exponent of \\(p\\) in its prime factorization. The operation on two numbers with exponents \\(a,b\\) (for the same prime) replaces them by \\(\\min(a,b)\\) and \\(|a-b|\\). The greatest common divisor of all exponents for \\(p\\) is invariant: indeed,\n\\[\n\\gcd(\\min(a,b),\\,|a-b|) = \\gcd(a,b),\n\\]\nso the gcd of the whole multiset of exponents does not change when we replace the pair \\((a,b)\\) by \\((\\min(a,b),|a-b|)\\).\n\nLet \\(g_p\\) be the gcd of the initial exponents for prime \\(p\\). Since the initial numbers are all \\(>1\\), there exists at least one prime \\(p\\) with \\(g_p > 0\\). At the final state, because every number is \\(1\\), all exponents are \\(0\\); therefore the gcd of the exponents for that prime would be \\(0\\), contradicting the invariance. Hence \\(N \\neq 0\\).\n\nThus \\(N = 1\\) at termination; i.e., the process ends with exactly one number \\(M > 1\\) on the board.\n\n**Proof of (b).** We show that the value \\(M\\) is the same for every possible sequence of moves.\n\nFrom the invariant above, for each prime \\(p\\) the quantity \\(g_p = \\gcd\\{\\text{exponents of }p\\text{ in the numbers}\\}\\) is unchanged throughout the process. At the start, \\(g_p\\) is the gcd of the exponents of \\(p\\) in the initial numbers. If a prime never appears, \\(g_p = 0\\).\n\nAt the final state we have exactly one number \\(M > 1\\); all other numbers are \\(1\\). For a given prime \\(p\\), the exponent of \\(p\\) in \\(M\\) is the only positive exponent (if any). The gcd of all exponents (including zeros) is therefore equal to that exponent when it is positive, and \\(0\\) otherwise. By invariance this exponent must equal \\(g_p\\). Hence the prime factorization of \\(M\\) is\n\\[\nM = \\prod_{p} p^{\\,g_p}.\n\\]\nThis expression depends only on the initial numbers, not on the choices made during the process. Consequently the value of \\(M\\) is independent of the sequence of moves.\n\n∎",
+  "self_evaluation": "The proof uses the monotonic sum \\(P+N\\) to establish termination, and an invariant on the gcd of exponents for each prime to show that the final number is uniquely determined. All steps are justified: the product and \\(N\\) are well‑defined, the decrease of \\(P+N\\) is strictly shown, the invariance of the gcd is proven, and the contradiction for \\(N=0\\) is clear. No gaps remain.",
+  "self_score": 1.0,
+  "generation_sample_id": "round-01/generate/r01-p0031",
+  "verifications": [
+    {
+      "sample_id": "round-01/verify/r01-p0031/v000",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. The proof of termination using the sum \\(P+N\\) is valid, and the invariant on the gcd of exponents for each prime correctly shows that the final number is unique. All steps are justified, and no gaps or errors are present.\n</evaluation>\n<suggestions>\nNo major suggestions; the proof is well-structured.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0031/v001",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. The termination argument using the sum \\(P+N\\) is properly justified, and the invariant on the gcd of exponents for each prime is correctly established and used to show that the process ends with exactly one number \\(M>1\\) and that \\(M\\) is independent of the choices. All steps are logically sound and no gaps or hidden assumptions remain.\n</evaluation>\n<suggestions>\nNo suggestions needed; the proof is complete and clear.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0031/v002",
+      "score": 1.0,
+      "analysis": "<evaluation>The candidate's solution correctly proves both parts. The termination argument using the sum \\(P+N\\) is valid, and the invariant on the gcd of exponents for each prime is correctly shown to be preserved. The contradiction that the final state cannot have all numbers equal to 1 is correctly argued, establishing that exactly one number remains. Part (b) follows directly from the invariant, showing that the final number is uniquely determined. All steps are justified, and no gaps or errors are present.</evaluation>\n<suggestions>None needed; the proof is rigorous and complete.</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0031/v003",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe candidate's solution correctly proves both parts. The use of the sum \\(P+N\\) to establish termination is valid, and the invariant on the gcd of exponents for each prime is correctly employed to show that the process ends with exactly one number \\(>1\\) and that this number is independent of the choices. All steps are logically sound and well justified. There are no fatal errors or omissions.\n</evaluation>\n<suggestions>\nThe proof is already rigorous. Minor clarifications could include explicitly noting that the invariant for each prime is preserved because the gcd of the multiset of exponents does not change when replacing a pair \\((a,b)\\) by \\((\\min(a,b),|a-b|)\\). This is already done. No further suggestions.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0031/v004",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. It uses the sum \\(S = P + N\\) to show strict decrease and hence termination, then uses the invariant of the gcd of exponents for each prime to prove that the final state must have exactly one number \\(>1\\) and that the value of that number is independent of the choices. All steps are justified, and no gaps or hidden assumptions remain.\n</evaluation>\n<suggestions>\nThe proof is already complete. A minor clarification could be added about why the gcd of the whole multiset of exponents is invariant, but the reasoning is sufficiently clear.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0031/v005",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe candidate solution correctly proves both parts. Part (a) uses the sum \\(P+N\\) to show that the process terminates after finitely many moves, and then uses an invariant on the gcd of exponents to show that the terminal state must have exactly one number greater than 1. Part (b) uses the same invariant to show that the final number \\(M\\) depends only on the initial multiset of numbers, hence is independent of the sequence of moves. All steps are logically sound, well justified, and no gaps or errors are present.\n</evaluation>\n<suggestions>\nNo suggestions needed; the proof is already rigorous and complete.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0031/v006",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is completely correct and rigorous. It correctly proves termination using the monotonic sum \\(P+N\\) and shows that the process ends with exactly one number \\(>1\\) by an invariant on the gcd of exponents. Part (b) follows directly from that invariant, establishing that the final number \\(M\\) depends only on the initial numbers. All steps are properly justified, and there are no gaps or errors.\n</evaluation>\n<suggestions>\nNo suggestions needed; the proof is well-structured and thorough.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0031/v007",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe candidate's solution is correct and rigorous. The proof of termination uses a decreasing sum \\(P+N\\) with clear case analysis, and the argument that \\(N\\) cannot be \\(0\\) uses an invariant on the gcd of prime exponents. The final number \\(M\\) is shown to be independent of choices via the same invariant. All steps are justified, and no gaps or errors remain.\n</evaluation>\n<suggestions>\nNo suggestions needed; the proof is complete and well-structured.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0031/v008",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts. The termination argument using the sum \\(P+N\\) is valid and clearly explained. The invariant on the gcd of exponents for each prime is properly established and used to show that the final number \\(M\\) is uniquely determined and that the process cannot end with all ones. All steps are logically sound and no gaps remain.\n</evaluation>\n<suggestions>\nThe proof is already rigorous; no suggestions needed.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0031/v009",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe candidate solution correctly proves both parts. The termination argument using the sum \\(P+N\\) is rigorous and shows strict decrease at each move, guaranteeing finiteness. The invariant on the gcd of exponents for each prime is properly justified and used to show that the final number is uniquely determined. All steps are logically sound, and no gaps or hidden assumptions remain.\n</evaluation>\n<suggestions>\nNo suggestions needed.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0031/v010",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts. The termination argument using the sum \\(P+N\\) is valid and clearly justified. The invariant on the gcd of exponents for each prime is properly established and used to show that the final number is uniquely determined. All steps are logically sound and no gaps remain.\n</evaluation>\n<suggestions>\nThe proof is rigorous; no essential improvements needed. For completeness, one could explicitly note that the gcd of the whole multiset of exponents is invariant because any common divisor of the original exponents also divides the new ones, and vice versa.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0031/v011",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts. The termination argument using the sum \\(P+N\\) is valid, and the invariant on the gcd of exponents for each prime is properly justified. The reasoning that the process must end with exactly one number \\(>1\\) and that this number is uniquely determined by the initial configuration is sound. All steps are logically justified and no gaps or errors are present.\n</evaluation>\n<suggestions>\nThe proof is already rigorous; no suggestions for improvement.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0031/v012",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe proof is completely correct and rigorous. All steps are justified: the product and \\(N\\) are defined, the decrease of \\(S = P+N\\) is strictly shown, the invariant on the gcd of exponents for each prime is proven, the contradiction for \\(N=0\\) is clear, and part (b) follows from the invariant. No gaps or errors.\n</evaluation>\n<suggestions>\nNo suggestions; the proof is already clear and complete.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0031/v013",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts. It uses a monotonic sum to show termination and an invariant on the gcd of exponents to determine the final number and its uniqueness. All steps are justified, and no gaps or errors are present.\n</evaluation>\n<suggestions>\nNo major issues; the proof is rigorous. One minor note: in the case g>1, the inequality S' ≤ P/2 + N could be slightly refined to show strict decrease directly, but the reasoning is still valid.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0031/v014",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. It uses a well-defined sum \\(P+N\\) to prove termination, correctly analyzes the cases for the move, and shows that the process ends with exactly one number \\(M>1\\). The invariant on the gcd of exponents for each prime is properly justified and used to show that the final \\(M\\) is independent of the sequence of moves. All claims are supported, and no gaps or errors are present.\n</evaluation>\n<suggestions>\nNone needed; the proof is complete.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0031/v015",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts. Part (a) uses the sum \\(P+N\\) (product of all numbers plus count of numbers >1) to show that each move strictly decreases this sum, guaranteeing termination. The case analysis for the change in \\(N\\) and the product is accurate. The invariant on the gcd of exponents for each prime is properly established, and the argument that the final state cannot have all numbers equal to 1 (since the initial gcd of exponents for some prime is positive) forces exactly one number >1. Part (b) uses the same invariant to deduce that the exponent of each prime in the final number equals the initial gcd of exponents, so the final number is uniquely determined. All steps are logically justified; there are no gaps or errors.\n</evaluation>\n<suggestions>\nNo suggestions needed; the solution is rigorous and complete.\n</suggestions>\n<score>1</score>"
+    }
+  ],
+  "mean_score": 1.0
+}

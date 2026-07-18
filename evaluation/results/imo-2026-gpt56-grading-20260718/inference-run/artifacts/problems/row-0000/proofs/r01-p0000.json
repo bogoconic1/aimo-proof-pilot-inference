@@ -1,0 +1,92 @@
+{
+  "proof_id": "r01-p0000",
+  "round_index": 1,
+  "parent_id": null,
+  "proof": "Let the initial multiset be \\(A_0=\\{a_1,\\dots,a_{2026}\\}\\) with each \\(a_i>1\\). For a prime \\(p\\), denote \\(v_p(x)\\) the exponent of \\(p\\) in the prime factorization of \\(x\\) (with \\(v_p(1)=0\\)). For any two numbers \\(m,n>1\\), let \\(d=\\gcd(m,n)\\) and \\(L=\\operatorname{lcm}(m,n)/d\\). Then\n\\[\nv_p(d)=\\min(v_p(m),v_p(n)),\\qquad v_p(L)=|v_p(m)-v_p(n)|.\n\\]\n\n**Part (a).** We show the process always terminates and ends with exactly one integer \\(>1\\).\n\n*Termination.* Let \\(P\\) be the product of all numbers on the board. If we replace \\(m,n\\) by \\(d\\) and \\(L\\), the new product is \\(P\\cdot\\frac{d\\cdot L}{mn}=P\\cdot\\frac{1}{d}\\). Since \\(d\\ge 1\\), \\(P\\) does not increase; it strictly decreases when \\(d>1\\) and stays unchanged when \\(d=1\\). \\(P\\) is a positive integer, so it can decrease only finitely many times. Let \\(k\\) be the number of integers on the board that are \\(>1\\). When \\(d=1\\), we replace two numbers \\(>1\\) by \\(1\\) and \\(mn>1\\), so \\(k\\) decreases by \\(1\\). When \\(d>1\\), \\(k\\) may stay the same or decrease by \\(1\\) (if one of the new numbers is \\(1\\)). Therefore \\(k\\) is a non‑increasing integer that can decrease at most \\(2025\\) times (from \\(2026\\) to \\(1\\)). Consequently the total number of moves is bounded, so the process must stop after finitely many steps.\n\n*Final configuration.* The process stops when there is no pair of numbers \\(>1\\); thus \\(k=0\\) or \\(k=1\\). We prove \\(k=0\\) cannot occur. For each prime \\(p\\), let \\(G_p\\) be the greatest common divisor of all \\(v_p(a_i)\\) (\\(i=1,\\dots,2026\\)) initially. Because every \\(a_i>1\\), there exists at least one prime \\(p\\) with \\(G_p\\ge 1\\). The operation preserves the gcd of the exponents for \\(p\\): for two numbers \\(a,b\\),\n\\[\n\\gcd(\\min(a,b),|a-b|)=\\gcd(a,b).\n\\]\nHence the integer \\(G_p\\) does not change throughout the process. When the process ends, at most one number is \\(>1\\), so for each prime \\(p\\) at most one number has a positive exponent. If \\(k=0\\), then all numbers are \\(1\\) and all exponents are \\(0\\), so \\(G_p=0\\) for every \\(p\\), contradicting \\(G_p\\ge1\\) for some \\(p\\). Thus \\(k=1\\) and the unique number \\(>1\\) is \\(M\\). For this \\(M\\), the exponent \\(v_p(M)\\) equals the invariant \\(G_p\\), so \\(v_p(M)\\ge1\\) for some \\(p\\), hence \\(M>1\\). Therefore the process terminates with exactly one integer \\(M>1\\).\n\n**Part (b).** From the invariant we have\n\\[\nv_p(M)=\\gcd_{i=1}^{2026}v_p(a_i)\\qquad\\text{for every prime }p.\n\\]\nThus\n\\[\nM=\\prod_{p\\text{ prime}} p^{\\gcd_i v_p(a_i)}.\n\\]\nThis expression depends only on the initial multiset, not on the choices made during the process. Hence the value of \\(M\\) is independent of all possible sequences of moves. ∎",
+  "self_evaluation": "The proof is complete and all claims are justified. The termination argument uses the fact that the product is a positive integer that decreases only finitely often and that the number of numbers >1 can only decrease finitely often. The exponent gcd invariant is established and used to show that the final state must contain exactly one number >1, and that this number is uniquely determined by the initial numbers. No gaps or errors.",
+  "self_score": 1.0,
+  "generation_sample_id": "round-01/generate/r01-p0000",
+  "verifications": [
+    {
+      "sample_id": "round-01/verify/r01-p0000/v000",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts of the problem. The termination argument uses the product of all numbers (which is non‑increasing and strictly decreases when the gcd of the chosen pair is >1) and the count of numbers >1 (which is non‑increasing and decreases when the gcd is 1). Together these bound the number of moves. The invariant involving the gcd of prime exponents is properly established and used to show that the final state must contain exactly one number >1 and that its value depends only on the initial multiset. All claims are justified, and there are no logical gaps or hidden assumptions.\n</evaluation>\n<suggestions>\nThe termination argument could be made slightly more explicit by noting that moves with d>1 are bounded by the product decrease and moves with d=1 are bounded by the decrease in the number of >1 numbers. However, the reasoning as presented is still valid.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0000/v001",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts of the problem. The termination argument uses the product of the numbers and the count of numbers >1 to bound the number of moves, and the invariant of the gcd of exponents for each prime is properly established and used to show that the final configuration must contain exactly one number >1. The value of this number is then uniquely determined by the initial multiset, proving independence of choices. All claims are justified, and there are no logical gaps or errors.\n</evaluation>\n<suggestions>\nNo substantive issues; the proof is complete and rigorous.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0000/v002",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. The termination argument uses both the product of all numbers (which strictly decreases when gcd > 1) and the count of numbers > 1 (which decreases when gcd = 1) to bound the number of moves. The invariant for the exponents of each prime is correctly established and used to show that the final configuration must contain exactly one number > 1, and that its value is uniquely determined by the initial multiset. All nontrivial claims are justified, and there are no hidden assumptions or fatal errors.\n</evaluation>\n<suggestions>\nNo suggestions needed.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0000/v003",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts. The termination argument uses a product invariant and the count of numbers >1, both of which decrease finitely. The invariant on the gcd of exponents is established and used to show that the final configuration must contain exactly one number >1, which is determined uniquely by the initial multiset. All steps are justified, and there are no hidden assumptions or errors.\n</evaluation>\n<suggestions>\nNo improvements needed; the proof is clear and rigorous.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0000/v004",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. The termination argument uses the product of all numbers and the count of numbers greater than 1 to bound the total moves. The invariant (gcd of exponents for each prime) is properly defined and shown to be preserved, and it is used to prove that the final state must contain exactly one number greater than 1. The value of that number is expressed in terms of the initial multiset, establishing independence from choices. All steps are justified, and no gaps or errors are present.\n</evaluation>\n<suggestions>\nNo significant improvements needed; the proof is clear and complete.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0000/v005",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. The termination argument uses the product and the number of integers greater than 1 to bound the number of moves, and the invariant on prime exponent gcds is correctly established and used to show that the final configuration must contain exactly one number >1, whose value is uniquely determined. All claims are justified, and there are no fatal errors or omissions.\n</evaluation>\n<suggestions>\nThe justification of the invariant could be made slightly more explicit by showing that the overall gcd of the exponents remains unchanged, but the given reasoning is sufficient.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0000/v006",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe candidate solution correctly proves both parts of the problem. The termination argument uses a product invariant that decreases only finitely often, and a count of numbers greater than 1 that also decreases finitely often, establishing that the process must end. The invariant of the gcd of exponents for each prime is correctly established and used to show that the final configuration must contain exactly one integer greater than 1, and that this integer is uniquely determined by the initial multiset. All claims are justified, and there are no logical gaps or errors.\n</evaluation>\n<suggestions>\nNo suggestions needed.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0000/v007",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe candidate solution correctly proves both parts. Termination is argued via the product of numbers (strictly decreasing when gcd>1, non‑increasing otherwise) and the count of numbers >1 (non‑increasing, bounded below). The invariant that the gcd of exponents for each prime is preserved is established and used to show that the final configuration must contain exactly one number >1, and that number is uniquely determined by the initial multiset. All steps are logically sound and justified; no gaps or errors are present.\n</evaluation>\n<suggestions>\nNo suggestions needed; the proof is rigorous and complete.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0000/v008",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts. The termination argument uses the product of numbers and the count of numbers greater than 1 to bound the number of moves, and the invariant of gcd of exponents for each prime shows that the final configuration must consist of exactly one number greater than 1, which is uniquely determined. All claims are justified, and there are no logical gaps or errors.\n</evaluation>\n<suggestions>\nNo substantial improvements needed. The reasoning is clear and rigorous.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0000/v009",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe candidate's solution is correct and rigorous. The termination argument uses a product invariant that decreases when the gcd > 1 and a count of numbers > 1 that can only decrease finitely often, establishing that the process must stop. The final configuration is shown to contain exactly one integer > 1 via an invariant on the gcd of prime exponents, and the value of that integer is uniquely determined, proving both parts. All claims are justified, and there are no fatal errors or omissions.\n</evaluation>\n<suggestions>\nNo suggestions needed; the proof is complete and well‑structured.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0000/v010",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts. The termination argument uses the product of all numbers (which strictly decreases when the gcd >1) and the count of numbers >1 (which decreases when the gcd=1), showing finitely many moves. The invariant of the gcd of exponents for each prime is established and used to show that the process ends with exactly one number >1 and that this number is uniquely determined by the initial multiset, proving independence of choices. All claims are justified and no errors or omissions are present.\n</evaluation>\n<suggestions>\nThe argument is already rigorous; minor clarity could be improved by explicitly stating that the product decreases only when d>1 and that the number of such moves is bounded by the initial product, while the number of d=1 moves is bounded by the decrease in k. However, the reasoning is sufficient.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0000/v011",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. The termination argument using product and number of integers >1 is sound. The invariant (gcd of exponents) is correctly identified and shown to be preserved. The reasoning that the final configuration must contain exactly one integer >1 and that its value is uniquely determined is correct. No gaps or errors.\n</evaluation>\n<suggestions>\nNo suggestions needed; the proof is complete.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0000/v012",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts. The termination argument uses the product and the count of numbers >1 to bound the number of moves. The invariant for the gcd of exponents is correctly established and used to show that the final configuration must have exactly one integer >1, and that its value is independent of the choices. All claims are justified, and there are no logical gaps or errors.\n</evaluation>\n<suggestions>\nNo significant issues. The proof is rigorous and complete.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0000/v013",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe candidate solution correctly proves both parts. The termination argument uses the product to bound moves with gcd>1 and the count of numbers >1 to bound moves with gcd=1, ensuring finitely many moves. The invariant of gcd of exponents is properly established and used to show the final state has exactly one number >1, and that number is uniquely determined by the initial multiset. All steps are logically sound and justified.\n</evaluation>\n<suggestions>\nThe argument that the total number of moves is bounded could be made slightly clearer by explicitly separating moves with d>1 (bounded by product decreases) and moves with d=1 (bounded by the number of times k decreases). The solution already contains both elements, but the flow could be improved for clarity. No essential gaps.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0000/v014",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts. The termination argument using the product and the count of numbers >1 is valid and shows finiteness. The invariant involving gcd of exponents is correctly established and used to show that the process ends with exactly one number >1, and that this number is uniquely determined by the initial multiset. All claims are justified, and there are no logical gaps or hidden assumptions. The proof is rigorous and complete.\n</evaluation>\n<suggestions>\nThe proof is already solid. Minor clarification: in the termination argument, one could explicitly note that each move either decreases the product (when d>1) or decreases the count k (when d=1), and since both are bounded above, the process must stop. This is implicitly understood.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0000/v015",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe candidate solution correctly proves both parts. The termination argument uses the product of numbers and the count of numbers greater than 1 to bound the number of moves. The invariant on prime exponent gcds is properly established and used to show the final state must have exactly one integer greater than 1, and that its value is uniquely determined. All claims are justified, and no gaps or errors are present.\n</evaluation>\n<suggestions>\nNone needed.\n</suggestions>\n<score>1</score>"
+    }
+  ],
+  "mean_score": 1.0
+}

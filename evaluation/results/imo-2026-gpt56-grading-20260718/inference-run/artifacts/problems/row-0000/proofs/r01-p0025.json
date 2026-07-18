@@ -1,0 +1,92 @@
+{
+  "proof_id": "r01-p0025",
+  "round_index": 1,
+  "parent_id": null,
+  "proof": "Let the initial numbers be \\(a_1,\\dots,a_{2026}\\) (all \\(>1\\)). For a number \\(x\\) denote by \\(v_p(x)\\) the exponent of a prime \\(p\\) in the prime factorisation of \\(x\\) (with \\(v_p(x)=0\\) if \\(p\\nmid x\\)).  \n\n**Part (a).**  \nSet  \n\\[\nk = \\#\\{\\text{integers on the board that are }>1\\},\\qquad \nP = \\text{product of all numbers on the board}.\n\\]  \nInitially \\(k=2026\\) and \\(P>1\\).  \n\nConsider a move. Choose two numbers \\(m,n>1\\) with \\(\\gcd(m,n)=d\\). Replace them by \\(d\\) and \\(\\frac{\\operatorname{lcm}(m,n)}{d}= \\frac{mn}{d^2}\\).  \n\n*If \\(d=1\\)* (i.e. \\(m,n\\) are coprime): the new numbers are \\(1\\) and \\(mn\\). Thus \\(k\\) decreases by \\(1\\) (two numbers \\(>1\\) are removed, one new number \\(>1\\) appears) while \\(P\\) does not change.  \n\n*If \\(d>1\\)*: the new numbers are \\(d\\) and \\(\\frac{mn}{d^2}\\). The product becomes \\(P/d\\), so \\(P\\) decreases (strictly). The number \\(k\\) may stay the same (if \\(m\\neq n\\) and \\(\\frac{mn}{d^2}>1\\)) or decrease by \\(1\\) (if \\(m=n\\) then \\(\\frac{mn}{d^2}=1\\)). In any case at least one of \\(k\\) or \\(P\\) decreases.  \n\nHence every move reduces either \\(k\\) or \\(P\\). Since \\(k\\) is a non‑negative integer and \\(P\\) is a positive integer that can only decrease, there can be only finitely many moves. Therefore the process terminates after finitely many steps.  \n\nWhen the process stops, no two integers \\(>1\\) remain, so \\(k\\le1\\). We show that \\(k=1\\). Suppose \\(k=0\\) (all numbers are \\(1\\)), then \\(P=1\\). But \\(P\\) can never become \\(1\\): if a move with \\(\\gcd(m,n)=d>1\\) occurs, the product changes from \\(P\\) to \\(P/d\\). For \\(P\\) to become \\(1\\) after such a move the product before the move would have to be \\(d\\). However the two chosen numbers satisfy \\(m\\ge d,\\; n\\ge d\\) and are at least \\(2\\), so \\(mn\\ge d^2\\). The total product \\(P\\) is at least \\(mn\\), hence \\(d\\ge mn\\ge d^2\\), forcing \\(d=1\\), a contradiction. Thus \\(P\\) never equals \\(1\\). At termination we have \\(P>1\\), so at least one integer \\(>1\\) exists. Together with \\(k\\le1\\) we obtain \\(k=1\\). Consequently the process ends with exactly one integer \\(M>1\\) on the board.  \n\n**Part (b).**  \nFor each prime \\(p\\) let \\(E_p\\) be the multiset of exponents of \\(p\\) among the numbers on the board (if a number is \\(1\\) its exponent is \\(0\\)). Define  \n\\[\ng_p = \\gcd\\{ e \\in E_p \\}\n\\]  \n(with the convention \\(g_p=0\\) when all exponents are \\(0\\)).  \n\nConsider a move on \\(m,n\\). Let \\(e=v_p(m),\\; f=v_p(n)\\). After the move the two new numbers have exponents \\(\\min(e,f)\\) and \\(|e-f|\\). The multiset \\(E_p\\) changes by replacing \\(e,f\\) with \\(\\min(e,f),|e-f|\\). Since \\(\\gcd(e,f)=\\gcd(\\min(e,f),|e-f|)\\), the greatest common divisor of the whole multiset does not change; hence \\(g_p\\) is invariant.  \n\nNow define  \n\\[\nN = \\prod_{p\\ \\text{prime}} p^{g_p}.\n\\]  \nBecause each \\(g_p\\) is invariant, \\(N\\) is invariant throughout the process.  \n\nAt the final state there is exactly one number \\(M>1\\) and all other numbers are \\(1\\). For any prime \\(p\\), the multiset of exponents consists of \\(v_p(M)\\) and zeros, therefore  \n\\[\ng_p = \\gcd(v_p(M),0,\\dots,0) = v_p(M).\n\\]  \nThus  \n\\[\nN = \\prod_{p} p^{v_p(M)} = M.\n\\]  \nHence the final number \\(M\\) equals the invariant \\(N\\), which depends only on the initial configuration. Therefore the value of \\(M\\) is independent of the choices made during the process. ∎",
+  "self_evaluation": "The proof is rigorous: the termination argument uses the finite decrease of the number of numbers >1 or the product; the impossibility of reaching product 1 is justified by an inequality; the invariant for part (b) is correctly defined and shown to be preserved; the final identification of the invariant with the last number is clear. No gaps or unsupported claims remain.",
+  "self_score": 1.0,
+  "generation_sample_id": "round-01/generate/r01-p0025",
+  "verifications": [
+    {
+      "sample_id": "round-01/verify/r01-p0025/v000",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. Part (a) uses a well-defined pair of measures (k, P) that decrease in every move, ensuring termination; it also proves that the final state cannot have all ones, so exactly one integer >1 remains. Part (b) defines an invariant using the gcd of exponents for each prime, shows it is preserved under the moves, and identifies it with the final number, proving independence of choices. All claims are justified, and there are no logical gaps or hidden assumptions.\n</evaluation>\n<suggestions>\nNone; the proof is complete and well-structured.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0025/v001",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe candidate solution correctly proves both parts. The termination argument uses a decreasing measure (k, P) and shows that P never becomes 1, so the process ends with exactly one integer >1. The invariant in part (b) is correctly defined and shown to be preserved, leading to the independence of the final number M. All steps are justified, no gaps or errors.\n</evaluation>\n<suggestions>\nNone needed.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0025/v002",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is completely correct and rigorous. The termination argument is properly justified using the number of integers >1 and the product, and the impossibility of reaching product 1 is correctly proven. The invariant for part (b) is correctly defined and shown to be preserved, and the identification with the final number is clear. No gaps or errors are present.\n</evaluation>\n<suggestions>\nNone needed.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0025/v003",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is completely correct and rigorous. Part (a) provides a clear termination argument using the number of integers >1 and the product, and correctly shows that the process ends with exactly one integer >1. Part (b) defines an invariant (the product of primes raised to the gcd of exponents) and shows it is preserved, then identifies it with the final number M, proving independence of choices. All steps are justified and no gaps remain.\n</evaluation>\n<suggestions>\nNone needed.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0025/v004",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts. The termination argument uses the measure (k, P) which decreases in each move (k decreases or P decreases), guaranteeing finiteness. The impossibility of the product becoming 1 is rigorously justified, ensuring the final state has exactly one integer >1. The invariant for part (b) is properly defined and shown to be preserved; the identification of the invariant with the final number shows independence of choices. All steps are logically sound and well-justified.\n</evaluation>\n<suggestions>\nThe proof is already rigorous. A minor clarification could be to explicitly state that the pair (k, P) decreases lexicographically, but it is not necessary.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0025/v005",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. Part (a) uses a clear decreasing measure (k and P) to prove termination and then shows that the final state has exactly one integer >1. Part (b) defines an invariant based on prime exponent gcds and shows it is preserved, leading to the conclusion that the final number M is independent of choices. All claims are justified, no gaps or errors.\n</evaluation>\n<suggestions>\nThe proof is well-structured. Minor improvements could include clarifying the monotonic decrease of (k,P) more explicitly, but the argument as given is sufficient.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0025/v006",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts. The termination argument uses a well‑founded potential (the pair (k, P) with lexicographic ordering) and shows that the process must end with exactly one integer >1. The proof that the final number is independent of choices uses the invariant \\(N = \\prod p^{g_p}\\) where \\(g_p\\) is the gcd of the exponents of each prime, and shows that \\(N\\) equals the final number. All steps are logically sound and justified.\n</evaluation>\n<suggestions>\nThe argument that the gcd of the multiset of exponents is invariant could be made more explicit by noting that any common divisor of the new multiset also divides the original pair, hence the gcd remains unchanged. Otherwise the reasoning is clear and complete.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0025/v007",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. Part (a) uses a well‑founded ordering (k, P) and shows that each move reduces at least one of these quantities; the impossibility of the product ever becoming 1 is correctly justified, so termination must end with exactly one integer >1. Part (b) defines a multiplicative invariant based on the gcd of prime‑exponent multisets, proves it is preserved under moves, and identifies it with the final number M, establishing independence from choices. All claims are justified, and no gaps or errors are present.\n</evaluation>\n<suggestions>\nThe proof is already clear and complete. Minor improvements could include explicitly noting that k never increases and that the pair (k, P) strictly decreases in the product order, but the reasoning is sufficient.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0025/v008",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts. Part (a) uses a termination argument based on decreasing either the number of integers >1 or the product, and then shows that the process cannot end with all 1's, so exactly one integer >1 remains. Part (b) defines an invariant involving the gcd of exponents for each prime, shows it is preserved, and identifies it as the final number. All claims are justified, and there are no hidden assumptions or errors. The reasoning is rigorous.\n</evaluation>\n<suggestions>\nNo suggestions needed; the proof is already clear and correct.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0025/v009",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution is correct and rigorous. Part (a) correctly defines k and P, shows each move reduces either k or P, and argues termination and that the final state has exactly one integer >1. The argument that P can never become 1 is sound. Part (b) defines an invariant based on prime exponents, shows it is preserved under the move, and identifies it with the final number M, proving independence. All steps are justified and no gaps remain.\n</evaluation>\n<suggestions>\nNone needed.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0025/v010",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts. Part (a) uses a finite descent argument on the number of integers >1 and the product, and shows that the process terminates with exactly one integer >1. Part (b) defines an invariant based on the gcd of exponents for each prime, shows it is preserved, and identifies it with the final number. All steps are logically sound and well justified.\n</evaluation>\n<suggestions>\nNone needed; the proof is rigorous.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0025/v011",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts of the problem. For part (a), the termination argument using the number of integers >1 and the product is sound; the impossibility of the product becoming 1 is justified by a clear inequality. The conclusion that the process ends with exactly one integer >1 is logically derived. For part (b), the invariant defined via exponents and their gcd is properly shown to be preserved under the move, and its identification with the final number M demonstrates independence of choices. All steps are rigorous, and no gaps or hidden assumptions remain.\n</evaluation>\n<suggestions>\nNo significant issues; the proof is clear and complete.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0025/v012",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe proof is correct and rigorous. Part (a) correctly uses the pair (k, P) as a finite decreasing potential to show termination, and then argues that the product can never become 1, forcing exactly one integer >1 at the end. Part (b) defines an invariant using the gcd of prime exponents, shows it is preserved, and identifies it with the final number M, proving independence of choices. All claims are justified, and there are no hidden assumptions or gaps.\n</evaluation>\n<suggestions>\nNo significant suggestions; the solution is well-structured and complete.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0025/v013",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts. The termination argument uses the finite decrease of either the number of integers >1 or the product, and the impossibility of reaching product 1 is justified. The invariant for part (b) is properly defined and shown to be preserved, and the final identification of the invariant with the last number is clear. All claims are supported, and there are no gaps or errors.\n</evaluation>\n<suggestions>\nNone.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0025/v014",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly addresses both parts. Part (a) uses the number of integers >1 and the product as decreasing measures to prove termination, and then shows that at termination exactly one integer >1 remains by arguing that the product can never become 1. Part (b) defines an invariant based on the gcd of exponents of each prime, shows it is preserved under moves, and identifies it with the final number M, establishing that M is independent of choices. The reasoning is rigorous, all claims are justified, and no logical gaps or errors are present.\n</evaluation>\n<suggestions>\nNone; the proof is complete and well-structured.\n</suggestions>\n<score>1</score>"
+    },
+    {
+      "sample_id": "round-01/verify/r01-p0025/v015",
+      "score": 1.0,
+      "analysis": "<evaluation>\nThe solution correctly proves both parts. Part (a) uses a termination argument based on the number of integers >1 and the product, showing that each move reduces either count or product, and then proves that the process ends with exactly one integer >1 by showing the product cannot become 1. Part (b) defines an invariant (the product over primes of p raised to the gcd of exponents), shows it is preserved under moves, and identifies it with the final number M, proving independence of choices. The reasoning is rigorous, all claims are justified, and no gaps or errors are present.\n</evaluation>\n<suggestions>\nThe proof is complete and well-structured. Minor clarifications (e.g., explicitly stating that the product P is always an integer) are already implied, but no repairs are needed.\n</suggestions>\n<score>1</score>"
+    }
+  ],
+  "mean_score": 1.0
+}
