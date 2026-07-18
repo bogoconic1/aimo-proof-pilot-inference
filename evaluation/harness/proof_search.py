@@ -105,8 +105,11 @@ class CallStore:
                     continue
                 record = json.loads(line)
                 sample_id = record["sample_id"]
-                if sample_id in self.records:
-                    raise RuntimeError(f"duplicate persisted sample ID: {sample_id}")
+                previous = self.records.get(sample_id)
+                if previous is not None and previous["error"] is None:
+                    raise RuntimeError(
+                        f"duplicate completed persisted sample ID: {sample_id}"
+                    )
                 self.records[sample_id] = record
         self._lock = asyncio.Lock()
 
@@ -137,11 +140,7 @@ class CallStore:
         spec: CallSpec,
     ) -> dict:
         existing = self.records.get(spec.sample_id)
-        if existing is not None:
-            if existing["error"] is not None:
-                raise RuntimeError(
-                    f"persisted failed call {spec.sample_id}: {existing['error']}"
-                )
+        if existing is not None and existing["error"] is None:
             return existing
         prompt_sha256 = self._save_prompt(spec.messages)
         try:
@@ -442,9 +441,16 @@ class ProblemSearch:
             self._spec(f"{stage}/v{index:03d}", stage, messages)
             for index in range(self.config["verifications_per_proof"])
         ]
-        records = await asyncio.gather(
-            *(self._perform(spec) for spec in specs)
-        )
+        verification_tasks = [
+            asyncio.create_task(self._perform(spec)) for spec in specs
+        ]
+        try:
+            records = await asyncio.gather(*verification_tasks)
+        except BaseException:
+            for task in verification_tasks:
+                task.cancel()
+            await asyncio.gather(*verification_tasks, return_exceptions=True)
+            raise
         verifications: list[Verification] = []
         invalid_sample_ids: list[str] = []
         for spec, record in zip(specs, records, strict=True):
@@ -485,14 +491,25 @@ class ProblemSearch:
             asyncio.create_task(self._perform(candidate.generation))
             for candidate in candidates
         ]
-        results = await asyncio.gather(
-            *(
+        completion_tasks = [
+            asyncio.create_task(
                 self._complete_candidate(candidate, generation_task)
-                for candidate, generation_task in zip(
-                    candidates, generation_tasks, strict=True
-                )
             )
-        )
+            for candidate, generation_task in zip(
+                candidates, generation_tasks, strict=True
+            )
+        ]
+        try:
+            results = await asyncio.gather(*completion_tasks)
+        except BaseException:
+            for task in [*completion_tasks, *generation_tasks]:
+                task.cancel()
+            await asyncio.gather(
+                *completion_tasks,
+                *generation_tasks,
+                return_exceptions=True,
+            )
+            raise
         generated: list[Proof] = []
         stats = {
             "attempted": 0,

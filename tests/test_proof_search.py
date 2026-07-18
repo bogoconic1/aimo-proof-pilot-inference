@@ -18,7 +18,13 @@ from proof_prompts import (  # noqa: E402
     prompt_hashes,
     refinement_messages,
 )
-from proof_search import ProblemSearch, Proof, Verification  # noqa: E402
+from proof_search import (  # noqa: E402
+    CallSpec,
+    CallStore,
+    ProblemSearch,
+    Proof,
+    Verification,
+)
 
 
 class ScriptedClient:
@@ -785,6 +791,57 @@ class ProofSearchTests(unittest.TestCase):
                         len(proof.verifications) == 2
                         for proof in resumed.proofs.values()
                     )
+                )
+
+        asyncio.run(run())
+
+    def test_persisted_failed_call_is_retried_and_replaced_by_success(self):
+        async def run():
+            class FailedClient:
+                async def chat_raw(self, *args, **kwargs):
+                    raise RuntimeError("transient failure")
+
+            with tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                spec = CallSpec(
+                    sample_id="round-01/generate/r01-p0000",
+                    stage="round-01/generate",
+                    messages=[{"role": "user", "content": "Prove it."}],
+                    seed=7,
+                )
+                failed_store = CallStore(root)
+                with self.assertRaisesRegex(RuntimeError, "transient failure"):
+                    await failed_store.perform(
+                        FailedClient(),
+                        asyncio.Semaphore(1),
+                        100,
+                        20,
+                        20,
+                        1.0,
+                        0.95,
+                        spec,
+                    )
+
+                resumed_client = ScriptedClient()
+                resumed_store = CallStore(root)
+                record = await resumed_store.perform(
+                    resumed_client,
+                    asyncio.Semaphore(1),
+                    100,
+                    20,
+                    20,
+                    1.0,
+                    0.95,
+                    spec,
+                )
+
+                self.assertIsNone(record["error"])
+                self.assertEqual(resumed_client.calls, [spec.sample_id])
+                reloaded = CallStore(root)
+                self.assertIsNone(reloaded.records[spec.sample_id]["error"])
+                self.assertEqual(
+                    len((root / "calls.jsonl").read_text().splitlines()),
+                    2,
                 )
 
         asyncio.run(run())

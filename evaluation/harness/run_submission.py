@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from async_client import AsyncChatClient
-from eval_config import active_model, load_config
+from eval_config import load_config
 from proof_search import ProblemSearch
 
 
@@ -131,7 +131,10 @@ async def run_submission(
     artifacts_dir = artifacts_dir.resolve()
     rows = load_test_csv(input_path)
     config = load_config(config_path)
-    model = active_model(config)
+    provider = config["provider"]
+    api_key = os.environ.get(provider["api_key_env"])
+    if not api_key:
+        raise RuntimeError(f"empty {provider['api_key_env']}")
 
     artifacts_dir.mkdir(parents=True, exist_ok=True)
     pinned_input = artifacts_dir / "test.csv"
@@ -140,11 +143,11 @@ async def run_submission(
     pin_file(input_path, pinned_input)
     pin_file(config_path, pinned_config)
 
-    server = config["server"]
     client = AsyncChatClient(
-        f"http://{server['host']}:{server['port']}/v1",
-        str(model.target),
-        api_key="EMPTY",
+        provider["base_url"],
+        provider["model"],
+        api_key,
+        provider["reasoning_effort"],
         max_connections=config["search"]["concurrency"] + 8,
         timeout=float(config["search"]["request_timeout_seconds"]),
     )

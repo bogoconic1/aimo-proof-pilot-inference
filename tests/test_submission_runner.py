@@ -1,4 +1,5 @@
 import csv
+import os
 import sys
 import tempfile
 import unittest
@@ -92,6 +93,16 @@ class SubmissionCsvTests(unittest.TestCase):
 
 
 class SubmissionRunnerTests(unittest.IsolatedAsyncioTestCase):
+    def setUp(self):
+        self.environment = patch.dict(
+            os.environ,
+            {"OPENROUTER_API_KEY": "test-openrouter-key"},
+        )
+        self.environment.start()
+
+    def tearDown(self):
+        self.environment.stop()
+
     async def test_failed_search_keeps_latest_round_checkpoint(self):
         class FakeClient:
             def __init__(self, *args, **kwargs):
@@ -141,6 +152,7 @@ class SubmissionRunnerTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_runner_checkpoints_each_round_and_writes_exact_schema(self):
         seen: list[tuple[str, str]] = []
+        clients: list[tuple[tuple, dict]] = []
         writes: list[list[str]] = []
         original_write = submission_runner.write_submission
 
@@ -150,7 +162,7 @@ class SubmissionRunnerTests(unittest.IsolatedAsyncioTestCase):
 
         class FakeClient:
             def __init__(self, *args, **kwargs):
-                pass
+                clients.append((args, kwargs))
 
             async def aclose(self):
                 pass
@@ -218,6 +230,18 @@ class SubmissionRunnerTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(
                 seen,
                 [("row-0000", "Only statement A"), ("row-0001", "Only statement B")],
+            )
+            self.assertEqual(
+                clients[0],
+                (
+                    (
+                        "https://openrouter.ai/api/v1",
+                        "deepseek/deepseek-v4-flash",
+                        "test-openrouter-key",
+                        "high",
+                    ),
+                    {"max_connections": 104, "timeout": 86400.0},
+                ),
             )
             with output_path.open(newline="", encoding="utf-8") as source:
                 self.assertEqual(
