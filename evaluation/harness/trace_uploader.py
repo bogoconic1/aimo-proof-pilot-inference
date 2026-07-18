@@ -13,6 +13,7 @@ and swallowed: a flaky network must never kill a multi-hour proof run.
 from __future__ import annotations
 
 import asyncio
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -56,16 +57,35 @@ def resolve_run_name(run_name: str, target: Path) -> str:
     return name or Path(target).name
 
 
+def stage_output_file(output_path: Path | None, artifacts_dir: Path) -> None:
+    """Copy the submission CSV into the artifacts dir so it uploads with the tree.
+
+    The submission is written to a separate --output path, outside the uploaded
+    artifacts dir; mirroring the latest copy in lets teammates grab all final
+    answers from one file on HF. No-op if unset or not yet written; never raises.
+    """
+    if output_path is None:
+        return
+    src = Path(output_path)
+    if not src.is_file():
+        return
+    try:
+        shutil.copy2(src, Path(artifacts_dir) / src.name)
+    except OSError as error:
+        print(f"[traces] could not stage {src.name}: {error}", flush=True)
+
+
 class TraceUploader:
     def __init__(
         self,
         *,
         artifacts_dir: Path,
         dataset_repo: str,
-        token: str,
+        token: str | None,
         run_name: str,
         private: bool,
         interval_seconds: int,
+        output_path: Path | None = None,
     ) -> None:
         # Lazy import: huggingface_hub is only needed when traces are enabled, so
         # the rest of the harness (and its tests) never require it.
@@ -77,6 +97,9 @@ class TraceUploader:
         self.run_name = run_name
         self.private = private
         self.interval = interval_seconds
+        # Submission CSV (written outside artifacts_dir); mirrored in on each
+        # upload so it rides along to HF.
+        self.output_path = output_path
         self._count = 0
 
     def ensure_repo(self) -> None:
@@ -88,6 +111,7 @@ class TraceUploader:
 
     def upload_once(self, label: str) -> bool:
         self._count += 1
+        stage_output_file(self.output_path, self.artifacts_dir)
         try:
             self.api.upload_folder(
                 folder_path=str(self.artifacts_dir),

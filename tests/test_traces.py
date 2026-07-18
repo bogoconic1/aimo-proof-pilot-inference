@@ -16,6 +16,7 @@ from eval_config import load_config  # noqa: E402
 from trace_uploader import (  # noqa: E402
     load_hf_token,
     resolve_run_name,
+    stage_output_file,
     traces_config,
 )
 
@@ -135,6 +136,28 @@ class ResolveRunNameTests(unittest.TestCase):
         self.assertEqual(
             resolve_run_name("  my-run/ ", Path("/x/opd-32b-deploy")), "my-run"
         )
+
+
+class StageOutputFileTests(unittest.TestCase):
+    def test_copies_submission_into_artifacts_dir(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            out = root / "out" / "submission.csv"
+            out.parent.mkdir(parents=True)
+            out.write_text("id,proof\n1,done\n", encoding="utf-8")
+            artifacts = root / "artifacts"
+            artifacts.mkdir()
+            stage_output_file(out, artifacts)
+            staged = artifacts / "submission.csv"
+            self.assertTrue(staged.is_file())
+            self.assertEqual(staged.read_text(encoding="utf-8"), out.read_text(encoding="utf-8"))
+
+    def test_noop_when_none_or_missing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            artifacts = Path(tmp)
+            stage_output_file(None, artifacts)  # must not raise
+            stage_output_file(artifacts / "nope.csv", artifacts)  # missing -> no-op
+            self.assertFalse((artifacts / "nope.csv").exists())
 
 
 if __name__ == "__main__":

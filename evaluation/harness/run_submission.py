@@ -178,6 +178,7 @@ async def run_submission(
             run_name=run_name,
             private=traces["private"],
             interval_seconds=traces["interval_seconds"],
+            output_path=output_path,  # mirror submission.csv into the upload
         )
         uploader.ensure_repo()
         stop_uploads = asyncio.Event()
