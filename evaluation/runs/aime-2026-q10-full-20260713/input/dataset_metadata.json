@@ -1,0 +1,10 @@
+{
+  "dataset_repository": "MathArena/aime_2026",
+  "dataset_revision": "d2de22f3c656b4f56cf8981212186377d1e23bc3",
+  "source_sha256": "d91db799651b4cc1f0734f52792a695c9cc60dac342524b3d8e5b2ff31c3e957",
+  "adapter_sha256": "62d5abc59a6b4dca3ab99c0b187496766ef3f4c1f31638137988d70388cb3409",
+  "problem_idx": 10,
+  "gold_answer": 156,
+  "problem": "Let $\\triangle ABC$ have side lengths $AB = 13, BC = 14,$ and $CA = 15.$ Triangle $\\triangle A'B'C'$ is obtained by rotating $\\triangle ABC$ about its circumcenter so that ${}\\overline{AC}$ is perpendicular $\\overline{BC},$ with $A'$ and $B$ not on the same side of line $B'C'.$ Find the integer closest to the area of hexagon $AA'CC'BB'.$",
+  "grading_rubric": "Gold answer: 156. Award 7 for a complete rigorous derivation of the requested hexagon area rounding to 156; 6 for an essentially complete derivation with only a minor localized gap; 2-5 for proportional mathematically correct progress under the general rubric; 1 for the unsupported final answer 156 or one minor relevant observation; and 0 for no scoreworthy progress or an incompatible final answer."
+}
