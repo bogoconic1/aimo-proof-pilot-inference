@@ -29,7 +29,7 @@ SERVER_KEYS = {
     "attention_backend", "page_size", "deterministic_inference",
     "host", "port", "context_length", "mem_fraction_static", "max_running_requests",
     "swa_full_tokens_ratio", "chunked_prefill_size", "stream_interval",
-    "prefill_cuda_graph_backend",
+    "prefill_cuda_graph_backend", "watchdog_timeout",
     "dflash_block_size", "dflash_num_draft_tokens", "dflash_window_size",
 }
 SEARCH_KEYS = {
@@ -39,7 +39,7 @@ SEARCH_KEYS = {
     "early_stop_threshold", "temperature", "top_p", "max_completion_tokens",
     "solution_continuation_tokens", "verifier_continuation_tokens",
     "min_valid_verifications", "verifier_sees_self_evaluation",
-    "refiner_sees_self_evaluation", "lenient_parsing",
+    "refiner_sees_self_evaluation", "lenient_parsing", "filter_degenerate",
     "concurrency", "request_timeout_seconds", "seed",
 }
 
@@ -152,7 +152,7 @@ def load_config(path: Path) -> dict[str, Any]:
         raise ValueError("server.host must be a nonempty string")
     for key in (
         "page_size", "port", "context_length", "max_running_requests", "chunked_prefill_size",
-        "stream_interval", "dflash_block_size",
+        "stream_interval", "watchdog_timeout", "dflash_block_size",
         "dflash_num_draft_tokens", "dflash_window_size",
     ):
         _positive_int(server[key], f"server.{key}")
@@ -232,6 +232,8 @@ def load_config(path: Path) -> dict[str, Any]:
         raise ValueError("search.refiner_sees_self_evaluation must be a boolean")
     if type(search["lenient_parsing"]) is not bool:
         raise ValueError("search.lenient_parsing must be a boolean")
+    if type(search["filter_degenerate"]) is not bool:
+        raise ValueError("search.filter_degenerate must be a boolean")
     if search["refine_review_strategy"] not in {"worst", "random_nonideal"}:
         raise ValueError(
             "search.refine_review_strategy must be 'worst' or 'random_nonideal'"

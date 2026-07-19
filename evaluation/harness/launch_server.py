@@ -127,6 +127,7 @@ def main() -> None:
         "--chunked-prefill-size", str(server["chunked_prefill_size"]),
         "--context-length", str(server["context_length"]), "--kv-cache-dtype", model.kv_cache_dtype,
         "--stream-interval", str(server["stream_interval"]),
+        "--watchdog-timeout", str(server["watchdog_timeout"]),
         "--swa-full-tokens-ratio", str(server["swa_full_tokens_ratio"]),
         "--max-running-requests", str(server["max_running_requests"]),
         "--cuda-graph-max-bs-decode", str(server["max_running_requests"]),

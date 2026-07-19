@@ -16,6 +16,7 @@ parser and self-eval items lives in [`evaluation/PARSING_VS_GOLD.md`](evaluation
 | `reviews_per_refine_parent` | `3` | Reviews per parent in the bundle (was 1). | `3` = gold's `verify_k` (gold includes all ≤3). |
 | `refine_review_strategy` | `random_nonideal` | Which reviews: `random_nonideal` (seeded random, score<1, varied per call) or `worst` (Geremie's deterministic lowest-scoring, may include ideal). | — (a design choice; gold uses *all* reviews) |
 | `lenient_parsing` | `true` | Gold search-based extraction (recover missing `</solution>`, tolerate surrounding text, ignore tag case, allow empty self-eval/suggestions) vs upstream's strict whole-document `fullmatch`. | `true` — gold parses leniently; the OPD model omits `</solution>`. |
+| `filter_degenerate` | `true` | Drop generations/verifications that fell into a degenerate repetition/enumeration loop (`loop_detect.is_degenerate`), so they never enter the pool, seed a refine, or score a proof. Upstream has no such check. | `true` — re-adds Yi-Chia v2's `zlib_runaway_detector` + `loopguard`, which Geremie's fork dropped. |
 
 Each is validated as the right type by the strict schema (`eval_config.py`) and
 present in both `config.yaml` and `config-dynamic.yaml`.
@@ -29,6 +30,7 @@ present in both `config.yaml` and `config-dynamic.yaml`.
 | **Triton attention (Blackwell sm120)** | `server.attention_backend: triton` | `fa3` (Hopper) / `fa4` / `triton` (sm120) | fa3; triton in `config-blackwell.yaml`. launch_server auto-sets `FLASHINFER_CUDA_ARCH_LIST` (9.0a Hopper / 12.0f Blackwell) + `--triton-attention-num-kv-splits 32` |
 | **SGLang runtime baked into the image** | `Dockerfile` (multi-stage) | build args `RUNTIME_HF_REPO`/`RUNTIME_HF_REVISION`/`RUNTIME_ARCHIVE_SHA256`; `--secret id=hf_token` at build | venv downloaded + sha256-verified + relocated + deps-installed at build, frozen at `/opt/pp` |
 | **Dropped hardcoded `CUDA_VISIBLE_DEVICES`** | `Dockerfile` | — (derived from `tp*dp`) | required for auto-dp; no knob |
+| **SGLang scheduler watchdog timeout** | `server.watchdog_timeout` → `--watchdog-timeout` | seconds a scheduler forward pass may make no progress before SGLang SIGQUITs the whole server | `1200`. SGLang's default is **300**, which killed the server mid-run on long/degenerate P6 generations (see below). |
 
 `config-dynamic.yaml` is a **new profile** for sub-8-GPU nodes (auto-dp + fp8 KV);
 `config-blackwell.yaml` is a **new profile** for 8× RTX PRO 6000 Blackwell (sm120,
@@ -93,6 +95,39 @@ reviews). Parent selection is always stratified-random from the top-`top_proofs`
 pool. Round width is unchanged (`proofs_per_round` refine calls per round). See
 the refinement section of `PARSING_VS_GOLD.md`.
 
+## Degenerate-loop filter + server watchdog (crash fix)
+
+A step-225 IMO-2026 run **crashed mid-P6** (server SIGQUIT, exit -3). Root cause,
+from the node's server log: a **verifier generation ran away to 131k tokens over
+~880s** in a degenerate enumeration loop; DFlash speculative-decode acceptance
+collapsed (~0.1–0.4) so throughput fell to ~40 tok/s; a scheduler forward pass
+then made no progress for >300s and SGLang's **watchdog (`watchdog_timeout=300`,
+default) killed the whole server**. Not OOM (KV usage 8%), not a CUDA fault — a
+liveness watchdog tripped by a pathological generation length.
+
+Two independent, composable fixes (both config-gated):
+
+1. **`server.watchdog_timeout: 1200`** — a legit long forward no longer trips the
+   watchdog; the same runaway would complete instead of killing the server.
+2. **`search.filter_degenerate: true`** — `loop_detect.py` (a faithful port of
+   Yi-Chia's `zlib_runaway_detector.py` + `loopguard.py`, which Geremie's fork
+   dropped) rejects degenerate output. Signal = **gzip/zlib compression ratio** of
+   a sliding 12k-char window: `HARD` abort at ratio < 0.05, `SOFT` abort at
+   ratio < 0.18 sustained ≥ 20 checks, plus a local-density backstop (a 25-char
+   chunk recurring > 8× within 1500 chars). The persistence + locality rules spare
+   legitimate long math (enumerations dip but recover); validated on our own
+   traces (the 131k runaway is caught; a clean 106k-token proof is not).
+
+**No repetition penalty:** DFlash cannot apply one (`patch_dflash_sampling.py`),
+and a penalty would warp the sampling distribution and corrupt legitimately
+repetitive math reasoning. Aborting/rejecting a doomed generation only truncates
+it — distribution-neutral — which is why gzip detection is the right tool.
+
+Because our harness uses the **blocking** completion API, the filter runs
+**post-hoc** on finished text (keeps degenerate proofs out of the pool / refine
+seeds / verifier scoring). Yi-Chia's *mid-generation* early-abort (which also saves
+the wasted compute) needs SSE streaming — a follow-up, tracked separately.
+
 ## Non-code / tooling additions (no behavior change)
 
 - `install/` — host-side installer for running the runtime outside the container
@@ -107,6 +142,7 @@ Set, under `search:`:
 verifier_sees_self_evaluation: true    # already gold + upstream
 refiner_sees_self_evaluation: true     # upstream fed it
 lenient_parsing: false                 # upstream's strict parser
+filter_degenerate: false               # upstream has no loop filter
 refine_parents: 1                      # single-parent refine
 reviews_per_refine_parent: 1           # one review per parent
 refine_review_strategy: worst          # upstream's lowest-scoring review

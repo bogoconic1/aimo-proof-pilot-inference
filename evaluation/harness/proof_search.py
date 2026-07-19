@@ -13,6 +13,7 @@ from statistics import mean
 from typing import Any
 
 from async_client import AsyncChatClient
+from loop_detect import is_degenerate
 from proof_prompts import (
     generation_messages,
     parse_generation,
@@ -502,6 +503,15 @@ class ProblemSearch:
             return self.proofs[candidate.proof_id]
         if record["finish_reason"] != "stop":
             return None
+        # Reject degenerate (looping) generations: a proof that fell into a
+        # repetition/enumeration loop and stopped at the token cap must not enter
+        # the pool or seed refinements. gzip-based, so distribution-neutral (see
+        # loop_detect); truncated loops are already dropped by the check above.
+        # Gated by search.filter_degenerate (default on).
+        if self.config.get("filter_degenerate", True) and is_degenerate(
+            (record.get("reasoning_content") or "") + "\n" + (record.get("content") or "")
+        ):
+            return None
         try:
             proof_text, self_evaluation, self_score = parse_generation(
                 record["content"],
@@ -548,7 +558,16 @@ class ProblemSearch:
         verifications: list[Verification] = []
         invalid_sample_ids: list[str] = []
         for spec, record in zip(specs, records, strict=True):
-            if record["verification_disposition"] != "accepted":
+            # Drop a verification that the server rejected, OR (when
+            # search.filter_degenerate is on) whose output is a degenerate loop --
+            # a looping verifier's parsed score is noise and must not pollute the
+            # proof's mean_score.
+            if record["verification_disposition"] != "accepted" or (
+                self.config.get("filter_degenerate", True)
+                and is_degenerate(
+                    (record.get("reasoning_content") or "") + "\n" + (record.get("content") or "")
+                )
+            ):
                 invalid_sample_ids.append(spec.sample_id)
                 continue
             analysis, score = parse_verification(
