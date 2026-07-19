@@ -19,7 +19,7 @@ from proof_prompts import (  # noqa: E402
     prompt_hashes,
     refinement_messages,
 )
-from proof_search import ProblemSearch, Proof, Verification  # noqa: E402
+from proof_search import CallStore, ProblemSearch, Proof, Verification  # noqa: E402
 
 
 class ScriptedClient:
@@ -340,6 +340,34 @@ def small_config() -> dict:
 
 
 class ProofSearchTests(unittest.TestCase):
+    def test_callstore_skips_persisted_error_records_for_resume(self):
+        # A crash records failed calls (error != None) in calls.jsonl. On resume
+        # those must be RE-ATTEMPTED, not re-raised -- so CallStore does not load
+        # them, and a later success for the same sample_id supersedes the error.
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            lines = [
+                {"sample_id": "s-ok", "stage": "round-01/generate", "error": None, "content": "ok"},
+                {"sample_id": "s-fail", "stage": "round-02/generate",
+                 "error": "RemoteProtocolError('Server disconnected')"},
+                {"sample_id": "s-retry", "stage": "round-02/verify/x",
+                 "error": "RemoteProtocolError('Server disconnected')"},
+                {"sample_id": "s-retry", "stage": "round-02/verify/x", "error": None,
+                 "content": "retried"},
+            ]
+            (root / "calls.jsonl").write_text(
+                "".join(json.dumps(item) + "\n" for item in lines)
+            )
+            store = CallStore(root)
+            # transient failure dropped -> re-attempted on resume
+            self.assertNotIn("s-fail", store.records)
+            # clean success stays
+            self.assertIn("s-ok", store.records)
+            # error+success for same id: success supersedes, no duplicate raise
+            self.assertIn("s-retry", store.records)
+            self.assertIsNone(store.records["s-retry"]["error"])
+            self.assertEqual(store.records["s-retry"]["content"], "retried")
+
     def test_async_pipeline_overlaps_generation_and_verification_at_64(self):
         async def run():
             with tempfile.TemporaryDirectory() as directory:

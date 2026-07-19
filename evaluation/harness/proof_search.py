@@ -104,6 +104,15 @@ class CallStore:
                 if not line.strip():
                     continue
                 record = json.loads(line)
+                if record.get("error") is not None:
+                    # A persisted FAILED call -- typically a transient failure
+                    # (e.g. the SGLang server crashed mid-run, leaving every
+                    # in-flight call recorded with a RemoteProtocolError). Skip
+                    # it so a resume RE-ATTEMPTS the call instead of re-raising
+                    # the old error and aborting again. The failed line stays in
+                    # calls.jsonl as an audit trail; a later success for the same
+                    # sample_id supersedes it (loaded below).
+                    continue
                 sample_id = record["sample_id"]
                 if sample_id in self.records:
                     raise RuntimeError(f"duplicate persisted sample ID: {sample_id}")
