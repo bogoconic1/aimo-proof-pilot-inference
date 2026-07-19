@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "dataset_id": 4,
+  "human_problem_number": 5,
+  "deterministic_inference": true,
+  "source_commit": "7c21511",
+  "source_path": "evaluation/results/imo-2026-gpt56-grading-20260718/inference-run/artifacts/problems/row-0004/calls.jsonl",
+  "method": "SHA-256 over the 32 round-01 generation records from the pinned production trace",
+  "requests": 32,
+  "valid_xml_proofs": 32,
+  "unique_content_outputs": 32,
+  "unique_full_outputs": 32,
+  "unique_valid_proofs": 32,
+  "duplicate_groups": 0,
+  "requests_in_duplicate_groups": 0
+}

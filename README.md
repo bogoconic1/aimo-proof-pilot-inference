@@ -142,6 +142,14 @@ The current `main` defaults are:
 | Solution continuation | 16,384 tokens |
 | Verifier continuation | 16,384 tokens |
 
+> [!WARNING]
+> In the pinned SGLang runtime, disabling deterministic inference under DP4 can
+> synchronize worker RNG streams even though the harness sends distinct stable
+> request seeds. A production-shaped IMO 2026 P5 audit produced only 16 unique
+> proofs from 32 generations, versus 32 from 32 with determinism enabled. See
+> the [determinism and diversity audit](evaluation/results/sglang-determinism-diversity-20260719/README.md)
+> and keep exact-output uniqueness in any nondeterministic validation gate.
+
 Users may change every YAML value. Validation retains type, range, schema, and
 implementation compatibility checks, including:
 
