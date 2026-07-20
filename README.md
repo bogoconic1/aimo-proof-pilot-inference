@@ -6,6 +6,31 @@ writes `submission.csv` without calling an external grader. The checked-in
 configuration uses eight H200 GPUs as four TP2 replicas, BF16 target and draft
 weights, DFlash speculative decoding, and FlashAttention 3.
 
+## Run it directly (one command)
+
+If you already have the runtime venv on the box (e.g. an NII node, or the baked
+`/opt/pp/venv`), [`scheduler.sh`](scheduler.sh) runs a full inference end-to-end:
+it starts the SGLang server, waits for health, validates the config,
+**smoke-tests a real generation query**, runs the inference to completion as the
+main process, then tears the server down (also on Ctrl-C or error).
+
+```bash
+# ./scheduler.sh <config> <output-dir> [input.csv]
+VENV=/opt/pp/venv ./scheduler.sh config-nii-2x.yaml runs/deploy-2x
+```
+
+- **`<config>`** — a config *name* from this repo (e.g. `config-nii-2x.yaml`) or a path.
+- **`<output-dir>`** — everything for the run lands here: `submission.csv`,
+  `artifacts/` (resumable state), `server.log`, `server-validation.json`.
+- **`[input.csv]`** — problems file (`id,problem`); defaults to the committed
+  IMO-2026 LaTeX set `evaluation/data/imo2026-latex-test.csv`.
+
+Point `VENV` at the runtime venv (default `/opt/pp/venv`), or `source` its
+`activate-env.sh` and set `PYTHON`. `HF_TOKEN` is auto-sourced from `hf auth token`
+for trace upload. Use `--plan` to resolve + validate everything without launching,
+and re-run with the same `<output-dir>` to resume an interrupted run. The teardown
+is surgical (own process group + the exclusive port) so it is safe on shared nodes.
+
 ## Docker usage
 
 ### Select the harness commit
