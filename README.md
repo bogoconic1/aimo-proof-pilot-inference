@@ -44,22 +44,44 @@ least 200 GB for the checked-in model pair and runtime.
 
 ## Docker usage
 
+> The [Quick start](#quick-start-8h200) above is the recommended path. This section
+> documents the lower-level, fully-automated container entrypoint (`serve` /
+> `submission`) for reference.
+
+
 ### Select the harness commit
 
-Every pushed commit receives an immutable `sha-<7-character-commit>` image tag.
-Set `COMMIT` to a full commit whose container workflow completed successfully:
+The image is built on demand (a `v*` release tag or a manual **Run workflow** in
+the Actions tab — the baked image is ~19 GB, so it is not built per commit) and
+published to **`ghcr.io/fieldsmodelorg/aimo-proof-pilot`** (public, no login), tagged
+`sha-<7-character-commit>`. The current build is `sha-29c2ec5`. Set `COMMIT` to the
+full commit of a build that completed successfully:
 
 ```bash
-export COMMIT=REPLACE_WITH_FULL_COMMIT_SHA
-export IMAGE=ghcr.io/bogoconic1/aimo-proof-pilot-inference:sha-${COMMIT:0:7}
+export COMMIT=29c2ec5e92cc140895ebaa6b397db40b1e227452
+export IMAGE=ghcr.io/fieldsmodelorg/aimo-proof-pilot:sha-${COMMIT:0:7}
 
 docker pull "$IMAGE"
 test "$(docker image inspect "$IMAGE" \
   --format "{{ index .Config.Labels \"org.opencontainers.image.revision\" }}")" = "$COMMIT"
 ```
 
-The image and runtime dataset are public. No registry, GitHub, Kaggle, OpenAI,
-or other credentials are required for submission generation.
+The runtime venv (patched SGLang + kernels) is **baked into the image** at
+`/opt/pp`. It is downloaded, sha256-verified, relocated, and topped with the
+pinned PyPI deps once at build time (from a revision-pinned mirror), so the
+final image is self-contained: **no runtime download and no `HF_TOKEN` for the
+runtime**, and every image tag carries an identical, frozen SGLang. Only the
+(public) model weights are fetched at boot -- so a plain
+`docker run ... submission` needs no secrets at all. At boot the entrypoint just
+applies the checked-in SGLang patches (fast, in-place) and resolves the models.
+
+> **Always launch through the `serve`/`submission` entrypoint or `scheduler.sh`.**
+> The SGLang patches (including the **required** Olmo3Sink model patch) are applied
+> at boot by those launchers, not baked into the venv at rest. A hand-rolled
+> `python -m sglang.launch_server` / `launch_server.py` that bypasses both would run
+> **unpatched** (no attention sinks) and silently produce wrong numerics. `scheduler.sh`
+> applies the patch set itself and now **fails loudly** if the runtime is missing the
+> expected patch helper, rather than skipping.
 
 ### Prepare persistent storage
 
@@ -74,9 +96,15 @@ run:
 ```bash
 mkdir -p "$PWD/workspace"
 curl -fsSL \
-  "https://raw.githubusercontent.com/bogoconic1/aimo-proof-pilot-inference/$COMMIT/config.yaml" \
+  "https://raw.githubusercontent.com/fieldsmodelorg/AIMO-Proof-Pilot/$COMMIT/config.yaml" \
   -o "$PWD/workspace/config.yaml"
 ```
+
+`config.yaml` is the minimal base (8×H200, DFlash, selector **off**). For the LLM
+final-solution selector and the tuned search budgets, use the production configs —
+the `config-model-{deploy,step225}-budget-{medium,high,xhigh}.yaml` presets in the
+repo root (see [Budget presets](#budget-presets)) — or set `search.llm_selector: true`
+(+ `selection_*` knobs) in your own copy.
 
 `CONFIG` is mandatory. The container has no fallback configuration. It validates
 the supplied YAML but never copies, rewrites, clamps, or overrides its values.
@@ -85,7 +113,13 @@ draft assets at the corresponding locations under the mounted storage. The
 container downloads the checked-in default model pair only when the YAML uses
 the default paths and those assets are missing.
 
-Create `$PWD/workspace/test.csv` with exactly two lowercase columns:
+**By default the container runs the committed IMO-2026 set** — the exact 6-problem
+`evaluation/data/imo2026-latex-test.csv` that was run on NII. You do **not** need to
+create anything to reproduce our results; leave `/workspace/test.csv` absent and the
+`submission` entrypoint falls back to the committed CSV automatically.
+
+To run your **own** problems instead, mount a `test.csv` at `$PWD/workspace/test.csv`
+(or set `INPUT_CSV`) with exactly two lowercase columns:
 
 ```csv
 id,problem
@@ -94,7 +128,9 @@ id,problem
 ```
 
 IDs must be nonempty and unique. Quote fields containing commas or newlines. Do
-not add answers, rubrics, reference solutions, or metadata columns.
+not add answers, rubrics, reference solutions, or metadata columns. Note: the harness
+keys its deterministic RNG on CSV **row order**, so to reproduce a specific run use the
+same problems in the same order (the committed CSV is byte-exact for the NII set).
 
 ### Generate submission.csv
 
@@ -132,11 +168,11 @@ The current `main` defaults are:
 | Hardware | 8 x NVIDIA H200 |
 | Model mode | BF16 target and BF16 DFlash draft |
 | Parallelism | TP2 x DP4 |
-| Attention | FA3, page size 1, deterministic inference |
+| Attention | FA3, page size 1, non-deterministic inference |
 | Server context | 262,144 tokens |
 | Server concurrency | 64 running requests per DP replica |
 | Search concurrency | 96 requests cluster-wide |
-| Search policy | 32 proofs, 16 verifications per proof, top 8, 4 refinements, up to 16 rounds |
+| Search policy | 32 proofs, 16 verifications per proof, top 8, 4 refine parents × 3 reviews, up to 4 rounds |
 | Sampling | temperature 1.0, top-p 0.95 |
 | First output segment | 128,000 tokens |
 | Solution continuation | 16,384 tokens |
@@ -146,14 +182,37 @@ Users may change every YAML value. Validation retains type, range, schema, and
 implementation compatibility checks, including:
 
 ```text
-top_proofs * refinements_per_proof = proofs_per_round
-analyses_per_refinement = refinements_per_proof
-analyses_per_refinement <= min_valid_verifications <= verifications_per_proof
-FA3: page_size=1 and deterministic_inference=true
-FA4: page_size=128 and deterministic_inference=false
+top_proofs           <= proofs_per_round
+refine_parents       <= top_proofs
+reviews_per_refine_parent <= verifications_per_proof
+min_valid_verifications   <= verifications_per_proof
+FA3: page_size=1     (deterministic_inference optional; the configs run it false)
+FA4: page_size=128
 ```
 
 The configured server context is a total input-plus-output limit.
+
+### Budget presets
+
+The `config-model-{deploy,step225}-budget-{medium,high,xhigh}.yaml` configs are a
+matrix that varies **only the search budget**. `refine_parents` (4) ×
+`reviews_per_refine_parent` (3) — the training limit — and everything else (server
+topology, sampling, the LLM selector) are held constant, so runs differ only by
+compute. Pick one by name with `scheduler.sh` (or as the container `CONFIG`).
+
+| preset | proofs_per_round | verifications_per_proof | top_proofs | refine_parents | reviews/parent | max_rounds |
+|---|---|---|---|---|---|---|
+| **medium** | 32 | 16 | 8 | 4 | 3 | 4 |
+| **high** | 64 | 32 | 16 | 4 | 3 | 8 |
+| **xhigh** | 128 | 64 | 32 | 4 | 3 | 8 |
+
+- `medium` is the original run policy (`config-nii-r4`).
+- `proofs_per_round` is both the round-1 prover count and the per-round refinement
+  count; `top_proofs` is the pool refinement parents are stratified-sampled from.
+- `refine_review_strategy` is `random_nonideal` (each refine parent is paired with 3
+  reviews drawn from its `<1`-score verifications).
+- `max_rounds` counts round 1 (generation): `4` = 1 gen + 3 refine, `8` = 1 gen + 7 refine.
+- Two checkpoints (`deploy`, `step225`) × three budgets = the six configs.
 
 ## Resume and outputs
 
