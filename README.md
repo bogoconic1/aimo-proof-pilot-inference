@@ -6,95 +6,41 @@ writes `submission.csv` without calling an external grader. The checked-in
 configuration uses eight H200 GPUs as four TP2 replicas, BF16 target and draft
 weights, DFlash speculative decoding, and FlashAttention 3.
 
-> ### 📦 Prebuilt image
-> **`ghcr.io/fieldsmodelorg/aimo-proof-pilot:sha-29c2ec5`** &nbsp;·&nbsp; built from `main` [`29c2ec5`](https://github.com/fieldsmodelorg/AIMO-Proof-Pilot/commit/29c2ec5e92cc140895ebaa6b397db40b1e227452) &nbsp;·&nbsp; [package on GHCR](https://github.com/fieldsmodelorg/AIMO-Proof-Pilot/pkgs/container/aimo-proof-pilot)
-> ```bash
-> docker pull ghcr.io/fieldsmodelorg/aimo-proof-pilot:sha-29c2ec5
-> ```
-> Public, pullable with no login. Bakes the SGLang runtime + the committed IMO-2026
-> problem set; only model weights are downloaded at run time.
+## Direct Vast.ai installation
 
-## Quick start (8×H200)
-
-You need an 8×H200 node with Docker and NVIDIA GPU access. The image is
-self-contained — the SGLang runtime and every dependency are baked in; only the
-model weights are downloaded, into a folder you mount. No HuggingFace token is
-needed at any step.
-
-**1. Start the container**, mounting a host folder at `/workspace` (it holds the
-downloaded models and all run outputs, and persists across restarts):
+The Vast.ai base image cannot run Docker-in-Docker. To install the runtime,
+dependencies, patches, and configured models directly on an 8x H200 instance:
 
 ```bash
-mkdir -p data
-docker run --rm -it --gpus all --ipc=host --shm-size=32g \
-  --entrypoint bash \
-  -v "$PWD/data:/workspace" \
-  ghcr.io/fieldsmodelorg/aimo-proof-pilot:sha-29c2ec5
+cd /workspace/aimo-proof-pilot-inference
+./install.sh
 ```
 
-(`--entrypoint bash` opens a shell in the repo directory; the automated
-`serve` / `submission` entrypoints in [Docker usage](#docker-usage) require a
-`CONFIG` instead.)
-
-**2. Download the model weights** (public repos, no token needed):
+For a fresh interactive container, the setup helper installs GitHub CLI and the
+latest OpenAI Codex CLI, authenticates GitHub over HTTPS, and launches Codex in
+this repository:
 
 ```bash
-./download_models.sh                # deploy + step-225 + shared draft  ->  /workspace/models
-# ./download_models.sh step225      # just the step-225 target + draft (skip deploy)
+cd /workspace/aimo-proof-pilot-inference
+./setup-container.sh
 ```
 
-**3. Run inference.** The recommended best setting is the **step-225** checkpoint at
-the **xhigh** budget:
+Set `GH_TOKEN` for non-interactive GitHub authentication. Without it, the script
+shows the GitHub device-login flow without attempting to open a browser inside
+the container. To prepare the container without launching Codex, set
+`LAUNCH_CODEX=0`.
+
+The script is idempotent and defaults to the `bootstrap` command. It derives the
+repository path automatically and uses the checked-in `config.yaml`. Override
+the config or run another entrypoint command when needed:
 
 ```bash
-./scheduler.sh config-model-step225-budget-xhigh.yaml /workspace/runs/step225-xhigh
+CONFIG=/workspace/custom-config.yaml ./install.sh bootstrap
+CONFIG=/workspace/custom-config.yaml ./install.sh serve
 ```
 
-That is the whole flow. The scheduler starts the server, waits for it to be healthy,
-runs all six IMO-2026 problems (the committed `evaluation/data/imo2026-latex-test.csv`),
-and writes `/workspace/runs/step225-xhigh/submission.csv` (with `artifacts/` and
-`server.log` alongside), then shuts the server down. Pass a third argument to run
-your own `id,problem` CSV instead.
-
-**If a run is interrupted** (a crash or a node reboot), continue it — no restart
-from scratch:
-
-```bash
-./scheduler.sh --resume /workspace/runs/step225-xhigh
-```
-
-Finished problems are skipped and a partially-done problem resumes from its last
-completed round. (Running outside the container? Point `VENV` at the runtime venv,
-or `source` its `activate-env.sh` and set `PYTHON`; everything else is identical.)
-
-### Models
-
-`download_models.sh` fetches these into `/workspace/models/` from public,
-un-gated HuggingFace repos (pinned to a fixed revision for reproducibility):
-
-| role | local folder | source repo (revision) |
-|---|---|---|
-| **deploy** target | `opd-32b-deploy` | `fieldsmodelorg/Olmo-3.1-32B-Think-OPD-ProofPilot` (`87707b80`) |
-| **step-225** target | `opd-32b-bf16-step-225` | `fieldsmodelorg/Olmo-3.1-32B-Think-OPD-IMO` (`f14030d3`) |
-| DFlash **draft** (shared) | `dflash-32b-draft-v2test-phaseL` | `fieldsmodelorg/Olmo-3.1-32B-Think-OPD-ProofPilot` (`87707b80`) |
-
-`./download_models.sh` (default `all`) fetches both targets + draft; pass `step225`
-for just the step-225 target + draft, or `deploy` for just the deploy target +
-draft. Budget on disk: roughly ~64 GB per target checkpoint plus ~5 GB for the
-draft (so ~135 GB for the default `all`).
-
-### Production configs
-
-Six presets, `config-model-<model>-budget-<budget>.yaml`, that vary only the search
-budget (exact knobs in [Budget presets](#budget-presets)):
-
-| checkpoint | medium | high | xhigh |
-|---|---|---|---|
-| **deploy** | [`…deploy-budget-medium`](config-model-deploy-budget-medium.yaml) | [`…deploy-budget-high`](config-model-deploy-budget-high.yaml) | [`…deploy-budget-xhigh`](config-model-deploy-budget-xhigh.yaml) |
-| **step-225** (best) | [`…step225-budget-medium`](config-model-step225-budget-medium.yaml) | [`…step225-budget-high`](config-model-step225-budget-high.yaml) | [**`…step225-budget-xhigh`**](config-model-step225-budget-xhigh.yaml) |
-
-`step-225` is the strongest checkpoint and `xhigh` the largest budget, so
-**`config-model-step225-budget-xhigh.yaml`** is the recommended best setting.
+Persistent runtime and model assets are written below `/workspace`. Allow at
+least 200 GB for the checked-in model pair and runtime.
 
 ## Docker usage
 
